@@ -2,7 +2,10 @@ name: deploy
 
 # CD for main: runs ON the company Ubuntu box via a self-hosted runner
 # (works behind company NAT — runner dials OUT to GitHub, no inbound SSH needed).
-# Setup (one time, on the server): see scripts/setup-server.sh + docs below.
+# The runner checks out with an ephemeral token, then rsyncs into DEPLOY_DIR —
+# the server itself needs NO GitHub credentials. Server .env files are NEVER
+# touched by rsync (excluded) — sync-env.sh only appends missing keys.
+# One-time server setup: scripts/setup-server.sh + register runner (label: edgepool).
 
 on:
   workflow_run:
@@ -15,25 +18,36 @@ concurrency:
   group: deploy-main
   cancel-in-progress: false
 
+env:
+  DEPLOY_DIR: /home/jason/Downloads/twendee/edgepool-hackathon
+  PROJ_DIR: /home/jason/Downloads/twendee/edgepool-hackathon/fomo-family-&-fomoscan-research-hub
+
 jobs:
   deploy:
     # Only auto-deploy green CI; manual runs always allowed.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, edgepool]
-    defaults:
-      run:
-        working-directory: /opt/edgepool/hackathon-solana/fomo-family-&-fomoscan-research-hub
     steps:
-      - name: Update code
-        working-directory: /opt/edgepool/hackathon-solana
-        run: git pull --ff-only origin main
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || 'main' }}
+          path: repo
+
+      - name: Sync code to deploy dir (keep server .env + data)
+        run: |
+          rsync -a --delete \
+            --exclude backend/.env --exclude frontend/.env \
+            --exclude node_modules --exclude .next \
+            "$GITHUB_WORKSPACE/repo/" "$DEPLOY_DIR/"
 
       - name: Env auto-sync (append missing keys, never overwrite)
+        working-directory: ${{ env.PROJ_DIR }}
         run: |
           bash scripts/sync-env.sh backend/.env.example backend/.env
           bash scripts/sync-env.sh frontend/.env.example frontend/.env
 
-      - name: Rebuild + restart (prod overlay)
+      - name: Migrate + rebuild + restart (prod overlay)
+        working-directory: ${{ env.PROJ_DIR }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.prod.yml build backend frontend
           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
@@ -46,6 +60,7 @@ jobs:
 
       - name: Public demo URL via trycloudflare (opt-in, ephemeral)
         if: ${{ vars.TUNNEL_ENABLED == 'true' }}
+        working-directory: ${{ env.PROJ_DIR }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d trycloudflare
           sleep 10

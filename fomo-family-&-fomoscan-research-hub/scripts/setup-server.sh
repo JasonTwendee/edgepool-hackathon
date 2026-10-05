@@ -4,7 +4,7 @@
 # /opt/edgepool checkout dirs. Safe to re-run (idempotent-ish).
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/opt/edgepool/hackathon-solana}"
+APP_DIR="${APP_DIR:-/home/jason/Downloads/twendee/edgepool-hackathon}"
 REPO_SSH="${REPO_SSH:-git@github.com:JasonTwendee/edgepool-hackathon.git}"
 
 echo "==> 1/5 Docker"
