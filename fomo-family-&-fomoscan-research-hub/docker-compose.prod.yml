@@ -1,0 +1,33 @@
+# Production overlay for the company Ubuntu box.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Differences vs dev: single public entry (Caddy :80/:443 → FE), no BE host port,
+# prod DATABASE_URL comes from backend/.env on the server (NEVER committed).
+
+services:
+  backend:
+    # Single-entry: BE reachable only inside compose net (FE rewrites server-side).
+    ports: []
+    restart: always
+
+  frontend:
+    ports: []
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: fomo-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - fomo-caddy-data:/data
+      - fomo-caddy-config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+volumes:
+  fomo-caddy-data:
+  fomo-caddy-config:

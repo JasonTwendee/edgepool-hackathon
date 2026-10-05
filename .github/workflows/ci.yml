@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main, product, analyst]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: fomo-family-&-fomoscan-research-hub
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install (root + backend + frontend, locked)
+        run: |
+          npm ci --prefix .
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: Typecheck BE + FE
+        run: npm run typecheck
+
+      - name: Contract — openapi YAML valid
+        run: python3 -c "import yaml; d=yaml.safe_load(open('docs/api/openapi.yaml')); print('paths:', len(d['paths']))"
+
+      - name: Asserts (all suites, mocked — no network/secrets)
+        working-directory: fomo-family-&-fomoscan-research-hub/backend
+        run: |
+          for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do
+            echo "== $f"
+            npx tsx "$f" || exit 1
+          done
+
+      - name: FE production build
+        run: npm run build:frontend
