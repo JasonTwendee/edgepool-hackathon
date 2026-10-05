@@ -32,6 +32,9 @@ jobs:
       - name: Contract — openapi YAML valid
         run: python3 -c "import yaml; d=yaml.safe_load(open('docs/api/openapi.yaml')); print('paths:', len(d['paths']))"
 
+      - name: Contract — every process.env read declared in .env.example
+        run: bash scripts/check-env-contract.sh
+
       - name: Asserts (all suites, mocked — no network/secrets)
         working-directory: fomo-family-&-fomoscan-research-hub/backend
         run: |
