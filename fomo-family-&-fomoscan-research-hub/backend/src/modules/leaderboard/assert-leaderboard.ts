@@ -28,7 +28,18 @@ function makeFake() {
         return take === undefined ? rows : rows.slice(0, take);
       },
       create: async ({ data }: { data: Row }) => {
-        const r = { id: (seq += 1), ...data };
+        const r = {
+          id: (seq += 1),
+          avatarUrl: null,
+          bio: null,
+          evmAddress: null,
+          cumulativePnlUsd: null,
+          winRate: null,
+          createdAt: new Date('2026-01-01'),
+          ...data,
+          // mimic Prisma Decimal
+          allocationWeight: { toNumber: () => Number(data.allocationWeight ?? 1) },
+        };
         db.wallet.push(r);
         return r;
       },
@@ -60,6 +71,17 @@ function stub(order: Row[], enrichOk = true) {
   } as never;
 }
 
+const noopTransport = {
+  addTrackedWallet: () => undefined,
+  removeTrackedWallet: () => false,
+  watch: async () => undefined,
+  unwatch: async () => undefined,
+} as never;
+
+function svcWith(prisma: never, fomoscan: never): LeaderboardService {
+  return new LeaderboardService(prisma, fomoscan, noopTransport, noopTransport);
+}
+
 function env(vars: Record<string, string | undefined>): () => void {
   const prev: Record<string, string | undefined> = {};
   for (const [k, v] of Object.entries(vars)) {
@@ -80,7 +102,7 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '3', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma } = makeFake();
-    const svc = new LeaderboardService(prisma, stub([entry('A', 'a'), entry('B', 'b'), entry('C', 'c')]));
+    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b'), entry('C', 'c')]));
     const s = await svc.tick();
     assert.equal(s.added, 3);
     assert.equal(s.active, 3);
@@ -96,9 +118,9 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma, db } = makeFake();
-    const svc = new LeaderboardService(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
+    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
     await svc.tick();
-    const svc2 = new LeaderboardService(prisma, stub([entry('A', 'a'), entry('D', 'd')]));
+    const svc2 = svcWith(prisma, stub([entry('A', 'a'), entry('D', 'd')]));
     const s = await svc2.tick();
     assert.equal(s.added, 1);
     assert.equal(s.deactivated, 1);
@@ -111,12 +133,13 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '4', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma, db } = makeFake();
-    db.wallet.push(
-      { id: 101, address: 'OLD1', label: 'o', handle: 'o', isActive: false },
-      { id: 102, address: 'OLD2', label: 'o', handle: 'o', isActive: false },
-      { id: 103, address: 'OLD3', label: 'o', handle: 'o', isActive: false },
-    );
-    const svc = new LeaderboardService(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
+    const oldRow = (id: number, address: string): Row => ({
+      id, address, label: 'o', handle: 'o', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    db.wallet.push(oldRow(101, 'OLD1'), oldRow(102, 'OLD2'), oldRow(103, 'OLD3'));
+    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
     const s = await svc.tick();
     assert.equal(s.total, 4);
     assert.equal(s.pruned, 1);
@@ -129,7 +152,7 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '1', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma, db } = makeFake();
-    const svc = new LeaderboardService(prisma, stub([entry('Z', 'z')], false));
+    const svc = svcWith(prisma, stub([entry('Z', 'z')], false));
     const s = await svc.tick();
     assert.equal(s.added, 1);
     assert.ok(db.wallet.some((r) => r.address === 'Z' && r.isActive === true));
@@ -140,7 +163,7 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '20', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma } = makeFake();
-    const svc = new LeaderboardService(prisma, stub([]));
+    const svc = svcWith(prisma, stub([]));
     const st = await svc.status();
     assert.equal(st.topN, 20);
     assert.equal(st.cap, 50);

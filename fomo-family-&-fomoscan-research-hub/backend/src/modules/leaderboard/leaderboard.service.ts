@@ -1,6 +1,9 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
+import { SolanaOnChainListenerService } from '../../server/solana.service.js';
+import { SolanaStreamService } from '../../server/solana-stream.service.js';
+import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
 
 /**
  * Leaderboard rotation (fomoscan topic): tracked wallets follow the verified
@@ -43,6 +46,8 @@ export class LeaderboardService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(FomoscanService) private readonly fomoscan: FomoscanService,
+    @Inject(SolanaOnChainListenerService) private readonly listener: SolanaOnChainListenerService,
+    @Inject(SolanaStreamService) private readonly stream: SolanaStreamService,
   ) {}
 
   onModuleInit(): void {
@@ -122,7 +127,19 @@ export class LeaderboardService implements OnModuleInit {
     for (const w of actives) {
       if (!topSet.has(w.address)) {
         await this.prisma.trackedWallet.update({ where: { address: w.address }, data: { isActive: false } });
+        this.listener.removeTrackedWallet(w.address);
+        await this.stream.unwatch(w.address).catch(() => undefined);
         deactivated++;
+      }
+    }
+
+    // Live-wire the new actives into the listener registry + WS stream so
+    // fresh swaps arrive without waiting for a backend restart.
+    for (const e of top) {
+      const row = await this.prisma.trackedWallet.findUnique({ where: { address: e.wallet } });
+      if (row?.isActive) {
+        this.listener.addTrackedWallet(toTrackedWallet(row));
+        await this.stream.watch(e.wallet).catch(() => undefined);
       }
     }
 
