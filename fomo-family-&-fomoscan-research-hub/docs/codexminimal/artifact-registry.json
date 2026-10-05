@@ -1,0 +1,212 @@
+{
+ "activeTopic": "solution-v2",
+ "artifacts": [
+  {
+   "path": "docs/architecture/ARCHITECTURE.md",
+   "role": "spec",
+   "topic": "codexminimal-standardize-docs-fe-be"
+  },
+  {
+   "path": "docs/api/openapi.yaml",
+   "role": "spec",
+   "topic": "codexminimal-standardize-docs-fe-be"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-09-29-standardize-docs-fe-be-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "codexminimal-standardize-docs-fe-be"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-09-29-standardize-docs-fe-be-tracker.md",
+   "role": "tracker",
+   "topic": "codexminimal-standardize-docs-fe-be"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-09-30-copy-trade-paper-intent.md",
+   "role": "intent",
+   "topic": "copy-trade-paper"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-09-30-copy-trade-paper-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "copy-trade-paper"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-09-30-copy-trade-paper-tracker.md",
+   "role": "tracker",
+   "topic": "copy-trade-paper"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-01-docker-compose-runtime-intent.md",
+   "role": "intent",
+   "topic": "docker-compose-runtime"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-01-docker-compose-runtime-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "docker-compose-runtime"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-01-docker-compose-runtime-tracker.md",
+   "role": "tracker",
+   "topic": "docker-compose-runtime"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-01-solution-v2-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "solution-v2"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-01-solution-v2-tracker.md",
+   "role": "tracker",
+   "topic": "solution-v2"
+  },
+  {
+   "path": "docs/codexminimal/handoff/2026-10-02-session-summary.md",
+   "role": "handoff",
+   "topic": "session-20260930-1002"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-fund-roles-auth-intent.md",
+   "role": "intent",
+   "topic": "fund-roles-auth"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-02-fund-roles-auth-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "fund-roles-auth"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-fund-roles-auth-tracker.md",
+   "role": "tracker",
+   "topic": "fund-roles-auth"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-t1-autofire-intent.md",
+   "role": "intent",
+   "topic": "t1-autofire"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-02-t1-autofire-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "t1-autofire"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-t1-autofire-tracker.md",
+   "role": "tracker",
+   "topic": "t1-autofire"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-t2-treasury-intent.md",
+   "role": "intent",
+   "topic": "t2-treasury"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-t2-treasury-tracker.md",
+   "role": "tracker",
+   "topic": "t2-treasury"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-t3-fe-intent.md",
+   "role": "intent",
+   "topic": "t3-fe"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-t3-fe-tracker.md",
+   "role": "tracker",
+   "topic": "t3-fe"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-t1b2-manage-intent.md",
+   "role": "intent",
+   "topic": "t1b2-manage"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-t1b2-manage-tracker.md",
+   "role": "tracker",
+   "topic": "t1b2-manage"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-ladder-intent.md",
+   "role": "intent",
+   "topic": "ladder"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-ladder-tracker.md",
+   "role": "tracker",
+   "topic": "ladder"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-ladder-config-intent.md",
+   "role": "intent",
+   "topic": "ladder-config"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-ladder-config-tracker.md",
+   "role": "tracker",
+   "topic": "ladder-config"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-fe-auth-plus-intent.md",
+   "role": "intent",
+   "topic": "fe-auth-plus"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-fe-auth-plus-tracker.md",
+   "role": "tracker",
+   "topic": "fe-auth-plus"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-withdraw-windows-intent.md",
+   "role": "intent",
+   "topic": "withdraw-windows"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-withdraw-windows-tracker.md",
+   "role": "tracker",
+   "topic": "withdraw-windows"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-atr-regime-intent.md",
+   "role": "intent",
+   "topic": "atr-regime"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-atr-regime-tracker.md",
+   "role": "tracker",
+   "topic": "atr-regime"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-dynamic-alloc-intent.md",
+   "role": "intent",
+   "topic": "dynamic-alloc"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-dynamic-alloc-tracker.md",
+   "role": "tracker",
+   "topic": "dynamic-alloc"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-demo-sim-intent.md",
+   "role": "intent",
+   "topic": "demo-sim"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-demo-sim-tracker.md",
+   "role": "tracker",
+   "topic": "demo-sim"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-02-accounts-intent.md",
+   "role": "intent",
+   "topic": "accounts"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-02-accounts-tracker.md",
+   "role": "tracker",
+   "topic": "accounts"
+  }
+ ],
+ "updatedAt": "2026-10-02T00:00:00Z",
+ "version": 1
+}

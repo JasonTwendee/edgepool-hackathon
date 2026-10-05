@@ -1,0 +1,17 @@
+{
+ "blockedBy": [],
+ "currentPhase": "A1",
+ "currentStage": "phase-execution",
+ "executionWorkflow": "repo-phase-orchestrator -> native execution",
+ "lastUpdated": "2026-10-02T00:00:00Z",
+ "openQuestions": [
+  "Phase B/C (ATR/Manage/Vault) — done ở topic solution-v2",
+  "P5 fund tracks (T1 auto-fire cần approval copy-trade/**)"
+ ],
+ "phasePlanPath": "docs/codexminimal/plans/2026-10-02-t1-autofire-phase-plan.md",
+ "specPath": "docs/codexminimal/idsd/2026-10-02-accounts-intent.md",
+ "status": "in_progress",
+ "topic": "accounts",
+ "trackerPath": "docs/codexminimal/trackers/2026-10-02-accounts-tracker.md",
+ "version": 2
+}

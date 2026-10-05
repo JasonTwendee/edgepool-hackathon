@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    // Prisma 7 generates `.ts`-extension imports (e.g. client.ts -> ./internal/class.ts).
+    // Rewrite them to `.js` on emit so plain `node dist/main.js` resolves (fixes `npm start`
+    // which was broken the same way outside Docker; dev via tsx was unaffected).
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["**/*.spec.ts"]
+}

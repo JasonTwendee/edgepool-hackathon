@@ -1,0 +1,134 @@
+name: fomo
+
+# P1: postgres + backend (api :3000 internal) + frontend (Next :3001 public).
+# P2 HACKATHON-ONLY: + cloudflared quick tunnel (opt-in: docker compose --profile tunnel up -d).
+# Production setup khác hẳn — làm plan riêng sau hackathon, không dùng service này.
+# Chạy: docker compose up -d --build | Logs: docker compose logs -f | Xuống: docker compose down (giữ data)
+# KHÔNG dùng `down -v` trên server (mất volume fomo-postgres-data).
+# Host port 5433 (5434 bận) — BE default trong backend/src/config/configuration.ts khớp sẵn.
+# Env có thể override qua shell hoặc root .env (optional): POSTGRES_USER/PASSWORD/DB/PORT.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: fomo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fomo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fomo}
+      POSTGRES_DB: ${POSTGRES_DB:-fomo_dev}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - fomo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-fomo} -d $${POSTGRES_DB:-fomo_dev}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: fomo-backend
+    restart: unless-stopped
+    # backend/.env là live secrets (KHÔNG commit). Compose environment dưới đây thắng env_file,
+    # đảm bảo DNS nội bộ + port nội bộ đúng khi chạy container.
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # Lantern local cache: TẮT tạm — WS upgrade qua ws://lantern:8899 bị 200
+      # (onLogs chết). Giữ Lantern cho read-path riêng sau (holdings/prices).
+      # Muốn thử lại: mở comment dòng dưới.
+      # SOLANA_RPC_URL: http://lantern:8899
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-fomo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fomo}
+      POSTGRES_DB: ${POSTGRES_DB:-fomo_dev}
+      # Phase 1: sync ở yên trong API. Phase 3 worker mới đọc flag này.
+      ENABLE_SYNC: "true"
+      # Lantern read-path (holdings/prices). WS stays on SOLANA_RPC_URL.
+      LANTERN_URL: http://lantern:8899
+    expose:
+      - "3000"
+    # Mở 3000 ra host để debug trực tiếp BE (tunnel demo chỉ forward FE :3001).
+    # Muốn single-entry chặt thì comment dòng ports này lại, smoke BE qua `exec wget`.
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      args:
+        BACKEND_URL: http://backend:3000
+    container_name: fomo-frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    environment:
+      PORT: "3001"
+      # DNS nội bộ compose — next.config.ts rewrites /api/* tới đây.
+      BACKEND_URL: http://backend:3000
+      # Để trống = same-origin qua rewrites (khớp frontend/lib/api.ts).
+      NEXT_PUBLIC_API_URL: ""
+    ports:
+      - "3001:3001"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Lantern: local FluxRPC cache proxy (opt-in, manual config first).
+  # B1: `docker compose up -d lantern` → mở http://localhost:8080 (configurator),
+  #     nhập FluxRPC key + region eu + bật cache_requests → Save and Run.
+  # B2: khi Lantern healthy (benchmark cached <10ms), trỏ BE qua nó:
+  #     thêm `LANTERN_URL: http://lantern:8080` vào backend environment bên dưới.
+  # Port chỉ bind localhost (configurator giữ key — không expose ra ngoài).
+  lantern:
+    image: ghcr.io/alphabatem/lantern-release:latest
+    container_name: fomo-lantern
+    restart: unless-stopped
+    profiles:
+      - lantern
+    ports:
+      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8899:8899"
+    volumes:
+      - fomo-lantern-data:/app/data
+
+  # P2 HACKATHON-ONLY: quick trycloudflare tunnel forward FE cho demo.
+  # Opt-in: `docker compose --profile tunnel up -d cloudflared` (mặc định `up -d` KHÔNG bật).
+  # URL ephemeral — restart là đổi URL. Production dùng plan riêng, không dùng service này.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: fomo-tunnel
+    restart: unless-stopped
+    profiles:
+      - tunnel
+    command: tunnel --no-autoupdate --url http://frontend:3001
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+volumes:
+  fomo-postgres-data:
+  fomo-lantern-data:

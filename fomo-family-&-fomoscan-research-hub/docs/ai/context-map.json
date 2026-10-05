@@ -1,0 +1,177 @@
+{
+ "activeProfileReason": "user-confirmed 2026-09-29 dual-stack runtime: FE Next.js 16 App Router, BE NestJS 12 (pass 2 cutover, legacy removed)",
+ "configuration": {
+  "envExample": ".env.example",
+  "required": [
+   "SOLANA_RPC_URL",
+   "PORT"
+  ],
+  "optional": [
+   "HELIUS_API_KEY",
+   "JITO_BLOCK_ENGINE_URL",
+   "VAULT_PRIVATE_KEY",
+   "APP_URL",
+   "GEMINI_API_KEY"
+  ]
+ },
+  "controllers": {
+   "CopyTradeController": "backend/src/modules/copy-trade/copy-trade.controller.ts",
+   "HealthController": "backend/src/modules/health/health.controller.ts",
+   "OnchainController": "backend/src/modules/onchain/onchain.controller.ts",
+   "PortfolioController": "backend/src/modules/portfolio/portfolio.controller.ts",
+   "WalletsController": "backend/src/modules/wallets/wallets.controller.ts",
+   "AuthController": "backend/src/modules/auth/auth.controller.ts",
+   "DemoController": "backend/src/modules/demo/demo.controller.ts",
+   "UsersController": "backend/src/modules/users/users.controller.ts",
+   "AuditController": "backend/src/modules/audit/audit.controller.ts",
+   "VaultsController": "backend/src/modules/vaults/vaults.controller.ts",
+   "BotsController": "backend/src/modules/bots/bots.controller.ts"
+  },
+ "dataAccess": {
+  "wallets": "tracked_wallets via Prisma (WalletsService; seed on empty; cursor/counter updated on persist)",
+  "ledger": "transactions via TransactionsService (DB-first, RPC backfill); portfolio converges to DB reads",
+  "events": "realtime_events via OnchainService internal subscriber; GET /api/onchain/events"
+ },
+ "detectedStack": [
+  "@nestjs/12",
+  "prisma@7",
+  "next@16",
+  "react@19",
+  "@solana/web3.js@1",
+  "tailwindcss@4"
+ ],
+  "dtos": {
+   "CreateWalletDto": "backend/src/modules/wallets/dto/create-wallet.dto.ts",
+   "ExecuteCopyDto": "backend/src/modules/copy-trade/dto/execute-copy.dto.ts",
+   "AutoFireTickDto": "backend/src/modules/copy-trade/dto/auto-fire-tick.dto.ts",
+   "ManageTickDto": "backend/src/modules/copy-trade/dto/manage-tick.dto.ts",
+   "PortfolioQueryDto": "backend/src/modules/portfolio/dto/portfolio-query.dto.ts",
+   "UpdateWalletDto": "backend/src/modules/wallets/dto/update-wallet.dto.ts",
+   "NonceDto": "backend/src/modules/auth/dto/auth.dto.ts",
+   "SetRoleDto": "backend/src/modules/users/dto/users.dto.ts",
+   "VaultPolicyDto": "backend/src/modules/vaults/dto/vault.dto.ts",
+   "CreateBotDto": "backend/src/modules/bots/dto/bots.dto.ts"
+  },
+ "entities": {
+  "CopyRecord": "backend/src/modules/copy-trade/copy-trade.service.ts (return shape)",
+  "OnChainTransactionEvent": "backend/src/modules/onchain/entities/onchain-event.entity.ts",
+  "TrackedWallet": "backend/src/modules/wallets/entities/tracked-wallet.entity.ts"
+ },
+ "entrypoints": {
+  "backend": "backend/src/main.ts (NestFactory :3000)",
+  "frontend": "frontend/app/page.tsx (Next :3001)",
+  "compose": "docker-compose.yml (up -d --build; tunnel via --profile tunnel)"
+ },
+ "handlers": {
+  "sseStream": "backend/src/modules/onchain/onchain.controller.ts#stream"
+ },
+ "integrations": {
+  "helius": "optional HELIUS_API_KEY, reported by health",
+  "jito": "JITO_BLOCK_ENGINE_URL (future copy-trade)",
+  "solanaRpc": "SOLANA_RPC_URL confirmed commitment"
+ },
+ "jobs": {
+  "onchainPoll": "backend/src/server/solana.service.ts#startListening 8s interval, 2-wallet sample"
+ },
+ "language": "typescript",
+  "modules": {
+   "backendApp": "backend/src/app.module.ts",
+   "copyTrade": "backend/src/modules/copy-trade/copy-trade.module.ts",
+   "health": "backend/src/modules/health/health.module.ts",
+   "onchain": "backend/src/modules/onchain/onchain.module.ts",
+   "portfolio": "backend/src/modules/portfolio/portfolio.module.ts",
+   "wallets": "backend/src/modules/wallets/wallets.module.ts",
+   "auth": "backend/src/modules/auth/auth.module.ts",
+   "demo": "backend/src/modules/demo/demo.module.ts",
+   "users": "backend/src/modules/users/users.module.ts",
+   "audit": "backend/src/modules/audit/audit.module.ts",
+   "vaults": "backend/src/modules/vaults/vaults.module.ts",
+   "bots": "backend/src/modules/bots/bots.module.ts"
+  },
+ "project": {
+  "activeProfileReason": "user-confirmed 2026-09-29 dual-stack: FE Next.js App Router spec, BE NestJS modular spec",
+  "buildCommand": "npm run build",
+  "framework": "Vite React 19 + Express 4 (legacy) -> Next.js App Router spec + NestJS modular spec (canonical)",
+  "language": "typescript",
+  "lintCommand": "npx tsc --noEmit",
+  "name": "FOMO Family & FOMOScan Research Hub",
+  "packageManager": "npm",
+  "smokeCommand": "curl -s http://localhost:3000/api/health",
+  "stackProfile": "generic+dual-stack-override",
+  "testCommand": null,
+  "typecheckCommand": "npx tsc --noEmit"
+ },
+ "protectedPaths": {
+  "critical": [
+   ".env",
+   "backend/src/config/*"
+  ],
+  "integration": [
+   "frontend/public/vault_system_design_specification.html",
+   "metadata.json"
+  ],
+  "sensitive": [
+   ".env*",
+   "*.pem",
+   "backend/src/modules/copy-trade/**"
+  ]
+ },
+ "repositories": {},
+ "routes": {
+  "DELETE /api/wallets/:address": "backend/src/modules/wallets/wallets.controller.ts",
+  "GET /api/health": "backend/src/modules/health/health.controller.ts",
+  "GET /api/onchain/stream": "backend/src/modules/onchain/onchain.controller.ts (SSE)",
+  "GET /api/portfolio/transactions": "backend/src/modules/portfolio/portfolio.controller.ts",
+  "GET /api/wallets": "backend/src/modules/wallets/wallets.controller.ts",
+  "PATCH /api/wallets/:address": "backend/src/modules/wallets/wallets.controller.ts",
+   "POST /api/copy-trade/execute": "backend/src/modules/copy-trade/copy-trade.controller.ts",
+   "POST /api/copy-trade/auto-fire/tick": "backend/src/modules/copy-trade/copy-trade.controller.ts (ADMIN+Audit)",
+   "POST /api/copy-trade/manage/tick": "backend/src/modules/copy-trade/copy-trade.controller.ts (ADMIN+Audit)",
+   "POST /api/wallets": "backend/src/modules/wallets/wallets.controller.ts",
+   "POST /api/auth/nonce": "backend/src/modules/auth/auth.controller.ts",
+   "POST /api/demo/seed": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
+   "POST /api/demo/replay": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
+   "POST /api/demo/reset": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
+   "POST /api/auth/verify": "backend/src/modules/auth/auth.controller.ts",
+   "GET /api/auth/me": "backend/src/modules/auth/auth.controller.ts (AuthGuard)",
+   "GET /api/users": "backend/src/modules/users/users.controller.ts (ADMIN)",
+   "POST /api/users/:wallet/role": "backend/src/modules/users/users.controller.ts (ADMIN+Audit)",
+   "GET /api/audit": "backend/src/modules/audit/audit.controller.ts (ADMIN)",
+   "GET /api/vaults": "backend/src/modules/vaults/vaults.controller.ts",
+   "POST /api/vaults": "backend/src/modules/vaults/vaults.controller.ts (ADMIN+Audit)",
+   "GET /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts",
+   "POST /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN+Audit)",
+   "GET /api/bots": "backend/src/modules/bots/bots.controller.ts",
+   "POST /api/bots": "backend/src/modules/bots/bots.controller.ts (ADMIN+Audit)"
+  },
+ "scripts": {
+  "build": "vite build",
+  "dev": "tsx server.ts (legacy compat)",
+  "dev:backend": "tsx backend/src/main.ts",
+  "dev:frontend": "vite dev (until next dep added)"
+ },
+ "services": {
+  "postgres": "postgres:17-alpine, host 5433, volume fomo-postgres-data",
+  "backend": "fomo-backend :3000 (node dist/main.js + prisma migrate deploy), depends postgres healthy",
+  "frontend": "fomo-frontend :3001 (next start), BACKEND_URL=http://backend:3000, depends backend healthy",
+  "cloudflared": "hackathon-only, profiles [tunnel], quick trycloudflare URL -> http://frontend:3001"
+ },
+ "stackProfile": "generic+dual-stack-override",
+ "surfaces": {
+  "frontendAppRouter": "frontend/app/layout.tsx, frontend/app/page.tsx",
+  "frontendComponents": "frontend/components/*",
+  "frontendLib": "frontend/lib/api.ts, frontend/lib/sse.ts"
+ },
+ "tests": {},
+ "verification": {
+  "commands": [
+   "npx tsc --noEmit",
+   "npx tsc --noEmit -p backend/tsconfig.json",
+   "npx tsc --noEmit -p frontend/tsconfig.json",
+   "curl -s http://localhost:3000/api/health",
+   "docker compose ps (3/3 healthy)",
+   "curl -s http://localhost:3001/api/health (via FE rewrites)"
+  ]
+ },
+ "version": 2
+}

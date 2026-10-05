@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "vaults" ADD COLUMN     "lock_hours" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "reserve_bps" INTEGER NOT NULL DEFAULT 1000,
+ADD COLUMN     "treasury_sol" DECIMAL(24,12) NOT NULL DEFAULT 0,
+ADD COLUMN     "withdraw_fee_bps" INTEGER NOT NULL DEFAULT 0;

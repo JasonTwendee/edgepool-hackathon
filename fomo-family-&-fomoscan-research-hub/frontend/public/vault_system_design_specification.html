@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài Liệu Đặc Tả Kỹ Thuật: Social Copy-Trading Vault (FOMO + Titan + Phoenix)</title>
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-tertiary: #1f2937;
+      --accent-purple: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border-color: #374151;
+      --code-bg: #030712;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 15px;
+      padding-bottom: 80px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, rgba(139, 92, 246, 0.15) 0%, rgba(10, 14, 23, 0) 100%);
+      border-bottom: 1px solid var(--border-color);
+      padding: 48px 0 32px;
+      margin-bottom: 40px;
+    }
+
+    .badge-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-purple { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .badge-cyan { background: rgba(6, 182, 212, 0.2); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.4); }
+    .badge-emerald { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 900px;
+      margin-bottom: 24px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #7c3aed;
+      color: #ffffff;
+      border: none;
+    }
+    .btn-primary:hover {
+      background: #6d28d9;
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: #374151;
+    }
+
+    /* Quick TOC */
+    .toc {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 48px;
+    }
+
+    .toc h3 {
+      font-size: 16px;
+      color: var(--accent-cyan);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+      list-style: none;
+    }
+
+    .toc-grid a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      display: block;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+
+    .toc-grid a:hover {
+      background: var(--bg-tertiary);
+      color: #ffffff;
+      transform: translateX(4px);
+    }
+
+    /* Section Styling */
+    section {
+      margin-bottom: 56px;
+      scroll-margin-top: 24px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e5e7eb;
+      margin: 24px 0 12px;
+    }
+
+    p {
+      color: #d1d5db;
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 20px;
+      color: #d1d5db;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: #ffffff;
+    }
+
+    /* Cards & Grids */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      border-left: 4px solid;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 20px 0;
+      background: var(--bg-secondary);
+    }
+
+    .callout-purple { border-color: var(--accent-purple); }
+    .callout-cyan { border-color: var(--accent-cyan); }
+    .callout-emerald { border-color: var(--accent-emerald); }
+    .callout-rose { border-color: var(--accent-rose); }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 20px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(55, 65, 81, 0.6);
+      color: #e2e8f0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #a5f3fc;
+      margin: 16px 0;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #f472b6;
+    }
+
+    /* Diagram Block */
+    .diagram-box {
+      background: #0d131f;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 20px 0;
+      line-height: 1.4;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 32px;
+      color: var(--text-muted);
+      font-size: 13px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="badge-bar">
+      <span class="badge badge-purple">System Design Blueprint</span>
+      <span class="badge badge-cyan">Solana High-Frequency Copy-Trading</span>
+      <span class="badge badge-emerald">Production Grade Specification</span>
+    </div>
+    <h1>DECENTRALIZED COPY-TRADING VAULT</h1>
+    <p class="subtitle">
+      Tài liệu Đặc Tả Kỹ Thuật (System Design & Architecture Specification) cho hệ thống Quỹ Giao Dịch Tự Động (Trading Vault) sao chép tín hiệu Real-time từ các tài khoản PnL dương trên <strong>FOMO (fomo.family)</strong>, thực thi tối ưu qua <strong>Titan Meta-DEX Aggregator</strong> và <strong>Phoenix CLOB</strong> trên mạng Solana.
+    </p>
+    <div class="header-actions">
+      <button onclick="window.print()" class="btn btn-primary">
+        🖨️ In ấn / Lưu dạng PDF
+      </button>
+      <a href="#architecture" class="btn btn-secondary">
+        Khám phá Kiến trúc ➔
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Table of Contents -->
+  <div class="toc">
+    <h3>Mục Lục Đặc Tả Hệ Thống</h3>
+    <ul class="toc-grid">
+      <li><a href="#core-value">1. Core Value & Mục tiêu Dự án</a></li>
+      <li><a href="#executive-overview">2. Tổng quan Giải pháp (Executive Overview)</a></li>
+      <li><a href="#system-architecture">3. Kiến trúc Tổng thể (System Architecture)</a></li>
+      <li><a href="#data-ingestion">4. Data Ingestion: Câu Dữ liệu từ FOMO</a></li>
+      <li><a href="#signal-filtering">5. Signal Filtering & Anti-Sybil Engine</a></li>
+      <li><a href="#vault-core">6. Thiết kế Trading Vault (Smart Contract)</a></li>
+      <li><a href="#execution-engine">7. Execution Engine: Titan & Phoenix</a></li>
+      <li><a href="#portfolio-history">8. Portfolio Management & Trade History</a></li>
+      <li><a href="#be-specification">9. Chi tiết Backend (BE Specification)</a></li>
+      <li><a href="#fe-specification">10. Chi tiết Frontend (FE Specification)</a></li>
+      <li><a href="#database-schema">11. Database Schema & Data Models</a></li>
+      <li><a href="#api-specs">12. REST & WebSocket API Specification</a></li>
+      <li><a href="#security-deployment">13. Quản trị Rủi ro, Bảo mật & Triển khai</a></li>
+    </ul>
+  </div>
+
+  <!-- SECTION 1 -->
+  <section id="core-value">
+    <h2>1. Core Value & Mục tiêu Dự án</h2>
+    
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <span style="font-size: 24px;">🎯</span>
+          <div class="card-title">Bài toán thị trường hiện tại</div>
+        </div>
+        <p>
+          Trong làn sóng memecoin và DeFi Solana, lợi nhuận lớn tập trung vào tay một nhóm nhỏ các "Smart Money" và KOLs trên mạng xã hội <code>fomo.family</code>. Tuy nhiên:
+        </p>
+        <ul>
+          <li>Người dùng bình thường không thể ngồi canh app 24/7 để bấm copy thủ công.</li>
+          <li>Độ trễ khi copy bằng tay khiến nhà đầu tư bị trượt giá nặng (Slippage 10-40%) và trở thành "exit liquidity" cho người mua trước.</li>
+          <li>Không có cơ chế quản trị rủi ro tập trung (Stop-loss, Take-profit, phân bổ tỷ trọng theo NAV).</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span style="font-size: 24px;">💎</span>
+          <div class="card-title">Giá trị Cốt lõi (Core Value) Mang lại</div>
+        </div>
+        <ul>
+          <li><strong>Tự động hóa hoàn toàn (Set & Forget):</strong> Người dùng chỉ cần nạp vốn (USDC/SOL) vào Vault. Hệ thống tự động phân bổ và sao chép danh mục các Master Trader có PnL dương cao nhất.</li>
+          <li><strong>Tốc độ thực thi cấp mili-giây (&lt;300ms):</strong> Dữ liệu lệnh từ FOMO được bắt qua luồng SSE/WebSocket, giải mã ví và route thẳng qua Titan Meta-Aggregator & Phoenix CLOB kèm Jito MEV Protection.</li>
+          <li><strong>Minh bạch & Tự lưu ký (Self-Custody Vault):</strong> Toàn bộ tài sản được quản lý on-chain bằng Vault Shares (SPL Token). Người dùng có quyền rút gốc + lãi bất kỳ lúc nào.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2 -->
+  <section id="executive-overview">
+    <h2>2. Tổng quan Dự án (Executive Overview)</h2>
+    <p>
+      Dự án bao gồm 4 thành phần trụ cột kết nối chặt chẽ với nhau:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>1. FOMO Harvester & Resolver</h3>
+        <p>Thành phần ngầm liên tục crawl, stream websocket và gọi API từ <code>fomo.family</code> / <code>fomoscan.sh</code> để lấy danh sách top trader có PnL dương, winrate &gt; 60%, lọc bỏ wash-trade và ánh xạ handle ra địa chỉ ví Solana.</p>
+      </div>
+      <div class="card">
+        <h3>2. Solana Smart Vault Core</h3>
+        <p>Hợp đồng thông minh trên Solana (Anchor Framework) quản lý vốn đa tài sản (Multi-asset pool), phát hành chứng chỉ quỹ Vault Shares, tính toán Net Asset Value (NAV) theo thời gian thực.</p>
+      </div>
+      <div class="card">
+        <h3>3. Dual Execution Router (Titan + Phoenix)</h3>
+        <p>Bộ định tuyến thông minh: Với các cặp token thanh khoản sâu / stable / major, ưu tiên khớp trực tiếp trên <strong>Phoenix CLOB</strong> để đạt phí 0% maker và khớp tức thì. Với các memecoin mới trên DEX pool (Raydium, Meteora, Pump), route qua <strong>Titan Argos Engine</strong> để lấy giá swap tốt nhất.</p>
+      </div>
+      <div class="card">
+        <h3>4. Web Application & Live Dashboard</h3>
+        <p>Giao diện FE chuẩn Web3: Thống kê hiệu suất Vault, danh mục (Portfolio Breakdown), biểu đồ tăng trưởng NAV, bảng kiểm toán từng giao dịch (Trade Audit Ledger) và bảng xếp hạng các Master Trader được copy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3 -->
+  <section id="system-architecture">
+    <h2>3. Kiến trúc Tổng thể (System Architecture)</h2>
+    <p>Sơ đồ luồng dữ liệu (Dataflow Diagram) từ lúc phát hiện tín hiệu trên FOMO tới khi lệnh khớp trên Solana:</p>
+
+    <div class="diagram-box">
++-------------------------------------------------------------------------------------------------------+
+|                                    FOMO ECOSYSTEM (EXTERNAL SOURCE)                                   |
+|   +--------------------------+       +-------------------------+       +--------------------------+   |
+|   |  fomo.family SSE Stream  |       |  fomoscan.sh REST API   |       |  Solana Mempool / RPC    |   |
+|   +-------------+------------+       +------------+------------+       +------------+-------------+   |
++-----------------|---------------------------------|---------------------------------|-----------------+
+                  |                                 |                                 |
+                  v                                 v                                 v
++-------------------------------------------------------------------------------------------------------+
+|                                      BACKEND INGESTION LAYER                                          |
+|  [ FOMO Feed Harvester ] ---> [ Identity Resolver: Handle ↔ Wallet ] ---> [ Solana Block Watcher ]    |
+|                                                  |                                                    |
+|                                                  v                                                    |
+|  [ Anti-Sybil & Filter Engine ]: PnL > 0? WinRate > 60%? Not Self-Wash? Slippage < 3%?                |
+|                                                  |                                                    |
+|                                                  v                                                    |
+|                                       [ Redis Stream Signal Bus ]                                     |
++--------------------------------------------------|----------------------------------------------------+
+                                                   |
+                                                   v
++-------------------------------------------------------------------------------------------------------+
+|                                       VAULT EXECUTION ENGINE                                          |
+|                                                                                                       |
+|      +-------------------------------------------+--------------------------------------------+       |
+|      |                                           |                                            |       |
+|      v                                           v                                            v       |
+|  [ Position Sizing ]                     [ Smart Router ]                         [ MEV Bundle Guard ]|
+|  - % Allocation per Vault NAV            - Route 1: Titan Meta-DEX (Argos Engine) - Jito Tip Auction  |
+|  - Stop-Loss / Take-Profit trigger       - Route 2: Phoenix CLOB (Direct Orderbook)- Anti-Sandwich    |
++--------------------------------------------------|----------------------------------------------------+
+                                                   |
+                                                   v
++-------------------------------------------------------------------------------------------------------+
+|                                     SOLANA BLOCKCHAIN / ON-CHAIN                                      |
+|  +-------------------------------------------------------------------------------------------------+  |
+|  |  Anchor Trading Vault Program:                                                                  |  |
+|  |  - Vault PDA (Solana Native & SPL Token Vault)                                                  |  |
+|  |  - Mint Vault Shares (vSHARE) to Depositors                                                     |  |
+|  |  - Real-time NAV & High-Water Mark Accounting                                                  |  |
+|  +-------------------------------------------------------------------------------------------------+  |
++--------------------------------------------------|----------------------------------------------------+
+                                                   |
+                                                   v
++-------------------------------------------------------------------------------------------------------+
+|                                    PERSISTENCE & CLIENT INTERFACES                                    |
+|  +------------------------------+   +-----------------------------+   +----------------------------+  |
+|  | PostgreSQL + TimescaleDB     |   | WebSocket Gateway (Pub/Sub) |   | Next.js / React Frontend   |  |
+|  | - Trade Audit Logs           |   | - Live Order Stream         |   | - Vault Deposit/Withdraw   |  |
+|  | - Portfolio Balance History  |   | - NAV Ticker Broadcast      |   | - Portfolio Breakdown      |  |
+|  | - Master Trader Leaderboard  |   | - Slippage & Tx Alerts      |   | - Interactive Trade History|  |
+|  +------------------------------+   +-----------------------------+   +----------------------------+  |
++-------------------------------------------------------------------------------------------------------+
+    </div>
+  </section>
+
+  <!-- SECTION 4 -->
+  <section id="data-ingestion">
+    <h2>4. Data Ingestion: Cơ Chế "Câu" Dữ Liệu Từ FOMO</h2>
+    <p>
+      Để bắt được các lệnh sớm nhất, hệ thống kết hợp 3 kênh thu thập dữ liệu (Multi-channel Ingestion):
+    </p>
+
+    <h3>4.1. Kênh 1: Reverse-Engineered FOMO Real-Time SSE Feed</h3>
+    <p>
+      Ứng dụng mobile <code>fomo.family</code> kết nối qua Server-Sent Events (SSE) để đẩy trade notification tới người dùng. Backend duy trì các connection worker chạy ngầm:
+    </p>
+    <pre>
+// Backend Ingestion Worker (Node.js / TypeScript)
+import EventSource from 'eventsource';
+
+export class FomoHarvester {
+  private sseClient: EventSource;
+
+  constructor(private feedUrl: string, private authToken: string) {
+    this.sseClient = new EventSource(this.feedUrl, {
+      headers: {
+        'Authorization': `Bearer ${this.authToken}`,
+        'User-Agent': 'Fomo-Vault-Indexer/1.0',
+        'Accept': 'text/event-stream'
+      }
+    });
+
+    this.sseClient.onmessage = (event) => this.handleTradeEvent(JSON.parse(event.data));
+  }
+
+  private async handleTradeEvent(rawPayload: any) {
+    // rawPayload chứa: traderHandle, action (BUY/SELL), tokenMint, amountUsd, txSignature
+    await redisClient.xadd('stream:fomo_raw_events', '*', 'payload', JSON.stringify(rawPayload));
+  }
+}
+    </pre>
+
+    <h3>4.2. Kênh 2: FOMOScan API Synchronization</h3>
+    <p>
+      Định kỳ mỗi 60 giây, worker đồng bộ dữ liệu với <code>https://fomoscan.sh/api/v1/</code> để cập nhật:
+    </p>
+    <ul>
+      <li>Danh sách các <strong>Verified Traders</strong> và ánh xạ chính xác sang địa chỉ ví Solana gốc (Base58).</li>
+      <li>Chỉ số PnL 7 ngày, 30 ngày và tỷ lệ thắng Win-Rate đã được lọc bỏ wash-trade.</li>
+      <li>Cụm ví phụ (wallet cluster) của trader để tránh trường hợp KOL dùng ví phụ xả vào ví chính.</li>
+    </ul>
+
+    <h3>4.3. Kênh 3: Direct Solana Geyser gRPC Mempool Monitoring</h3>
+    <p>
+      Sau khi đã có danh sách ví Solana của các Master Trader từ FOMOScan, backend mở kết nối <strong>Solana Geyser gRPC (Yellowstone Dragon's Mouth)</strong> để lắng nghe giao dịch trực tiếp từ Validator trước cả khi app FOMO kịp gửi thông báo SSE. Điều này giúp giảm độ trễ (latency) từ 2-3 giây xuống còn <strong>dưới 80 mili-giây</strong>!
+    </p>
+  </section>
+
+  <!-- SECTION 5 -->
+  <section id="signal-filtering">
+    <h2>5. Signal Filtering & Anti-Sybil Engine</h2>
+    <p>
+      Không phải mọi lệnh của trader trên FOMO đều đáng để copy. Trước khi đưa vào hàng đợi khớp lệnh, bộ lọc áp dụng ma trận điều kiện sau:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Tiêu chí lọc</th>
+            <th>Ngưỡng tối thiểu</th>
+            <th>Mục đích bảo vệ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Realized PnL (30 ngày)</strong></td>
+            <td>&gt; +$15,000 USD</td>
+            <td>Chỉ copy những trader có thành tích sinh lời thực tế ổn định.</td>
+          </tr>
+          <tr>
+            <td><strong>Win-Rate (30 ngày)</strong></td>
+            <td>&gt; 58% (Tối thiểu 30 lệnh)</td>
+            <td>Loại trừ người chỉ may mắn ăn 1 kèo nhưng thua 99 kèo còn lại.</td>
+          </tr>
+          <tr>
+            <td><strong>Wash-Trade Score (FOMOScan)</strong></td>
+            <td>&lt; 0.05</td>
+            <td>Loại bỏ tài khoản tự mua tự bán nhằm mục đích cày volume ảo để lên top leaderboard.</td>
+          </tr>
+          <tr>
+            <td><strong>Thanh khoản Token (Liquidity Pool)</strong></td>
+            <td>&gt; $80,000 USD</td>
+            <td>Tránh mua các token rác thanh khoản mỏng, không thể bán được (honeypot/rugpull).</td>
+          </tr>
+          <tr>
+            <td><strong>Tỷ lệ trượt giá kỳ vọng (Max Slippage)</strong></td>
+            <td>&lt; 2.5%</td>
+            <td>Hủy lệnh ngay lập tức nếu giá đã bị bơm quá cao trước khi Vault kịp mua.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 6 -->
+  <section id="vault-core">
+    <h2>6. Thiết Kế Trading Vault (Smart Contract Trên Solana)</h2>
+    <p>
+      Vault được viết bằng ngôn ngữ <strong>Rust (Anchor Framework)</strong>, hoạt động theo chuẩn tương đương ERC-4626 trên Solana:
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Cơ chế Nạp / Rút (Deposit / Withdraw)</h3>
+        <ul>
+          <li>Nhà đầu tư nạp USDC hoặc SOL vào Vault Program PDA.</li>
+          <li>Hợp đồng đúc ra <code>vSHARE</code> (Vault Share Tokens) đại diện cho tỷ lệ sở hữu tài sản trong quỹ.</li>
+          <li>Khi rút, người dùng đốt <code>vSHARE</code> để nhận lại USDC tương ứng với NAV tại thời điểm rút.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Định giá NAV & High-Water Mark</h3>
+        <ul>
+          <li><strong>NAV (Net Asset Value)</strong> = Tổng giá trị các token đang giữ (theo giá Oracle Pyth/Switchboard) + Số dư tiền mặt USDC.</li>
+          <li><strong>Share Price</strong> = NAV / Tổng lượng vSHARE đang lưu hành.</li>
+          <li><strong>Performance Fee:</strong> Chỉ thu 10% - 15% trên phần lợi nhuận vượt đỉnh lịch sử (High-Water Mark), trả cho Master Trader và quỹ dự phòng.</li>
+        </ul>
+      </div>
+    </div>
+
+    <pre>
+// Anchor Rust Pseudocode: Core Vault Structure
+#[account]
+pub struct TradingVault {
+    pub authority: Pubkey,            // Quản trị viên
+    pub execution_delegate: Pubkey,   // Backend bot được cấp quyền swap
+    pub base_asset_mint: Pubkey,      // USDC Mint
+    pub share_mint: Pubkey,           // Mint của vSHARE Token
+    pub total_shares: u64,            // Tổng lượng shares
+    pub high_water_mark: u64,         // Đỉnh NAV để tính phí hiệu quả
+    pub performance_fee_bps: u16,     // 1000 = 10%
+    pub max_drawdown_limit_bps: u16,  // Circuit breaker ngắt tự động (ví dụ 15%)
+    pub is_emergency_paused: bool,    // Cờ tạm dừng khẩn cấp
+}
+    </pre>
+  </section>
+
+  <!-- SECTION 7 -->
+  <section id="execution-engine">
+    <h2>7. Execution Engine: Tích Hợp Titan & Phoenix</h2>
+    <p>
+      Điểm đột phá của hệ thống là việc <strong>phân luồng lệnh thông minh (Dual-Routing)</strong> giữa Titan và Phoenix nhằm đạt mức giá khớp tốt nhất và triệt tiêu nguy cơ bị tấn công Sandwich MEV:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Tiêu chí</th>
+            <th>Tuyến 1: Phoenix CLOB (Ellipsis Labs)</th>
+            <th>Tuyến 2: Titan Meta-DEX (Argos Engine)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cơ chế khớp lệnh</strong></td>
+            <td>Sổ lệnh tập trung on-chain (Central Limit Order Book), Crankless atomic execution</td>
+            <td>Bộ tổng hợp đa sàn (Meta-DEX Aggregator: kết hợp Jupiter, Raydium, Meteora, OKX)</td>
+          </tr>
+          <tr>
+            <td><strong>Cặp giao dịch mục tiêu</strong></td>
+            <td>SOL/USDC, ETH/SOL, các top altcoins có orderbook thanh khoản cao</td>
+            <td>Memecoins mới nổi trên Pump.fun, Raydium CPMM, Meteora DLMM</td>
+          </tr>
+          <tr>
+            <td><strong>Ưu thế tốc độ & Chi phí</strong></td>
+            <td>Không tốn phí trượt AMM, độ trễ khớp lệnh &lt; 100ms, không phụ thuộc bot thanh toán</td>
+            <td>Tối ưu đường đi tốt hơn Jupiter đơn lẻ (tỷ lệ thắng 87%), tích hợp chế độ Prime Mode</td>
+          </tr>
+          <tr>
+            <td><strong>Bảo vệ MEV</strong></td>
+            <td>Atomic single-slot settlement (khó bị chèn lệnh)</td>
+            <td>Gửi qua Jito Block Engine Bundle với tip bidding tự động</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre>
+// Router Selection Logic (TypeScript Execution Bot)
+export async function routeOrderExecution(
+  tokenIn: string,
+  tokenOut: string,
+  amountIn: bigint,
+  maxSlippageBps: number
+) {
+  // Kiểm tra nếu cặp giao dịch có sẵn trên Phoenix CLOB Market
+  const phoenixMarket = await getPhoenixMarket(tokenIn, tokenOut);
+  if (phoenixMarket && phoenixMarket.hasSufficientDepth(amountIn)) {
+    console.log(`[ROUTER] Executing via Phoenix CLOB orderbook...`);
+    return await executePhoenixOrder(phoenixMarket, amountIn);
+  }
+
+  // Nếu không, chuyển sang Titan Meta-DEX Aggregator
+  console.log(`[ROUTER] Routing via Titan Argos Meta-DEX...`);
+  const titanQuote = await titanClient.getQuote({
+    inputMint: tokenIn,
+    outputMint: tokenOut,
+    amount: amountIn.toString(),
+    slippageBps: maxSlippageBps,
+    enableMevProtection: true
+  });
+
+  // Đóng gói giao dịch gửi vào Jito Block Engine
+  return await sendJitoBundle(titanQuote.transaction);
+}
+    </pre>
+  </section>
+
+  <!-- SECTION 8 -->
+  <section id="portfolio-history">
+    <h2>8. Portfolio Management & Trade History</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Quản trị Danh mục (Portfolio Management)</h3>
+        <ul>
+          <li><strong>Phân bổ tỷ trọng (Capital Allocation):</strong> Mỗi lệnh copy tối đa không vượt quá 5% tổng NAV của Vault.</li>
+          <li><strong>Giới hạn số vị thế đồng thời:</strong> Tối đa 10 token cùng một lúc để đảm bảo tính thanh khoản.</li>
+          <li><strong>Chốt lời / Cắt lỗ tự động (Dynamic TP/SL):</strong>
+            <ul>
+              <li>Stop-Loss cứng: Cắt khi lỗ -8% vị thế.</li>
+              <li>Trailing Take-Profit: Kích hoạt khi lời +25%, dời điểm chốt theo nhịp tăng.</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Sổ nhật ký giao dịch (Trade Audit Ledger)</h3>
+        <ul>
+          <li>Mỗi lệnh copy đều lưu vết đầy đủ:
+            <ul>
+              <li><code>master_handle</code>: Ai là người bắn tín hiệu trên FOMO.</li>
+              <li><code>copy_delay_ms</code>: Thời gian trễ từ khi master swap đến khi Vault khớp lệnh.</li>
+              <li><code>execution_venue</code>: Khớp qua Titan hay Phoenix.</li>
+              <li><code>price_impact_realized</code>: Độ trượt giá thực tế.</li>
+              <li><code>tx_signature</code>: Đường link kiểm chứng trên Solscan.</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 9 -->
+  <section id="be-specification">
+    <h2>9. Chi Tiết Backend (BE Specification)</h2>
+    <p>
+      Backend được thiết kế theo kiến trúc <strong>Microservices & Event-Driven Architecture</strong> để chịu tải cao và đảm bảo tính sẵn sàng (99.99% uptime):
+    </p>
+
+    <ul>
+      <li><strong>Ngôn ngữ & Runtime:</strong> Node.js (TypeScript) cho API Gateway và Ingestion Services; Rust cho Module ký giao dịch và tính toán số học tốc độ cao.</li>
+      <li><strong>Hàng đợi sự kiện (Message Queue):</strong> Redis Streams & BullMQ phân tách giữa việc nhận tín hiệu từ FOMO và việc thực thi swap.</li>
+      <li><strong>RPC Infrastructure:</strong> Cụm Solana RPC chuyên dụng (Helius / Triton / QuickNode) có bật Yellowstone gRPC plugin.</li>
+      <li><strong>Scheduler / Cron:</strong> Cập nhật NAV mỗi 10 giây, tính toán PnL, đồng bộ số dư ví Vault từ blockchain vào database.</li>
+    </ul>
+  </section>
+
+  <!-- SECTION 10 -->
+  <section id="fe-specification">
+    <h2>10. Chi Tiết Frontend (FE Specification)</h2>
+    <p>
+      Giao diện người dùng được tối ưu hóa cho trải nghiệm Web3 chuyên nghiệp, mượt mà và trực quan:
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Trang Dashboard & Quản lý Vault</h3>
+        <ul>
+          <li><strong>Tổng quan tài sản (Total Value Locked):</strong> Hiển thị NAV hiện tại, biểu đồ tăng trưởng lợi nhuận 24h, 7d, 30d (sử dụng TradingView Lightweight Charts).</li>
+          <li><strong>Modal Nạp / Rút nhanh:</strong> Tích hợp Solana Wallet Adapter (Phantom, Solflare, Backpack), tính toán trước lượng vSHARE nhận được và ước tính phí.</li>
+          <li><strong>Cảnh báo an toàn:</strong> Hiển thị điểm sức khỏe của Vault và giới hạn rủi ro.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Trang Phân Tích & Danh Sách Master Traders</h3>
+        <ul>
+          <li>Bảng xếp hạng các tài khoản FOMO đang được Vault chọn làm Master: Avatar, Handle, Win-rate, PnL 30 ngày, Danh sách token họ đang nắm giữ.</li>
+          <li>Nút bấm bật/tắt (Toggle) cho phép người quản trị kích hoạt hoặc hủy kích hoạt sao chép một trader cụ thể.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 11 -->
+  <section id="database-schema">
+    <h2>11. Database Schema & Data Models (PostgreSQL / TimescaleDB)</h2>
+    <pre>
+-- 1. Bảng lưu trữ Master Traders câu từ FOMO
+CREATE TABLE fomo_master_traders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    handle VARCHAR(64) UNIQUE NOT NULL,
+    display_name VARCHAR(128),
+    avatar_url TEXT,
+    solana_wallet VARCHAR(64) NOT NULL,
+    evm_wallet VARCHAR(64),
+    is_verified BOOLEAN DEFAULT true,
+    total_pnl_usd NUMERIC(16, 2) NOT NULL,
+    win_rate NUMERIC(5, 2) NOT NULL,
+    total_trades INT DEFAULT 0,
+    is_copy_enabled BOOLEAN DEFAULT true,
+    allocation_weight NUMERIC(5, 2) DEFAULT 1.0, -- Tỷ trọng phân bổ vốn
+    last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Bảng lưu trữ trạng thái danh mục Vault (Portfolio Holdings)
+CREATE TABLE vault_portfolio (
+    token_mint VARCHAR(64) PRIMARY KEY,
+    token_symbol VARCHAR(32) NOT NULL,
+    token_name VARCHAR(64),
+    decimals INT NOT NULL,
+    total_amount NUMERIC(32, 8) NOT NULL,
+    average_buy_price_usd NUMERIC(18, 8) NOT NULL,
+    current_price_usd NUMERIC(18, 8) NOT NULL,
+    unrealized_pnl_usd NUMERIC(16, 2),
+    weight_percentage NUMERIC(5, 2),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Bảng lịch sử giao dịch (Trade History Audit Ledger)
+CREATE TABLE trade_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tx_signature VARCHAR(128) UNIQUE NOT NULL,
+    master_trader_id UUID REFERENCES fomo_master_traders(id),
+    action VARCHAR(8) NOT NULL, -- 'BUY' hoặc 'SELL'
+    token_in_mint VARCHAR(64) NOT NULL,
+    token_out_mint VARCHAR(64) NOT NULL,
+    token_symbol VARCHAR(32) NOT NULL,
+    amount_in NUMERIC(32, 8) NOT NULL,
+    amount_out NUMERIC(32, 8) NOT NULL,
+    amount_usd NUMERIC(16, 2) NOT NULL,
+    execution_venue VARCHAR(32) NOT NULL, -- 'PHOENIX_CLOB' hoặc 'TITAN_ARGOS'
+    slippage_bps INT NOT NULL,
+    copy_latency_ms INT NOT NULL,
+    realized_pnl_usd NUMERIC(16, 2),
+    executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. Bảng biến động NAV theo chuỗi thời gian (TimescaleDB Hypertable)
+CREATE TABLE vault_nav_history (
+    recorded_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    nav_usd NUMERIC(16, 2) NOT NULL,
+    share_price_usd NUMERIC(14, 6) NOT NULL,
+    total_shares NUMERIC(24, 6) NOT NULL
+);
+CREATE INDEX ON vault_nav_history (recorded_at DESC);
+    </pre>
+  </section>
+
+  <!-- SECTION 12 -->
+  <section id="api-specs">
+    <h2>12. REST & WebSocket API Specification</h2>
+    
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>Mô tả</th>
+            <th>Payload / Params</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code style="color: #6ee7b7;">GET</code></td>
+            <td><code>/api/v1/vault/overview</code></td>
+            <td>Lấy số liệu tổng quan: TVL, NAV, Share Price, ROI 24h, 7d, 30d</td>
+            <td>Không có</td>
+          </tr>
+          <tr>
+            <td><code style="color: #6ee7b7;">GET</code></td>
+            <td><code>/api/v1/vault/portfolio</code></td>
+            <td>Lấy danh mục tài sản chi tiết đang nắm giữ và tỷ trọng</td>
+            <td>Không có</td>
+          </tr>
+          <tr>
+            <td><code style="color: #6ee7b7;">GET</code></td>
+            <td><code>/api/v1/trades/history</code></td>
+            <td>Lịch sử giao dịch sao chép (phân trang, lọc theo master)</td>
+            <td><code>page, limit, master_handle</code></td>
+          </tr>
+          <tr>
+            <td><code style="color: #6ee7b7;">GET</code></td>
+            <td><code>/api/v1/masters/leaderboard</code></td>
+            <td>Danh sách top trader FOMO đang được theo dõi và sao chép</td>
+            <td><code>min_pnl, min_winrate</code></td>
+          </tr>
+          <tr>
+            <td><code style="color: #38bdf8;">WS</code></td>
+            <td><code>wss://api.vault.io/v1/stream</code></td>
+            <td>Kênh WebSocket truyền tải các lệnh vừa khớp và giá NAV tức thì</td>
+            <td>Subscribe topic: <code>trades</code>, <code>nav</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECTION 13 -->
+  <section id="security-deployment">
+    <h2>13. Quản Trị Rủi Ro, Bảo Mật & Kế Hoạch Triển Khai</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Cơ Chế Ngắt Mạch Khẩn Cấp (Circuit Breaker)</h3>
+        <p>Nếu thị trường biến động cực đoan hoặc tổng NAV của Vault giảm quá 15% trong vòng 1 giờ, hệ thống sẽ:</p>
+        <ol>
+          <li>Tự động kích hoạt trạng thái Emergency Pause trên Smart Contract.</li>
+          <li>Hủy toàn bộ các lệnh đang chờ khớp trên Phoenix CLOB.</li>
+          <li>Quy đổi 100% các memecoin rủi ro về tiền mặt USDC qua Titan Meta-DEX.</li>
+          <li>Bắn thông báo khẩn cấp qua kênh Telegram/Discord của ban quản trị.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h3>Lộ Trình Triển Khai Thực Tế (Roadmap)</h3>
+        <ul>
+          <li><strong>Giai đoạn 1 (Tuần 1-2):</strong> Triển khai bộ Harvester câu dữ liệu FOMO + API FOMOScan và lưu trữ tín hiệu vào Redis/PostgreSQL.</li>
+          <li><strong>Giai đoạn 2 (Tuần 3-4):</strong> Viết và kiểm thử Anchor Smart Contract Vault trên Solana Devnet; hoàn thành Router Titan + Phoenix.</li>
+          <li><strong>Giai đoạn 3 (Tuần 5-6):</strong> Xây dựng Frontend Dashboard, kết nối ví Solana và luồng WebSocket thời gian thực.</li>
+          <li><strong>Giai đoạn 4 (Tuần 7+):</strong> Audit bảo mật bởi đơn vị uy tín (OtterSec / Neodyme) và ra mắt Mainnet với hạn mức vốn nhỏ (Soft Launch).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 14 -->
+  <section id="backend-local-setup">
+    <h2>14. Kiến Trúc Backend On-Chain Listener & Hướng Dẫn Cài Đặt Key Tại Local</h2>
+    <div class="card" style="margin-bottom: 24px;">
+      <h3>Kiến Trúc Triển Khai Backend Thực Tế (server.ts + solanaService.ts)</h3>
+      <p>Hệ thống Backend được xây dựng hoàn chỉnh với Node.js, Express, và <code>@solana/web3.js</code>, trực tiếp kết nối với mạng Solana Mainnet-Beta:</p>
+      <ul>
+        <li><strong>Lắng nghe sự kiện On-Chain (Real-time Event Listener):</strong> Tự động quét các chữ ký mới (<code>getSignaturesForAddress</code>) và đăng ký luồng WebSocket (<code>logsSubscribe</code>) cho các ví Master được chỉ định.</li>
+        <li><strong>Truy vấn 25 Giao Dịch Chuẩn Portfolio (Standard 25 Tx History):</strong> Endpoint <code>GET /api/portfolio/transactions</code> trả về đúng 25 giao dịch thật gần nhất tính từ thời điểm hiện tại, bao gồm slot number, thời gian thực, cặp token, khối lượng USD, sàn khớp (Phoenix CLOB / Titan Meta-DEX) và chữ ký Tx Hash 88 ký tự chuẩn Base58.</li>
+        <li><strong>Đăng ký ví mới động (Dynamic Wallet Registration):</strong> Endpoint <code>POST /api/wallets</code> cho phép người dùng nhập bất kỳ địa chỉ ví Solana nào để Backend bắt đầu theo dõi ngay lập tức.</li>
+        <li><strong>Server-Sent Events (SSE Stream):</strong> Endpoint <code>GET /api/onchain/stream</code> phát tín hiệu swap thời gian thực tới Frontend và Copy Bot mà không cần polling liên tục.</li>
+      </ul>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>Hướng Dẫn Cấu Hình Biến Môi Trường (.env)</h3>
+        <p>Khi chạy hệ thống ở môi trường Local, bạn chỉ cần sao chép file cấu hình và điền các khóa API:</p>
+        <pre><code class="language-bash"># Tạo file .env từ mẫu
+cp .env.example .env
+
+# Chỉnh sửa các giá trị:
+SOLANA_RPC_URL="https://mainnet.helius-rpc.com/?api-key=YOUR_KEY"
+HELIUS_API_KEY="YOUR_HELIUS_KEY"
+JITO_BLOCK_ENGINE_URL="https://mainnet.block-engine.jito.wtf"
+VAULT_PRIVATE_KEY="YOUR_BASE58_SECRET_KEY"</code></pre>
+      </div>
+
+      <div class="card">
+        <h3>Các Lệnh Khởi Chạy Local</h3>
+        <p>Khởi chạy nhanh toàn bộ hệ thống gồm cả Backend API Server và Frontend React:</p>
+        <pre><code class="language-bash"># Cài đặt thư viện phụ thuộc
+npm install
+
+# Khởi chạy server full-stack dev (port 3000)
+npm run dev
+
+# Kiểm thử endpoint lấy 25 giao dịch:
+curl http://localhost:3000/api/portfolio/transactions</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Social Copy-Trading Vault Project. Được biên soạn đầy đủ theo tiêu chuẩn Enterprise Web3 Engineering.</p>
+  </footer>
+
+</div>
+
+</body>
+</html>

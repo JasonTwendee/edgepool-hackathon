@@ -1,0 +1,1647 @@
+openapi: 3.0.3
+info:
+  title: FOMO Wallet Tracker OnChain Engine API
+  version: 1.0.0
+  description: >
+    Canonical REST + SSE contract. BE DTOs (`backend/src/modules/*/dto/*.dto.ts`)
+    và FE client (`frontend/lib/api.ts`) phải khớp file này.
+servers:
+  - url: http://localhost:3000
+    description: Local dev (legacy compat + NestJS-spec BE)
+paths:
+  /api/health:
+    get:
+      summary: Health + RPC info
+      operationId: getHealth
+      responses:
+        '200':
+          description: ONLINE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /api/wallets:
+    get:
+      summary: List tracked wallets
+      operationId: listWallets
+      responses:
+        '200':
+          description: Wallets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletListResponse'
+    post:
+      summary: Track a new wallet
+      operationId: addWallet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWalletDto'
+      responses:
+        '200':
+          description: Tracking enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '400':
+          description: Invalid address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/wallets/{address}:
+    delete:
+      summary: Remove wallet from tracking
+      operationId: removeWallet
+      parameters:
+        - $ref: '#/components/parameters/WalletAddress'
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      summary: Update copy-trade config
+      operationId: updateWalletCopy
+      parameters:
+        - $ref: '#/components/parameters/WalletAddress'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWalletDto'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/portfolio/transactions:
+    get:
+      summary: Paginated ledger (10/page default) from 30-day Postgres history
+      operationId: getPortfolioTransactions
+      parameters:
+        - name: wallet
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Solana address or ALL (default ALL)
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: 1-100
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [BUY, SELL]
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+          description: Day window 1-90
+      responses:
+        '200':
+          description: Ledger page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioResponse'
+  /api/portfolio/pnl:
+    get:
+      summary: Realized PnL estimate by FIFO buy-sell pairing (single wallet)
+      operationId: getWalletPnl
+      parameters:
+        - name: wallet
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Solana address (ALL not supported)
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: PnL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletPnlResponse'
+        '400':
+          description: Missing wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/portfolio/pnl/overview:
+    get:
+      summary: Realized PnL overview for all tracked wallets
+      operationId: getPnlOverview
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Overview
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, asOf, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  asOf: { type: string, format: date-time }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/WalletPnl' }
+  /api/portfolio/holdings:
+    get:
+      summary: Live token holdings per wallet (SPL + Token-2022 + SOL), spot-priced
+      operationId: getHoldings
+      parameters:
+        - name: wallet
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Tracked Solana address (ALL not supported)
+      responses:
+        '200':
+          description: Holdings
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, asOf, data]
+                properties:
+                  success: { type: boolean }
+                  asOf: { type: string, format: date-time }
+                  data:
+                    type: object
+                    required: [wallet, asOf, solBalance, totalValueUsd, tokens]
+                    properties:
+                      wallet: { type: string }
+                      asOf: { type: string, format: date-time }
+                      solBalance: { type: number }
+                      solPriceUsd: { type: number, nullable: true }
+                      solValueUsd: { type: number, nullable: true }
+                      totalValueUsd: { type: number }
+                      tokens:
+                        type: array
+                        items:
+                          type: object
+                          required: [mint, symbol, balance]
+                          properties:
+                            mint: { type: string }
+                            symbol: { type: string }
+                            balance: { type: number }
+                            priceUsd: { type: number, nullable: true }
+                            valueUsd: { type: number, nullable: true }
+  /api/webhooks/helius:
+    post:
+      summary: Helius webhook receiver (push real-time for tracked wallets)
+      operationId: receiveHeliusWebhook
+      description: "Requires Authorization Bearer <HELIUS_WEBHOOK_SECRET> when the secret is set. Always ACKs fast; matched wallets run the standard ingest pipeline async."
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success: { type: boolean }
+  /api/onchain/stream:
+    get:
+      summary: Realtime SSE stream
+      operationId: streamOnchain
+      responses:
+        '200':
+          description: text/event-stream — CONNECTED then ONCHAIN_SWAP_EVENT, 15s heartbeat
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "data: {\"type\":\"CONNECTED\",\"message\":\"SSE Stream Active - Listening to Solana on-chain swaps\",\"timestamp\":1790667900000}\n\ndata: {\"type\":\"ONCHAIN_SWAP_EVENT\",\"event\":{...}}\n\n"
+  /api/onchain/events:
+    get:
+      summary: Persisted realtime event feed (DB, newest first)
+      operationId: listRealtimeEvents
+      parameters:
+        - name: wallet
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Solana address filter (default ALL)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RealtimeEventListResponse'
+  /api/copy-trade/execute:
+    post:
+      summary: Execute copy-trade (sim default; paper on devnet with confirm)
+      operationId: executeCopyTrade
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteCopyDto'
+      responses:
+        '200':
+          description: Copy record (simulated CONFIRMED or paper lifecycle)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopyTradeResponse'
+        '400':
+          description: Invalid request (envelope)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/copy-trade/history:
+    get:
+      summary: Copy order history (DB, newest first)
+      operationId: listCopyHistory
+      parameters:
+        - name: wallet
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Master wallet filter (default ALL)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: 1-100
+      responses:
+        '200':
+          description: History
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopyHistoryResponse'
+  /api/vaults/deposit:
+    post:
+      summary: Queue a vault deposit (settled at epoch price)
+      operationId: queueVaultDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultDepositDto'
+      responses:
+        '200':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      status: { type: string }
+        '400':
+          description: Invalid request (envelope)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/vaults/withdraw:
+    post:
+      summary: Request a share withdrawal (settled at epoch price)
+      operationId: requestVaultWithdraw
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultWithdrawDto'
+      responses:
+        '200':
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      status: { type: string }
+        '400':
+          description: Invalid request or insufficient shares (envelope)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/vaults/settle:
+    post:
+      summary: Settle an epoch at given NAV (mints/burns, takes HWM fee)
+      operationId: settleVaultEpoch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VaultSettleDto'
+      responses:
+        '200':
+          description: Epoch settled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultSettleResult' }
+        '400':
+          description: Invalid request (envelope)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/vaults/status:
+    get:
+      summary: Vault status + last epoch + queued counts
+      operationId: getVaultStatus
+      parameters:
+        - name: vaultId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultStatus' }
+  /api/auth/nonce:
+    post:
+      summary: Issue a login nonce for a wallet (fund-roles-auth)
+      operationId: issueAuthNonce
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet]
+              properties:
+                wallet: { type: string, description: Base58 Solana address }
+      responses:
+        '200':
+          description: Nonce + message to sign
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthNonce' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/verify:
+    post:
+      summary: Verify wallet signature, return bearer token
+      operationId: verifyAuthSignature
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet, signature]
+              properties:
+                wallet: { type: string }
+                signature: { type: string, description: Base58 ed25519 signature of nonce message }
+      responses:
+        '200':
+          description: Session token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/register:
+    post:
+      summary: Register with username/password (always USER, sets cookie)
+      operationId: registerAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, description: 3-32 chars, letters/digits/underscore }
+                email: { type: string }
+                password: { type: string, description: Min 8 chars }
+      responses:
+        '200':
+          description: Session token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/login:
+    post:
+      summary: Login with username/password (sets cookie, uniform 401)
+      operationId: loginAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Session token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/me:
+    get:
+      summary: Current session user (Bearer or cookie)
+      operationId: getAuthMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/logout:
+    post:
+      summary: Revoke current session (Bearer or cookie) + clear cookie
+      operationId: logoutSession
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Revoked flag
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      revoked: { type: boolean }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/users:
+    get:
+      summary: List users (ADMIN only)
+      operationId: listUsers
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/users/{wallet}/role:
+    post:
+      summary: Set user role (ADMIN only, audited)
+      operationId: setUserRole
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: wallet
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, reason]
+              properties:
+                role: { type: string, enum: [USER, KOL, ADMIN] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/audit:
+    get:
+      summary: List audit rows (ADMIN only, append-only store)
+      operationId: listAudit
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: actor
+          in: query
+          required: false
+          schema: { type: string }
+        - name: action
+          in: query
+          required: false
+          schema: { type: string }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Audit rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditLog' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults:
+    get:
+      summary: List vaults with trader sets (public read)
+      operationId: listVaults
+      responses:
+        '200':
+          description: Vaults
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VaultWithTraders' }
+    post:
+      summary: Create vault (ADMIN only, audited; SANDBOX only for now)
+      operationId: createVault
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, reason]
+              properties:
+                name: { type: string }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Created vault
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultWithTraders' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/{id}/traders:
+    get:
+      summary: Vault trader set (public read)
+      operationId: listVaultTraders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Traders
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/VaultTrader' }
+    post:
+      summary: Assign trader to vault (ADMIN only, audited, max 5 active)
+      operationId: assignVaultTrader
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet, reason]
+              properties:
+                wallet: { type: string }
+                weightBps: { type: integer }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Assigned trader
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultTrader' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/bots:
+    get:
+      summary: List operational bot records (public read)
+      operationId: listBots
+      responses:
+        '200':
+          description: Bots
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Bot' }
+    post:
+      summary: Create bot record (ADMIN only, audited; record only, no engine)
+      operationId: createBot
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, reason]
+              properties:
+                name: { type: string }
+                vaultId: { type: integer }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Created bot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/Bot' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/copy-trade/auto-fire/tick:
+    post:
+      summary: Run one auto-fire engine pass (ADMIN only, audited)
+      operationId: runAutoFireTick
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                minutes: { type: integer, description: Signal window (1-120, default 15) }
+                limit: { type: integer, description: Max signals per tick (1-20, default 10) }
+      responses:
+        '200':
+          description: Tick summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AutoFireTickResult' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/copy-trade/manage/tick:
+    post:
+      summary: Run one manage auto-close pass (ADMIN only, audited)
+      operationId: runManageTick
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit: { type: integer, description: Max positions per tick (1-100, default 50) }
+      responses:
+        '200':
+          description: Tick summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/ManageTickResult' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/copy-trade/allocation/rebalance:
+    post:
+      summary: Recompute vault trader weights (ADMIN only, audited)
+      operationId: rebalanceAllocation
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vaultId: { type: integer, description: Single vault; omit for all vaults }
+      responses:
+        '200':
+          description: Rebalance result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AllocRebalanceResult' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/seed:
+    post:
+      summary: Seed a clean demo set (vault + bot + traders + deposit, ADMIN, audited)
+      operationId: seedDemo
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                depositSol: { type: number }
+                traderCount: { type: integer }
+      responses:
+        '200':
+          description: Demo seed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/DemoSeed' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/replay:
+    post:
+      summary: Replay real signals as simulated bot orders + deposit2 + pending withdraw (ADMIN, audited)
+      operationId: replayDemo
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vaultId: { type: integer }
+                botId: { type: integer }
+                days: { type: integer }
+                limit: { type: integer }
+      responses:
+        '200':
+          description: Replay summary (withdrawal stays QUEUED pending)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/DemoReplay' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/reset:
+    post:
+      summary: Delete demo business rows, keep audit (ADMIN, audited)
+      operationId: resetDemo
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Reset counts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/DemoReset' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/bot/{id}/performance:
+    get:
+      summary: Bot performance from orders (auto + demo, ADMIN)
+      operationId: demoBotPerformance
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Performance
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/DemoPerformance' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/bots/{id}/mode:
+    post:
+      summary: Set bot mode AUTO|PAUSED (ADMIN only, audited)
+      operationId: setBotMode
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode, reason]
+              properties:
+                mode: { type: string, enum: [AUTO, PAUSED] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Updated bot
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/Bot' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/{id}/policy:
+    post:
+      summary: Set vault treasury policy (ADMIN only, audited)
+      operationId: setVaultPolicy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reserveBps: { type: integer, description: Reserve floor 0-10000 bps (default 0) }
+                withdrawFeeBps: { type: integer, description: Withdrawal fee 0-10000 bps (default 0) }
+                lockHours: { type: integer, description: Deposit lock 0-8760h (default 0) }
+                settlePeriodHours: { type: integer, description: Window period hours, 0 = always open }
+                settleLengthMin: { type: integer, description: Window length minutes }
+                reason: { type: string }
+      responses:
+        '200':
+          description: Updated policy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultPolicy' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/market/ticks:
+    get:
+      summary: Major ticks (server-side, keyless)
+      operationId: getMarketTicks
+      responses:
+        '200':
+          description: Ticks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  stale: { type: boolean }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        label: { type: string }
+                        glyph: { type: string }
+                        priceUsd: { type: number }
+                        changePct24h: { type: number }
+  /api/market/prices:
+    get:
+      summary: Batch token prices by mint (DataStream)
+      operationId: getMarketPrices
+      parameters:
+        - name: mints
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Comma-separated mint addresses (max 50)
+      responses:
+        '200':
+          description: Mint to USD map
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    additionalProperties: { type: number }
+components:
+  parameters:
+    WalletAddress:
+      name: address
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Base58 Solana address
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, rpcEndpoint, heliusEnabled, activeWalletsCount, timestamp]
+      properties:
+        status: { type: string, example: ONLINE }
+        service: { type: string, example: FOMO-Wallet-Tracker-OnChain-Engine }
+        rpcEndpoint: { type: string }
+        heliusEnabled: { type: boolean }
+        activeWalletsCount: { type: integer }
+        timestamp: { type: string, format: date-time }
+    TrackedWallet:
+      type: object
+      required: [address, label, handle, isCopyEnabled, allocationWeight, addedAt]
+      properties:
+        address: { type: string }
+        label: { type: string }
+        handle: { type: string }
+        avatar: { type: string }
+        totalPnlUsd: { type: number }
+        winRate: { type: number }
+        isCopyEnabled: { type: boolean }
+        allocationWeight: { type: number }
+        addedAt: { type: string }
+    WalletListResponse:
+      type: object
+      required: [success, total, data]
+      properties:
+        success: { type: boolean }
+        total: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/TrackedWallet' }
+    WalletResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data: { $ref: '#/components/schemas/TrackedWallet' }
+    CreateWalletDto:
+      type: object
+      required: [address]
+      properties:
+        address: { type: string, description: Base58 Solana address }
+        label: { type: string }
+        handle: { type: string }
+        allocationWeight: { type: number }
+    UpdateWalletDto:
+      type: object
+      properties:
+        isCopyEnabled: { type: boolean }
+        allocationWeight: { type: number }
+    OnChainTransactionEvent:
+      type: object
+      required: [signature, slot, blockTime, formattedTime, wallet, source, action, symbol, dexVenue, slippageBps, status, feeSol]
+      properties:
+        signature: { type: string, description: 88-char Base58 }
+        slot: { type: integer }
+        blockTime: { type: integer }
+        formattedTime: { type: string }
+        wallet: { type: string }
+        walletName: { type: string }
+        source: { type: string, enum: [rpc, helius], description: 'rpc = real signature, heuristic fields; helius = parsed real data' }
+        action: { type: string, enum: [BUY, SELL, TRANSFER, UNKNOWN] }
+        symbol: { type: string }
+        tokenMint: { type: string }
+        amountToken: { type: number }
+        amountUsd: { type: number }
+        dexVenue: { type: string }
+        slippageBps: { type: number }
+        status: { type: string, enum: [SUCCESS, FAILED] }
+        feeSol: { type: number }
+        copySignal:
+          type: object
+          properties:
+            canCopy: { type: boolean }
+            recommendedVenue: { type: string }
+            estimatedDelayMs: { type: number }
+            targetSwapAmountUsd: { type: number }
+    PortfolioResponse:
+      type: object
+      required: [success, total, walletsCount, page, pageSize, totalPages, asOf, data]
+      properties:
+        success: { type: boolean }
+        total: { type: integer }
+        walletsCount: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalPages: { type: integer }
+        asOf: { type: string, format: date-time }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/OnChainTransactionEvent' }
+    RealtimeEvent:
+      type: object
+      required: [id, eventType, walletAddress, title, broadcastedAt]
+      properties:
+        id: { type: integer }
+        eventType: { type: string, example: ONCHAIN_SWAP_EVENT }
+        walletAddress: { type: string }
+        txSignature: { type: string }
+        title: { type: string }
+        payload: { type: object }
+        broadcastedAt: { type: string, format: date-time }
+    RealtimeEventListResponse:
+      type: object
+      required: [success, total, data]
+      properties:
+        success: { type: boolean }
+        total: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/RealtimeEvent' }
+    WalletPnlResponse:
+      type: object
+      required: [success, asOf, data]
+      properties:
+        success: { type: boolean }
+        asOf: { type: string, format: date-time }
+        data: { $ref: '#/components/schemas/WalletPnl' }
+    WalletPnl:
+      type: object
+      required: [wallet, days, realizedPnlUsd, pairs, matchedSells, totalSells, totalBuys, perSymbol, series, topTrades]
+      properties:
+        wallet: { type: string }
+        days: { type: integer }
+        realizedPnlUsd: { type: integer }
+        pairs: { type: integer }
+        matchedSells: { type: integer }
+        totalSells: { type: integer }
+        totalBuys: { type: integer }
+        winRate: { type: number }
+        perSymbol:
+          type: array
+          items:
+            type: object
+            properties:
+              symbol: { type: string }
+              pairs: { type: integer }
+              pnlUsd: { type: integer }
+        series:
+          type: array
+          description: 'Cumulative realized curve (t = blockTime, cum = usd) for the chart'
+          items:
+            type: object
+            properties:
+              t: { type: integer }
+              cum: { type: integer }
+        topTrades:
+          type: array
+          description: 'Top-5 in-window swaps by USD (no extra ledger fetch needed)'
+          items: { $ref: '#/components/schemas/OnChainTransactionEvent' }
+    ExecuteCopyDto:
+      type: object
+      properties:
+        masterTxHash: { type: string }
+        symbol: { type: string }
+        action: { type: string }
+        amountUsd: { type: number }
+        venue: { type: string }
+        masterWallet: { type: string }
+        masterHandle: { type: string }
+        tokenMint:
+          type: string
+          description: Token mint for Qualify (RugCheck) + Manage pricing
+        mode:
+          type: string
+          enum: [paper]
+          description: Omit for legacy sim; 'paper' requires confirm=true (devnet only)
+        confirm:
+          type: boolean
+          description: Explicit 1-click confirmation for paper execution
+        maxSlippageBps: { type: integer }
+        paperAmountSol:
+          type: number
+          description: Devnet dust proof amount in SOL (default 0.0001)
+        entryMode:
+          type: string
+          enum: [immediate, scaled, patient]
+          description: immediate fires 100% on qualify (default); others reserved
+        tp1Pct:
+          type: number
+          description: TP1 target override in percent (default 60)
+        stopPct:
+          type: number
+          description: Stop override in percent (default 30 interim, ATR later)
+        tp1ShareBps:
+          type: integer
+          description: TP1 share 1-10000 bps (default 5000 = 50%)
+        trailPct:
+          type: integer
+          description: Trailing pullback 1-100% from peak, post-TP1 (default 20)
+        tp2MultPct:
+          type: integer
+          description: TP2 target 101-1000% of tp1 (default 200 = 2x)
+        autoTune:
+          type: boolean
+          description: ATR regime auto-tune stop/TP/trail (default true; explicit params always win)
+    CopyOrder:
+      type: object
+      required: [id, mode, status, createdAt]
+      properties:
+        id: { type: integer }
+        masterWallet: { type: string }
+        masterHandle: { type: string }
+        masterTxHash: { type: string }
+        symbol: { type: string }
+        action: { type: string }
+        amountUsd: { type: number }
+        venue: { type: string }
+        mode: { type: string, enum: [paper] }
+        status: { type: string, enum: [PENDING, QUATED, SENT, CONFIRMED, FAILED] }
+        devnetSignature: { type: string }
+        entryMode: { type: string }
+        delayDragPct: { type: number }
+        tp1Pct: { type: number }
+        stopPct: { type: number }
+        tp1ShareBps: { type: integer }
+        trailPct: { type: integer }
+        tp2MultPct: { type: integer }
+        error: { type: string }
+        createdAt: { type: string, format: date-time }
+    CopyHistoryResponse:
+      type: object
+      required: [success, total, data]
+      properties:
+        success: { type: boolean }
+        total: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/CopyOrder' }
+    VaultDepositDto:
+      type: object
+      required: [depositor, amountSol]
+      properties:
+        vaultId: { type: integer }
+        depositor: { type: string }
+        amountSol: { type: number }
+    VaultWithdrawDto:
+      type: object
+      required: [depositor, shares]
+      properties:
+        vaultId: { type: integer }
+        depositor: { type: string }
+        shares: { type: number }
+    VaultSettleDto:
+      type: object
+      required: [navSol]
+      properties:
+        vaultId: { type: integer }
+        navSol: { type: number }
+    VaultSettleResult:
+      type: object
+      properties:
+        epochId: { type: integer }
+        navSol: { type: number }
+        sharePrice: { type: number }
+        sharesOutstanding: { type: number }
+        feeSol: { type: number }
+    VaultStatus:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        feeBps: { type: integer }
+        hwmSharePrice: { type: number }
+        totalShares: { type: number }
+        queuedDeposits: { type: integer }
+        queuedWithdrawals: { type: integer }
+    CopyTradeResponse:
+      type: object
+      required: [success, copyRecord]
+      properties:
+        success: { type: boolean }
+        copyRecord:
+          type: object
+          properties:
+            id: { type: string }
+            masterHandle: { type: string }
+            masterWallet: { type: string }
+            masterTxHash: { type: string }
+            vaultTxHash: { type: string }
+            jitoBundleId: { type: string }
+            slotNumber: { type: integer }
+            symbol: { type: string }
+            action: { type: string }
+            tokenMint: { type: string }
+            amountUsd: { type: number }
+            executionVenue: { type: string }
+            copyDelayMs: { type: integer }
+            slippageBps: { type: integer }
+            status: { type: string }
+            timestamp: { type: string, format: date-time }
+            devnetSignature:
+              type: string
+              description: Present for paper mode after broadcast (devnet only)
+    SuccessMessage:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+    ErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+    User:
+      type: object
+      required: [id, wallet, role, createdAt]
+      properties:
+        id: { type: integer }
+        wallet: { type: string }
+        role: { type: string, enum: [USER, KOL, ADMIN] }
+        createdAt: { type: string, format: date-time }
+    AuthNonce:
+      type: object
+      required: [wallet, nonce, message, expiresAt]
+      properties:
+        wallet: { type: string }
+        nonce: { type: string }
+        message: { type: string, description: Exact message the wallet must sign }
+        expiresAt: { type: string, format: date-time }
+    AuthSession:
+      type: object
+      required: [token, user, expiresAt]
+      properties:
+        token: { type: string, description: Opaque bearer token (raw value shown once) }
+        user: { $ref: '#/components/schemas/User' }
+        expiresAt: { type: string, format: date-time }
+    AuditLog:
+      type: object
+      required: [id, actor, action, createdAt]
+      properties:
+        id: { type: integer }
+        actor: { type: string }
+        action: { type: string }
+        target: { type: string }
+        reason: { type: string }
+        metaJson: { type: object }
+        createdAt: { type: string, format: date-time }
+    VaultTrader:
+      type: object
+      required: [id, vaultId, wallet, weightBps, isActive, createdAt]
+      properties:
+        id: { type: integer }
+        vaultId: { type: integer }
+        wallet: { type: string }
+        weightBps: { type: integer }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    VaultWithTraders:
+      type: object
+      required: [id, name, environment, traders]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        environment: { type: string, enum: [SANDBOX, PRODUCTION] }
+        traders:
+          type: array
+          items: { $ref: '#/components/schemas/VaultTrader' }
+    VaultPolicy:
+      type: object
+      required: [id, policy]
+      properties:
+        id: { type: integer }
+        policy:
+          type: object
+          required: [reserveBps, withdrawFeeBps, lockHours]
+          properties:
+            reserveBps: { type: integer }
+            withdrawFeeBps: { type: integer }
+            lockHours: { type: integer }
+            settlePeriodHours: { type: integer, description: Settlement window period hours, 0 = always open }
+            settleLengthMin: { type: integer, description: Window length minutes }
+    Bot:
+      type: object
+      required: [id, name, mode, status, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        mode: { type: string, enum: [AUTO, PAUSED] }
+        vaultId: { type: integer }
+        status: { type: string }
+        createdAt: { type: string, format: date-time }
+    AutoFireTickResult:
+      type: object
+      required: [scanned, fired, skippedNoScope, skippedDedupe, blocked, errors]
+      properties:
+        scanned: { type: integer }
+        fired: { type: integer }
+        skippedNoScope: { type: integer }
+        skippedDedupe: { type: integer }
+        blocked: { type: integer }
+        errors: { type: integer }
+        orderIds: { type: array, items: { type: integer } }
+        note: { type: string }
+        environment: { type: string, enum: [sandbox] }
+    ManageTickResult:
+      type: object
+      required: [scanned, holds, tp1, tp2, stops, trails, timeStops, unknown, errors]
+      properties:
+        scanned: { type: integer }
+        holds: { type: integer }
+        tp1: { type: integer }
+        tp2: { type: integer }
+        stops: { type: integer }
+        trails: { type: integer }
+        timeStops: { type: integer }
+        unknown: { type: integer }
+        errors: { type: integer }
+        closedIds: { type: array, items: { type: integer } }
+        note: { type: string }
+        environment: { type: string, enum: [sandbox] }
+    AllocRebalanceResult:
+      type: object
+      properties:
+        vaultId: { type: integer }
+        vaults: { type: integer }
+        updated: { type: integer }
+        weights:
+          type: array
+          items:
+            type: object
+            properties:
+              wallet: { type: string }
+              weightBps: { type: integer }
+        environment: { type: string, enum: [sandbox] }
+    DemoSeed:
+      type: object
+      required: [vaultId, botId, traders, depositSol]
+      properties:
+        vaultId: { type: integer }
+        botId: { type: integer }
+        traders: { type: array, items: { type: string } }
+        depositSol: { type: number }
+        sharePrice: { type: number }
+        environment: { type: string, enum: [sandbox] }
+    DemoReplay:
+      type: object
+      properties:
+        vaultId: { type: integer }
+        botId: { type: integer }
+        signals: { type: integer }
+        fired: { type: integer }
+        failed: { type: integer }
+        orderIds: { type: array, items: { type: integer } }
+        forceClosed: { type: integer }
+        deposit2: { type: number }
+        settleNavSol: { type: number }
+        withdrawal:
+          type: object
+          properties:
+            id: { type: integer }
+            status: { type: string }
+            pending: { type: boolean }
+            message: { type: string }
+        environment: { type: string, enum: [sandbox] }
+    DemoReset:
+      type: object
+      properties:
+        vaults: { type: integer }
+        bots: { type: integer }
+        orders: { type: integer }
+        legs: { type: integer }
+        deposits: { type: integer }
+        withdrawals: { type: integer }
+        epochs: { type: integer }
+        traders: { type: integer }
+        auditKept: { type: boolean }
+        environment: { type: string, enum: [sandbox] }
+    DemoPerformance:
+      type: object
+      properties:
+        botId: { type: integer }
+        botName: { type: string }
+        orders: { type: integer }
+        open: { type: integer }
+        closed: { type: integer }
+        wins: { type: integer }
+        losses: { type: integer }
+        winRate: { type: number }
+        totalRealizedUsd: { type: number }
+        equity:
+          type: array
+          items:
+            type: object
+            properties:
+              t: { type: string, format: date-time }
+              cum: { type: number }
+        environment: { type: string, enum: [sandbox] }
+  responses:
+    ErrorEnvelope:
+      description: Error envelope {success:false, message}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque session token from POST /api/auth/verify

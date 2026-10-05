@@ -1,0 +1,318 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Reference schema (sơ đồ tham khảo của user) — table/column names follow the
+// diagram exactly via @@map/@map. API shapes (openapi.yaml) are preserved by
+// mappers in modules/*, NOT by the schema.
+model TrackedWallet {
+  id                   Int      @id @default(autoincrement())
+  address              String   @unique @db.VarChar(64)
+  label                String    @db.VarChar(100)
+  handle               String    @db.VarChar(50)
+  avatarUrl            String?   @map("avatar_url") @db.VarChar(255)
+  ownerNotes           String?   @map("owner_notes") @db.Text
+  allocationWeight     Decimal  @map("allocation_weight") @db.Decimal(4, 2)
+  isActive             Boolean  @map("is_active") @default(true)
+  lastScannedSlot      BigInt?  @map("last_scanned_slot") @db.BigInt
+  lastScannedSignature String?  @map("last_scanned_signature") @db.VarChar(100)
+  totalTradesCount     Int      @map("total_trades_count") @default(0)
+  winRate              Decimal? @map("win_rate") @db.Decimal(5, 2)
+  cumulativePnlUsd     Decimal? @map("cumulative_pnl_usd") @db.Decimal(15, 2)
+  createdAt            DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  updatedAt            DateTime @map("updated_at") @updatedAt @db.Timestamptz()
+
+  transactions   Transaction[]
+  realtimeEvents RealtimeEvent[]
+
+  @@map("tracked_wallets")
+}
+
+model Transaction {
+  signature     String   @id @db.VarChar(100)
+  walletAddress String   @map("wallet_address") @db.VarChar(64)
+  wallet        TrackedWallet @relation(fields: [walletAddress], references: [address], onDelete: Cascade)
+  slot          BigInt   @db.BigInt
+  blockTime     BigInt   @map("block_time") @db.BigInt
+  formattedTime String   @map("formatted_time") @db.VarChar(50)
+  action        String   @db.VarChar(10)
+  symbol        String   @db.VarChar(30)
+  tokenMint     String?  @map("token_mint") @db.VarChar(64)
+  amountToken   Decimal? @map("amount_token") @db.Decimal(24, 8)
+  amountUsd     Decimal? @map("amount_usd") @db.Decimal(15, 2)
+  dexVenue      String   @map("dex_venue") @db.VarChar(50)
+  slippageBps   Int      @map("slippage_bps")
+  feeSol        Decimal  @map("fee_sol") @db.Decimal(10, 8)
+  status        String   @db.VarChar(20)
+  rawPayload    Json?    @map("raw_payload") @db.JsonB
+  createdAt     DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  realtimeEvents RealtimeEvent[]
+
+  @@map("transactions")
+  @@index([walletAddress, slot(sort: Desc)])
+}
+
+model RealtimeEvent {
+  id            Int       @id @default(autoincrement())
+  eventType     String    @map("event_type") @db.VarChar(50)
+  walletAddress String    @map("wallet_address") @db.VarChar(64)
+  wallet        TrackedWallet @relation(fields: [walletAddress], references: [address], onDelete: Cascade)
+  txSignature   String?   @map("tx_signature") @db.VarChar(100)
+  transaction   Transaction? @relation(fields: [txSignature], references: [signature], onDelete: Cascade)
+  title         String    @db.VarChar(200)
+  payload       Json?     @db.JsonB
+  broadcastedAt DateTime  @map("broadcasted_at") @default(now()) @db.Timestamptz()
+
+  @@map("realtime_events")
+  @@index([walletAddress, broadcastedAt(sort: Desc)])
+}
+
+// Paper copy-trade orders (devnet, 1-click). Lifecycle:
+// PENDING → QUATED → SENT → CONFIRMED | FAILED.
+model CopyOrder {
+  id              Int      @id @default(autoincrement())
+  masterWallet    String?  @map("master_wallet") @db.VarChar(64)
+  masterHandle    String?  @map("master_handle") @db.VarChar(100)
+  masterTxHash    String?  @map("master_tx_hash") @db.VarChar(100)
+  symbol          String?  @db.VarChar(30)
+  action          String?  @db.VarChar(10)
+  tokenMint       String?  @map("token_mint") @db.VarChar(64)
+  amountUsd       Decimal? @map("amount_usd") @db.Decimal(15, 2)
+  venue           String?  @db.VarChar(50)
+  mode            String   @db.VarChar(10)
+  status          String   @db.VarChar(16)
+  devnetSignature String?  @map("devnet_signature") @db.VarChar(100)
+  quoteJson       Json?    @map("quote_json") @db.JsonB
+  error           String?  @db.Text
+  // Solution v2 (A1): entry mode + measured drag + TP/stop params for Manage.
+  entryMode       String   @map("entry_mode") @db.VarChar(10) @default("immediate")
+  delayDragPct    Decimal? @map("delay_drag_pct") @db.Decimal(8, 4)
+  tp1Pct          Decimal? @map("tp1_pct") @db.Decimal(8, 4)
+  stopPct         Decimal? @map("stop_pct") @db.Decimal(8, 4)
+  // Per-order ladder config (nullable = engine default): TP1 share 1..10000bps,
+  // trailing pullback 1..100%, TP2 multiplier 101..1000% of tp1.
+  tp1ShareBps    Int?     @map("tp1_share_bps")
+  trailPct       Int?     @map("trail_pct")
+  tp2MultPct     Int?     @map("tp2_mult_pct")
+  // Shadow position bookkeeping (B2): entry from candles at confirm time.
+  entryPriceUsd   Decimal? @map("entry_price_usd") @db.Decimal(24, 12)
+  peakPriceUsd    Decimal? @map("peak_price_usd") @db.Decimal(24, 12)
+  exitPriceUsd    Decimal? @map("exit_price_usd") @db.Decimal(24, 12)
+  closeReason     String?  @map("close_reason") @db.VarChar(16)
+  closedAt        DateTime? @map("closed_at") @db.Timestamptz()
+  realizedPnlUsd  Decimal? @map("realized_pnl_usd") @db.Decimal(15, 2)
+  createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  updatedAt       DateTime @map("updated_at") @updatedAt @db.Timestamptz()
+
+  legs CopyOrderLeg[]
+
+  @@map("copy_orders")
+  @@index([masterWallet, createdAt(sort: Desc)])
+}
+
+model CopyOrderLeg {
+  id             Int      @id @default(autoincrement())
+  orderId        Int      @map("order_id")
+  order          CopyOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // TP1 | TP2 | STOP | TRAIL | TIME — one row per leg per order.
+  leg            String   @db.VarChar(10)
+  // Fraction of notional closed by this leg (0..1).
+  fraction       Decimal  @db.Decimal(8, 4)
+  exitPriceUsd   Decimal? @map("exit_price_usd") @db.Decimal(24, 12)
+  realizedPnlUsd Decimal? @map("realized_pnl_usd") @db.Decimal(15, 2)
+  closedAt       DateTime? @map("closed_at") @db.Timestamptz()
+
+  @@map("copy_order_legs")
+  @@unique([orderId, leg])
+  @@index([orderId])
+}
+
+// Paper vault accounting (MoneyFi model, off-chain v1):
+// PnL moves share price; deposits mint at settle price (no retro profit);
+// withdrawals burn at settle price. No per-trade split — rights via shares.
+model Vault {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(100)
+  // Performance fee in bps on new profit above HWM (deck: 2000 = 20%).
+  // 0 = disabled (MoneyFi base model has no fee).
+  feeBps          Int      @map("fee_bps") @default(0)
+  hwmSharePrice   Decimal  @map("hwm_share_price") @db.Decimal(24, 12) @default(1)
+  totalShares     Decimal  @map("total_shares") @db.Decimal(24, 12) @default(0)
+  // Treasury policy (T2): reserve floor + withdrawal fee + deposit lock.
+  // All default to OFF (0) — reserve/fee/lock are opt-in per vault by ADMIN,
+  // preserving legacy vault behavior until a policy is set.
+  reserveBps      Int      @map("reserve_bps") @default(0)
+  withdrawFeeBps  Int      @map("withdraw_fee_bps") @default(0)
+  lockHours       Int      @map("lock_hours") @default(0)
+  treasurySol     Decimal  @map("treasury_sol") @db.Decimal(24, 12) @default(0)
+  // Settlement windows (W): period 0 = always open (legacy). Otherwise settle
+  // runs only inside [anchor + k*period, +lengthMin), anchored at createdAt.
+  settlePeriodHours Int    @map("settle_period_hours") @default(0)
+  settleLengthMin   Int    @map("settle_length_min") @default(0)
+  // Environment isolation (fund-roles-auth D7): SANDBOX default; PRODUCTION
+  // execution paths are not implemented and must refuse explicitly.
+  environment     String   @db.VarChar(10) @default("SANDBOX")
+  createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  updatedAt       DateTime @map("updated_at") @updatedAt @db.Timestamptz()
+
+  deposits    Deposit[]
+  withdrawals Withdrawal[]
+  epochs      EpochCheckpoint[]
+  traders     VaultTrader[]
+  bots        Bot[]
+
+  @@map("vaults")
+}
+
+model Deposit {
+  id           Int      @id @default(autoincrement())
+  vaultId      Int      @map("vault_id")
+  vault        Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  depositor    String   @db.VarChar(100)
+  // Linked identity (fund-roles-auth D5): nullable for backward compat
+  // with pre-auth rows (alice/bob E2E); set when a Bearer session is present.
+  userId       Int?     @map("user_id")
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amountSol    Decimal  @map("amount_sol") @db.Decimal(24, 12)
+  status       String   @db.VarChar(16) @default("QUEUED")
+  sharesMinted Decimal? @map("shares_minted") @db.Decimal(24, 12)
+  sharePrice   Decimal? @map("share_price") @db.Decimal(24, 12)
+  createdAt    DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  settledAt    DateTime? @map("settled_at") @db.Timestamptz()
+
+  @@map("vault_deposits")
+  @@index([vaultId, status])
+}
+
+model Withdrawal {
+  id              Int      @id @default(autoincrement())
+  vaultId         Int      @map("vault_id")
+  vault           Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  depositor       String   @db.VarChar(100)
+  // Linked identity (fund-roles-auth D5): nullable, same compat rule as Deposit.
+  userId          Int?     @map("user_id")
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sharesRequested Decimal  @map("shares_requested") @db.Decimal(24, 12)
+  status          String   @db.VarChar(16) @default("QUEUED")
+  sharePrice      Decimal? @map("share_price") @db.Decimal(24, 12)
+  payoutSol       Decimal? @map("payout_sol") @db.Decimal(24, 12)
+  createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  settledAt       DateTime? @map("settled_at") @db.Timestamptz()
+
+  @@map("vault_withdrawals")
+  @@index([vaultId, status])
+}
+
+model EpochCheckpoint {
+  id                Int      @id @default(autoincrement())
+  vaultId           Int      @map("vault_id")
+  vault             Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  navSol            Decimal  @map("nav_sol") @db.Decimal(24, 12)
+  sharePrice        Decimal  @map("share_price") @db.Decimal(24, 12)
+  sharesOutstanding Decimal  @map("shares_outstanding") @db.Decimal(24, 12)
+  feeSol            Decimal  @map("fee_sol") @db.Decimal(24, 12) @default(0)
+  createdAt         DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("vault_epochs")
+  @@index([vaultId, createdAt(sort: Desc)])
+}
+
+// Fund roles/auth (intent 2026-10-02 Rev 2): identity + RBAC + audit +
+// multi-vault trader sets + operational bot records. No execution logic here.
+
+model User {
+  id        Int      @id @default(autoincrement())
+  wallet    String   @unique @db.VarChar(100)
+  // Credential login (independent from wallet identity; linking is follow-up).
+  // wallet stays required+unique: credential users get 'cred:<username>'
+  // (':' never appears in Base58, so no collision with real wallets).
+  username     String?  @unique @db.VarChar(32)
+  email        String?  @unique @db.VarChar(100)
+  passwordHash String?  @map("password_hash") @db.Text
+  // USER | KOL | ADMIN. Self-register always creates USER; only ADMIN changes role.
+  role      String   @db.VarChar(10) @default("USER")
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  sessions    Session[]
+  deposits    Deposit[]
+  withdrawals Withdrawal[]
+
+  @@map("users")
+}
+
+model AuthNonce {
+  id        Int      @id @default(autoincrement())
+  wallet    String   @db.VarChar(100)
+  nonce     String   @unique @db.VarChar(64)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz()
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz()
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("auth_nonces")
+  @@index([wallet])
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  // SHA-256 hex of the opaque bearer token (raw token never stored).
+  tokenHash String   @unique @map("token_hash") @db.VarChar(64)
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz()
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("sessions")
+  @@index([userId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  actor     String   @db.VarChar(100)
+  action    String   @db.VarChar(64)
+  target    String?  @db.VarChar(200)
+  reason    String?  @db.Text
+  metaJson  Json?    @map("meta_json") @db.JsonB
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  // Append-only by convention: audit.service.ts exposes create+list ONLY.
+  // No update/delete service method and no mutating controller route may exist.
+
+  @@map("audit_logs")
+  @@index([actor])
+  @@index([createdAt(sort: Desc)])
+}
+
+model VaultTrader {
+  id         Int     @id @default(autoincrement())
+  vaultId    Int     @map("vault_id")
+  vault      Vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  wallet     String  @db.VarChar(64)
+  weightBps  Int     @map("weight_bps") @default(0)
+  isActive   Boolean @map("is_active") @default(true)
+  createdAt  DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("vault_traders")
+  @@unique([vaultId, wallet])
+  @@index([vaultId, isActive])
+}
+
+model Bot {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  // Operational mode (fund spec §8): AUTO default; PAUSED by ADMIN override.
+  // Record only — execution engine (T1 auto-fire) is a separate phase.
+  mode      String   @db.VarChar(10) @default("AUTO")
+  vaultId   Int?     @map("vault_id")
+  vault     Vault?   @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+  status    String   @db.VarChar(16) @default("IDLE")
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  updatedAt DateTime @map("updated_at") @updatedAt @db.Timestamptz()
+
+  @@map("bots")
+}

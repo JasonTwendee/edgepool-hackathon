@@ -1,0 +1,130 @@
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { validateDto } from '../../common/validation/validate-dto.js';
+import { AuthGuard, AuthedUser, OptionalAuthGuard, Roles, RolesGuard } from '../../common/auth/guards.js';
+import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
+import { VaultService } from './vault.service.js';
+import { AssignTraderDto, CreateVaultDto, VaultDepositDto, VaultPolicyDto, VaultSettleDto, VaultWithdrawDto } from './dto/vault.dto.js';
+
+@Controller('api/vaults')
+export class VaultsController {
+  constructor(@Inject(VaultService) private readonly vaults: VaultService) {}
+
+  @Get()
+  async list(): Promise<{ success: boolean; total: number; data: unknown }> {
+    const data = (await this.vaults.listVaults()) as unknown[];
+    return { success: true, total: data.length, data };
+  }
+
+  @Post()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('vault.create')
+  async create(@Body() body: Record<string, unknown>): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(CreateVaultDto, body);
+    const data = await this.vaults.createVault(dto.name);
+    return { success: true, data };
+  }
+
+  @Get(':id/traders')
+  async traders(@Param('id') id: string): Promise<{ success: boolean; total: number; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const vaults = (await this.vaults.listVaults()) as { id: number; traders: unknown[] }[];
+    const found = vaults.find((v) => v.id === (Number.isFinite(parsed) ? parsed : -1));
+    const data = found ? found.traders : [];
+    return { success: true, total: data.length, data };
+  }
+
+  @Post(':id/traders')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('vault.assign_trader')
+  async assignTrader(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const dto = await validateDto(AssignTraderDto, body);
+    const data = await this.vaults.assignTrader(
+      Number.isFinite(parsed) ? parsed : -1,
+      dto.wallet,
+      dto.weightBps ?? 0,
+    );
+    return { success: true, data };
+  }
+
+  @Delete(':id/traders/:wallet')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('vault.remove_trader')
+  async removeTrader(
+    @Param('id') id: string,
+    @Param('wallet') wallet: string,
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const data = await this.vaults.removeTrader(Number.isFinite(parsed) ? parsed : -1, wallet);
+    return { success: true, data };
+  }
+
+  @Post(':id/policy')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('vault.set_policy')
+  async setPolicy(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const dto = await validateDto(VaultPolicyDto, body);
+    const data = await this.vaults.setPolicy(Number.isFinite(parsed) ? parsed : -1, {
+      reserveBps: dto.reserveBps,
+      withdrawFeeBps: dto.withdrawFeeBps,
+      lockHours: dto.lockHours,
+      settlePeriodHours: dto.settlePeriodHours,
+      settleLengthMin: dto.settleLengthMin,
+    });
+    return { success: true, data: { ...data, environment: 'sandbox' } };
+  }
+
+  @Post('deposit')
+  @UseGuards(OptionalAuthGuard)
+  async deposit(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(VaultDepositDto, body);
+    // Identity is opportunistic on legacy public routes: link userId when a
+    // session is present, keep depositor-string behavior otherwise (P5 decides gating).
+    const row = await this.vaults.deposit(dto.vaultId ?? 1, dto.depositor, dto.amountSol, req.user?.id);
+    return { success: true, data: row };
+  }
+
+  @Post('withdraw')
+  @UseGuards(OptionalAuthGuard)
+  async withdraw(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ) {
+    const dto = await validateDto(VaultWithdrawDto, body);
+    const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, dto.depositor, dto.shares, req.user?.id);
+    return { success: true, data: row };
+  }
+
+  @Post('settle')
+  async settle(@Body() body: Record<string, unknown>) {
+    const dto = await validateDto(VaultSettleDto, body);
+    const result = await this.vaults.settleEpoch(dto.vaultId ?? 1, dto.navSol);
+    return { success: true, data: result };
+  }
+
+  @Get('status')
+  async status(@Query() query: Record<string, string | string[] | undefined>) {
+    const raw = query.vaultId;
+    const parsed = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
+    const data = await this.vaults.status(Number.isFinite(parsed) ? parsed : 1);
+    return { success: true, data };
+  }
+}

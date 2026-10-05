@@ -1,0 +1,248 @@
+{
+ "phaseEvents": [
+  {
+   "at": "2026-09-29T08:10:00Z",
+   "detail": "spec-first FE/BE split, 3x tsc green, BE smoke health+portfolio+wallets+SSE pass",
+   "phase": "4-wiring-verification",
+   "status": "done",
+   "topic": "codexminimal-standardize-docs-fe-be",
+   "verification": [
+    "tsc root PASS",
+    "tsc -p backend PASS",
+    "tsc -p frontend PASS",
+    "curl /api/health ONLINE",
+    "curl /api/portfolio total=20/limit=2",
+    "curl /api/wallets total=10",
+    "SSE CONNECTED+ONCHAIN_SWAP_EVENT"
+   ]
+  },
+  {
+   "at": "2026-10-01T08:00:00Z",
+   "topic": "docker-compose-runtime",
+   "phase": "P1-containerize",
+   "status": "done",
+   "detail": "compose up 3/3 healthy (postgres+backend+frontend); BE+FE health ONLINE; envelopes 400/404 intact; SSE CONNECTED; restart recover; down/up persist wallets=10",
+   "verification": [
+    "npm run typecheck PASS",
+    "compose build backend+frontend PASS",
+    "curl :3000/api/health ONLINE",
+    "curl :3001/api/health ONLINE",
+    "wallets total=10",
+    "portfolio total=32975",
+    "400/404 success:false envelopes",
+    "SSE CONNECTED",
+    "restart healthy",
+    "down/up persist"
+   ]
+  },
+  {
+   "at": "2026-10-01T08:45:00Z",
+   "topic": "docker-compose-runtime",
+   "phase": "P2-tunnel-hackathon-only",
+   "status": "done",
+   "detail": "cloudflared quick tunnel (profile-gated) E2E: public trycloudflare URL 200 both / and /api/health; stop frontend -> 502, start -> ONLINE without tunnel restart",
+   "verification": [
+    "compose config OK",
+    "default up excludes tunnel",
+    "public URL /api/health ONLINE",
+    "public URL / 200",
+    "stop/start frontend 502->200"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "P0-P4 paper copy-trade: contract, CopyOrder, executor+TDD, controller smoke, FE modal+history",
+   "phase": "P0-P4",
+   "status": "done",
+   "topic": "copy-trade-paper",
+   "verification": [
+    "openapi 12 paths",
+    "asserts ALL GREEN",
+    "tsc BE+FE",
+    "next build",
+    "API envelopes"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "A1-A3 solution-v2: entry/drag/caps, manipulation flags (3 tagged), paper-watch",
+   "phase": "A1-A3",
+   "status": "done",
+   "topic": "solution-v2",
+   "verification": [
+    "asserts ALL GREEN",
+    "migration a1",
+    "smoke drag/cap/history"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "P5 devnet E2E: order #4 CONFIRMED, sig finalized err-null slot 506512658",
+   "phase": "P5-e2e",
+   "status": "done",
+   "topic": "copy-trade-paper",
+   "verification": [
+    "devnet getSignatureStatus Ok",
+    "history returns order"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "Phase C vault accounting (MoneyFi): vaults module live, E2E deposit/settle/withdraw/fee + contract design doc",
+   "phase": "C-vault",
+   "status": "done",
+   "topic": "solution-v2",
+   "verification": [
+    "asserts ALL GREEN",
+    "live E2E",
+    "openapi 16+4 paths"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "P0-P4 fund-roles-auth: contract+schema+migration, auth/users/guards/bootstrap, audit append-only, multi-vault+traders+bots+env",
+   "phase": "P0-P4",
+   "status": "done",
+   "topic": "fund-roles-auth",
+   "verification": [
+    "openapi 28 paths YAML valid",
+    "migration 20261002083329 deploy green",
+    "7 asserts ALL GREEN (auth/audit/multivault + 4 legacy)",
+    "tsc BE+FE",
+    "live smoke 17/17 (real ed25519 sign, 401/403 matrix)",
+    "compose rebuild healthy"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "T1 auto-fire (approved copy-trade/**): poller + tick endpoint, live 2 CONFIRMED bot orders; T2 treasury (reserve opt-in/fee/lock) live 8/8; T3 FE (auth/admin/DEMO) build live",
+   "phase": "T1-T3",
+   "status": "done",
+   "topic": "t1-t2-t3",
+   "verification": [
+    "9 asserts ALL GREEN",
+    "root tsc BE+FE",
+    "admin smoke 16/16 + user smoke 17/17 + t1 live fire + t2 live 8/8",
+    "FE :3001 200 + DEMO banner",
+    "openapi 30 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "T1-B2 manage auto-close: promoted v1 math to ManageService + TIME_STOP + tick endpoint, live 3 HOLDs, 10/10 asserts",
+   "phase": "B2.1-B2.3",
+   "status": "done",
+   "topic": "t1b2-manage",
+   "verification": [
+    "manage asserts ALL GREEN (10 cases)",
+    "root tsc BE+FE",
+    "live tick scanned 3 holds 3, anon 401",
+    "openapi 31 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "TP ladder + trailing-stop: CopyOrderLeg table + legs engine (TP1/TP2/TRAIL/STOP/TIME) + history legs, 11-case asserts, live 3 HOLDs",
+   "phase": "L1-L3",
+   "status": "done",
+   "topic": "ladder",
+   "verification": [
+    "manage asserts ALL GREEN (11 cases)",
+    "root tsc BE+FE",
+    "live tick + history legs field",
+    "10/10 asserts GREEN",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "Per-order ladder config: 3 nullable Int cols + DTO ranges + engine fallback, live order cfg persisted, 10/10 asserts",
+   "phase": "C1-C3",
+   "status": "done",
+   "topic": "ladder-config",
+   "verification": [
+    "persist + engine-config asserts GREEN",
+    "root tsc BE+FE",
+    "live 1-click cfg 2500/10/150 + 400-case + manage tick",
+    "openapi execute/history fields",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "FE auth plus: httpOnly cookie dual Bearer + logout + browser-wallet sign + role-gated UI, live cookie flow 7/7",
+   "phase": "F1-F3",
+   "status": "done",
+   "topic": "fe-auth-plus",
+   "verification": [
+    "auth asserts incl. cookie/logout GREEN",
+    "root tsc BE+FE + compose build",
+    "live Set-Cookie/me/logout/401 flow 7/7",
+    "openapi 32 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "Withdrawal windows: settle schedule gate anchored at createdAt + status window info + policy pair-validation, live 6/6, 11/11 asserts",
+   "phase": "W1-W3",
+   "status": "done",
+   "topic": "withdraw-windows",
+   "verification": [
+    "windows asserts ALL GREEN (5 groups)",
+    "root tsc BE+FE",
+    "live policy/settle/status/legacy 6/6",
+    "11/11 asserts GREEN",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "ATR regime auto-tune: suggestRegime RR 1:2 + executePaper tune-once + explicit-wins + fallback, live CONFIRMED fallback, 11/11 asserts",
+   "phase": "R1-R3",
+   "status": "done",
+   "topic": "atr-regime",
+   "verification": [
+    "regime matrix + tune/explicit/off asserts GREEN",
+    "root tsc BE+FE",
+    "live tuned-fire fallback + explicit-wins + manage tick",
+    "11/11 asserts GREEN",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "Dynamic allocation: rank-based scoring + rebalance service + sizing weight slice, live rebalance sum 10000, 12/12 asserts",
+   "phase": "G1-G3",
+   "status": "done",
+   "topic": "dynamic-alloc",
+   "verification": [
+    "alloc asserts ALL GREEN (6 groups)",
+    "root tsc BE+FE",
+    "live rebalance/all/401 + weights sum",
+    "12/12 asserts GREEN",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-02T00:00:00Z",
+   "detail": "Demo Simulator: seed/replay/reset/performance + deposit2 + pending withdraw, live full story 6/6, 13/13 asserts",
+   "phase": "M1-M3",
+   "status": "done",
+   "topic": "demo-sim",
+   "verification": [
+    "demo asserts ALL GREEN (7 groups)",
+    "root tsc BE+FE",
+    "live seed/replay/withdraw-pending/performance/reset 6/6",
+    "13/13 asserts GREEN",
+    "openapi 37 paths YAML valid",
+    "review APPROVE"
+   ]
+  }
+ ],
+ "sessions": [],
+ "updatedAt": "2026-10-02T00:00:00Z",
+ "version": 2
+}

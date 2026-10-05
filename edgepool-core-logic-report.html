@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edgepool Core Logic — Báo cáo nghiên cứu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#161826; --abyss:#0D0F18; --surface:#232532; --line:#3F424D;
+  --text:#E9E9ED; --muted:#9397AB; --faint:#75798C;
+  --aqua:#49E6D7; --aqua-dim:#81EADE; --violet:#9184D9;
+  --gain:#73DEA4; --loss:#F28881; --caution:#F0BE67;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:'Inter',-apple-system,sans-serif;line-height:1.65}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+/* hero */
+.hero{padding:72px 0 48px;border-bottom:1px solid var(--line);
+  background:radial-gradient(800px 300px at 80% 0%,rgba(73,230,215,.07),transparent)}
+.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--aqua);font-weight:600}
+h1{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:clamp(32px,5vw,52px);
+  letter-spacing:-.02em;line-height:1.1;margin:12px 0}
+h1 .aq{color:var(--aqua)}
+.lead{color:var(--muted);font-size:17px;max-width:720px}
+.meta{margin-top:16px;font-size:12px;color:var(--faint)}
+/* nav */
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(22,24,38,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding:10px 24px}
+nav.toc a{white-space:nowrap;font-size:12px;font-weight:600;color:var(--muted);
+  text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+nav.toc a:hover{color:var(--aqua);border-color:var(--aqua)}
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+h2{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:30px;letter-spacing:-.015em;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 28px;max-width:760px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted)}
+.tag.aqua{background:rgba(73,230,215,.12);color:var(--aqua);border-color:rgba(73,230,215,.35)}
+.tag.gain{background:rgba(115,222,164,.10);color:var(--gain);border-color:rgba(115,222,164,.3)}
+.tag.loss{background:rgba(242,136,129,.10);color:var(--loss);border-color:rgba(242,136,129,.3)}
+.tag.warn{background:rgba(240,190,103,.10);color:var(--caution);border-color:rgba(240,190,103,.3)}
+.tag.violet{background:rgba(145,132,217,.12);color:#D2CEFD;border-color:rgba(145,132,217,.35)}
+.formula{font-family:'JetBrains Mono',monospace;background:var(--abyss);border:1px solid var(--line);
+  border-radius:8px;padding:14px 16px;font-size:15px;margin:12px 0;overflow-x:auto}
+.formula b{color:var(--aqua);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600}
+td.num{font-family:'JetBrains Mono',monospace;white-space:nowrap}
+/* pipeline */
+.pipe{display:flex;flex-direction:column;gap:0;margin-top:8px}
+.step{display:grid;grid-template-columns:52px 1fr;gap:14px;position:relative;padding-bottom:22px}
+.step:last-child{padding-bottom:0}
+.step::before{content:"";position:absolute;left:25px;top:52px;bottom:0;width:2px;background:var(--line)}
+.step:last-child::before{display:none}
+.dot{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:700;
+  font-family:'JetBrains Mono',monospace;font-size:15px;flex:none}
+.dot.done{background:rgba(73,230,215,.12);border:2px solid var(--aqua);color:var(--aqua)}
+.dot.next{background:transparent;border:2px dashed var(--violet);color:var(--violet)}
+.step h3{margin:2px 0 4px;font-size:16px}
+.step h3 .st{font-size:11px;margin-left:8px}
+.step p{margin:0;color:var(--muted);font-size:13.5px}
+.step .ex{margin-top:8px;font-size:12.5px;color:var(--faint);background:var(--abyss);
+  border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+/* calc */
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.calc{grid-template-columns:1fr}}
+.calc input{width:100%;background:var(--abyss);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:16px;outline:none}
+.calc input:focus{border-color:var(--aqua)}
+.bar{height:10px;border-radius:5px;background:#3F424D;overflow:hidden;margin:8px 0}
+.bar>i{display:block;height:100%;background:var(--aqua);border-radius:5px;transition:width .25s}
+ul.tight{margin:8px 0;padding-left:20px}
+ul.tight li{margin:6px 0;font-size:14px;color:#C9CCDA}
+ul.tight li::marker{color:var(--aqua)}
+.warnlist li::marker{color:var(--caution)}
+.badlist li::marker{color:var(--loss)}
+.goodlist li::marker{color:var(--gain)}
+footer{padding:36px 0 64px;color:var(--faint);font-size:12.5px}
+.tip{border-left:3px solid var(--aqua);background:rgba(73,230,215,.06);padding:12px 16px;
+  border-radius:0 8px 8px 0;margin:16px 0;font-size:14px}
+.tip.warn{border-color:var(--caution);background:rgba(240,190,103,.06)}
+.tip.bad{border-color:var(--loss);background:rgba(242,136,129,.06)}
+h4{margin:22px 0 8px;font-size:15px}
+a{color:var(--aqua)}
+</style>
+</head>
+<body>
+
+<div class="hero"><div class="wrap">
+  <div class="kicker">Edgepool · Design.pdf (10 slides) · Research report</div>
+  <h1>Core Logic: <span class="aq">copy trader giỏi</span> bằng vault tự động</h1>
+  <p class="lead">Báo cáo phân tích nguyên lý hoạt động của Edgepool — hệ vault Solana non-custodial
+  copy-trading theo trader xếp hạng — diễn giải càng đơn giản càng tốt, kèm điểm mạnh / điểm yếu
+  và đề xuất cải thiện để team follow khi build.</p>
+  <div class="meta mono">Nguồn: Design.pdf (Colosseum submission, Prototype stage) · Ngày báo cáo: 01/10/2026 · Tiếng Việt</div>
+</div></div>
+
+<nav class="toc"><div class="wrap">
+  <a href="#s0">§0 Tóm tắt 60 giây</a><a href="#s1">§1 Vấn đề</a><a href="#s2">§2 Pipeline 8 bước</a>
+  <a href="#s3">§3 Toán vault</a><a href="#s4">§4 Quản trị vị thế</a><a href="#s5">§5 Điểm mạnh</a>
+  <a href="#s6">§6 Điểm yếu</a><a href="#s7">§7 Đề xuất</a><a href="#s8">§8 Đối chiếu hệ thống ta</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- §0 -->
+<section id="s0">
+  <h2>§0 — Hiểu trong 60 giây</h2>
+  <p class="sub">Nếu bạn chỉ có 1 phút: đây là toàn bộ ý tưởng.</p>
+  <div class="card">
+    <p><b>Ví dụ đời thường:</b> Có một "thợ săn coin" (Trader A) ngày nào cũng bắt được kèo x10.
+    Bạn muốn góp tiền cho người ta đánh giùm, nhưng <b>(1)</b> bạn toàn mua trễ (người ta mua giá 1,
+    bạn mua giá 3 vì phải tự canh chart), <b>(2)</b> bạn không biết chia bao nhiêu tiền mỗi kèo,
+    <b>(3)</b> bạn không biết khi nào cắt lỗ/chốt lời. Edgepool giải cả 3 bài toán bằng
+    <b>một cái vault tự động</b>:</p>
+    <table>
+      <tr><th style="width:34%">Bài toán</th><th>Cách Edgepool giải</th></tr>
+      <tr><td>Mua trễ (buy late)</td><td>Bot canh on-chain 24/7, vào lệnh ngay khi phát hiện trader mua (Detect → Execute), không chờ người.</td></tr>
+      <tr><td>Không biết chia vốn</td><td>Công thức cứng: <span class="mono">min(1% NAV, 0.1 SOL, trần thanh khoản)</span> — vault càng to, mỗi lệnh càng nhỏ theo tỷ lệ.</td></tr>
+      <tr><td>Cắt lỗ / chốt lời cảm tính</td><td>Luật cứng: stop −50%, chốt 40% ở +60%, chốt 40% ở +100%, nuôi 20% còn lại tới +150%/+300%; 5 cầu dao full-exit.</td></tr>
+      <tr><td>Sợ vault ôm tiền bỏ trốn</td><td>Non-custodial + chia pro-rata theo share: <span class="mono">share price = NAV / shares</span>; phí chỉ ăn trên <b>lợi nhuận mới</b> (high-water mark).</td></tr>
+    </table>
+    <div class="tip"><b>Ý tưởng đắt nhất của deck (slide 03):</b> “Trader PnL is not copyable PnL” —
+    lợi nhuận của trader <b>không bằng</b> lợi nhuận follower copy được. Phần copy được chỉ còn lại
+    sau khi trừ: độ trễ tín hiệu → thanh khoản khớp được → phí → kiểm duyệt rủi ro.
+    Vì vậy Edgepool <b>xếp hạng trader theo copyable PnL</b> (24h/7d/30d), không xếp theo PnL headline.</div>
+  </div>
+</section>
+
+<!-- §1 -->
+<section id="s1">
+  <h2>§1 — Vấn đề gốc (slide 02)</h2>
+  <p class="sub">“The signal is public. Capturing it is not.” — tín hiệu mua của cá voi ai cũng thấy on-chain, nhưng bắt kịp nó thì không.</p>
+  <div class="grid3">
+    <div class="card"><span class="tag warn">Late entries</span><p style="font-size:14px;color:var(--muted)">Trader mua → follower <b>để ý</b> → copy contract → <b>soi rủi ro</b> → mua muộn. Mỗi bước trễ vài phút, giá đã chạy mất (minh họa: trader entry thấp, follower entry cao hơn hẳn).</p></div>
+    <div class="card"><span class="tag">DIY infrastructure</span><p style="font-size:14px;color:var(--muted)">Tự dựng bot canh chain, tự tính size, tự đặt stop — tốn công, dễ sai, không scale.</p></div>
+    <div class="card"><span class="tag">24/7 + cảm xúc</span><p style="font-size:14px;color:var(--muted)">Canh màn hình xuyên đêm + ra quyết định bằng FOMO: mua đuổi, gồng lỗ, chốt non — 2 tật cố hữu của copy tay.</p></div>
+  </div>
+</section>
+
+<!-- §2 -->
+<section id="s2">
+  <h2>§2 — Pipeline 8 bước: từ tín hiệu → vị thế được quản lý</h2>
+  <p class="sub">Slide 06. Chấm <span class="tag aqua">● built</span> = đã có trong prototype · <span class="tag violet">○ validating</span> = đang kiểm chứng. Mũi tên vàng: không đủ điều kiện trong 30 phút → <b>Skip</b> (bỏ kèo, không tiếc).</p>
+  <div class="pipe">
+    <div class="step"><div class="dot done">01</div><div><h3>Rank <span class="st tag aqua">built</span></h3><p>Xếp hạng trader theo <b>copyable PnL</b> ở 3 cửa sổ <span class="mono">24h (momentum) · 7d (lặp lại) · 30d (ổn định)</span>.</p><div class="ex">VD: Trader lãi $6M nhưng toàn kèo thanh khoản 5k$ (không khớp nổi size thật) → rớt hạng. Trader lãi $500k với kèo liquid → lên top.</div></div></div>
+    <div class="step"><div class="dot done">02</div><div><h3>Detect <span class="st tag aqua">built</span></h3><p>Phát hiện <b>giá khớp thật (fill price)</b> của lệnh mua trader on-chain, realtime.</p><div class="ex">VD: Trader A swap 2 SOL → 40K TOKEN-X lúc 14:02:11, giá khớp 0.00005 → hệ ghi nhận tín hiệu.</div></div></div>
+    <div class="step"><div class="dot next">03</div><div><h3>Confirm momentum <span class="st tag violet">validating</span></h3><p>Chỉ vào nếu giá <b>tăng tiếp +10% so với giá trader khớp</b> (xác nhận kèo còn sống, không phải trap).</p><div class="ex">VD: giá khớp 0.00005 → đợi giá chạm 0.000055 mới đủ điều kiện nhánh momentum.</div></div></div>
+    <div class="step"><div class="dot next">04</div><div><h3>Wait for pullback <span class="st tag violet">validating</span></h3><p>Nhánh còn lại: đợi giá <b>giảm −10% từ đỉnh sau tín hiệu</b> rồi vào (mua rẻ hơn trader).</p><div class="ex">VD: giá vọt lên 0.00007 rồi rơi về 0.000063 → vào. Quá 30 phút không có momentum/pullback nào → <b>Skip</b>.</div></div></div>
+    <div class="step"><div class="dot done">05</div><div><h3>Qualify <span class="st tag aqua">built</span></h3><p>Bộ lọc an toàn: RugCheck + thanh khoản + trượt giá + vốn hóa. Rớt 1 tiêu chí → bỏ kèo.</p><div class="ex">VD: token bị unlock thanh khoản / thuế mua 20% / pool 2k$ → loại, dù trader vừa mua.</div></div></div>
+    <div class="step"><div class="dot next">06</div><div><h3>Size <span class="st tag violet">validating</span></h3><p>Cỡ lệnh = <span class="mono">min(1% NAV vault, 0.1 SOL, trần thanh khoản)</span>. Vault 1 SOL → đánh 0.01; vault 5 SOL → 0.05; vault ≥10 SOL → kịch trần 0.1. Tối đa 10 vị thế mở, tổng rủi ro ≤10% NAV.</p></div></div>
+    <div class="step"><div class="dot done">07</div><div><h3>Execute <span class="st tag aqua">built</span></h3><p>Bắn lệnh qua <b>Jito protected</b> (chống frontrun/sandwich khi copy lệnh công khai).</p></div></div>
+    <div class="step"><div class="dot next">08</div><div><h3>Manage <span class="st tag violet">validating</span></h3><p>Nuôi vị thế theo thang chốt lời + stop (chi tiết §4) + 5 cầu dao full-exit.</p></div></div>
+  </div>
+</section>
+
+<!-- §3 -->
+<section id="s3">
+  <h2>§3 — Toán của vault: chia phần &amp; chia vốn</h2>
+  <p class="sub">Slide 04–05. Hai công thức duy nhất cần nhớ. Kế toán bằng <b>SOL</b>, USDC chỉ để hiển thị.</p>
+  <div class="grid2">
+    <div class="card"><span class="tag aqua">Công thức 1 · Chia phần</span>
+      <div class="formula"><b>Share price</b> = Vault NAV / Shares outstanding</div>
+      <p style="font-size:14px;color:var(--muted)">VD trong deck: NAV 10.00 SOL, 4.00 shares → mỗi share 2.500 SOL.
+      Bạn nạp 2.5 SOL → nhận 1 share. NAV lên 10.80 → share của bạn worth 2.700 SOL.
+      Lời/lỗ chia đều theo share — công bằng tuyệt đối, không ai chen lấn.</p>
+    </div>
+    <div class="card"><span class="tag aqua">Công thức 2 · Chia vốn mỗi lệnh</span>
+      <div class="formula"><b>Trade size</b> = min(1% NAV, 0.1 SOL, liquidity cap)</div>
+      <p style="font-size:14px;color:var(--muted)">Vault càng to, % rủi ro mỗi lệnh càng nhỏ (chống all-in);
+      trần 0.1 SOL chống "voi giẫm ao cạn" ở pool nhỏ. Tối đa 10 lệnh × ~1% ≈ <b>10% NAV lộ rủi ro</b>.</p>
+    </div>
+  </div>
+  <h4>🧮 Máy tính thử (nhập NAV vault của bạn)</h4>
+  <div class="card"><div class="calc">
+    <div><label style="font-size:12px;color:var(--faint)">VAULT NAV (SOL)</label>
+      <input id="navIn" type="number" min="0.1" step="0.1" value="5"></div>
+    <div><label style="font-size:12px;color:var(--faint)">KẾT QUẢ</label>
+      <div id="navOut" class="mono" style="font-size:15px;padding:10px 0"></div></div>
+  </div>
+  <div class="bar"><i id="navBar"></i></div>
+  <div id="navNote" style="font-size:12.5px;color:var(--faint)"></div></div>
+</section>
+
+<!-- §4 -->
+<section id="s4">
+  <h2>§4 — Quản trị vị thế: vào sao, ra sao</h2>
+  <p class="sub">Slide 07. Triết lý: “Size first. Stop losses second. Profits third.” — chia vốn trước, giữ mạng sau, ăn dày tính sau.</p>
+  <h4>Vào lệnh (2 cửa, trong 30 phút)</h4>
+  <table>
+    <tr><th>Cửa</th><th>Điều kiện</th><th>Ý nghĩa nôm na</th></tr>
+    <tr><td><span class="tag gain">Momentum</span></td><td class="num">giá ≥ +10% trên giá trader khớp</td><td>Kèo còn nóng, đu theo đà (chấp nhận mua cao).</td></tr>
+    <tr><td><span class="tag aqua">Pullback</span></td><td class="num">giá −10% từ đỉnh sau tín hiệu</td><td>Chờ cá chốt non xong, mình nhặt giá rẻ.</td></tr>
+    <tr><td><span class="tag warn">Hết giờ</span></td><td class="num">30 phút không đủ điều kiện</td><td>Bỏ kèo. Không FOMO lệnh nguội.</td></tr>
+  </table>
+  <h4>Nuôi lệnh (thang chốt lời)</h4>
+  <table>
+    <tr><th>Mốc (từ giá vault khớp)</th><th>Hành động</th><th>Còn lại</th></tr>
+    <tr><td class="num">−50% (stop)</td><td>Cắt toàn bộ. <i>Stop là cò súng, không đảm bảo khớp đẹp khi sập nhanh.</i></td><td>0%</td></tr>
+    <tr><td class="num">+60% (TP1)</td><td>Bán 40%</td><td>60%</td></tr>
+    <tr><td class="num">+100% (TP2)</td><td>Bán tiếp 40% (tổng đã chốt 64%)</td><td>20% runner</td></tr>
+    <tr><td class="num">Sau TP2, mỗi +50%</td><td>Dời stop lên khóa thêm +25%</td><td>Runner</td></tr>
+    <tr><td class="num">+150% / +300%</td><td>Thoát runner / thoát sạch</td><td>0%</td></tr>
+  </table>
+  <h4>5 cầu dao full-exit (gặp 1 là thoát hết, không bàn cãi)</h4>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <span class="tag warn">Trader xả &gt;50% vị thế</span><span class="tag warn">Thanh khoản bị rút/unlock</span>
+    <span class="tag warn">RugCheck xấu đi</span><span class="tag warn">Mất route khớp lệnh</span>
+    <span class="tag warn">Price impact vượt ngưỡng</span>
+  </div>
+  <h4>Chia phí (slide 09)</h4>
+  <p style="font-size:14px;color:var(--muted)">Phí hiệu quả <b>20% trên lợi nhuận mới vượt đỉnh cũ (high-water mark)</b>,
+  không phí quản lý. Chia: <b>80% depositors · 15% trader đối tác · 5% Edgepool</b>.
+  VD: NAV 10 → 11 SOL (lãi mới 1 SOL): depositors +0.80, trader +0.15, Edgepool +0.05.
+  Trader vừa là người ra chiến lược vừa là kênh phân phối (flywheel: lãi → xếp hạng lên → thêm follower nạp tiền).</p>
+</section>
+
+<!-- §5 -->
+<section id="s5">
+  <h2>§5 — Điểm mạnh <span class="tag gain">7 điểm</span></h2>
+  <p class="sub">Những thứ deck này làm đúng — và vì sao nó hơn copy tay / copy-bot thông thường.</p>
+  <ul class="tight goodlist">
+    <li><b>Trung thực về copyable PnL.</b> Hầu hết dự án khoe PnL trader; deck này thừa nhận follower chỉ ăn được phần còn lại sau trễ + thanh khoản + phí + risk. Xếp hạng theo cái <i>copy được</i> là lợi thế cạnh tranh thật.</li>
+    <li><b>Sizing có trần 3 lớp.</b> min(1% NAV, 0.1 SOL, liquidity cap) + max 10 vị thế + max 10% exposure → một kèo thối không bao giờ giết vault. Đây là risk management đúng chuẩn quỹ.</li>
+    <li><b>Kỷ luật bỏ kèo (Skip).</b> Cửa 30 phút + bộ lọc Qualify nghĩa là hệ <i>thà không đánh</i> còn hơn đánh ẩu — ngược tâm lý FOMO của user.</li>
+    <li><b>Hai cửa vào thay vì đuổi giá.</b> Momentum cho kèo nóng, pullback cho kèo đã chạy — giảm mua đỉnh so với copy tức thì.</li>
+    <li><b>Thang chốt lời cơ học.</b> TP1/TP2/runner/trailing loại bỏ quyết định cảm tính ("gồng hay chốt?") — điểm chết số 1 của copy tay.</li>
+    <li><b>Cầu dao full-exit rõ ràng.</b> 5 điều kiện thoát hết, đặc biệt "trader xả &gt;50%" và "RugCheck xấu đi" — đúng 2 kiểu chết người trên Solana memecoin.</li>
+    <li><b>Fee flywheel căn chỉnh lợi ích.</b> Không management fee + chỉ ăn trên lãi mới vượt đỉnh cũ → trader phải <i>kiếm lãi thật liên tục</i> mới có tiền; 15% đủ lớn để trader xịn muốn làm đối tác phân phối.</li>
+    <li><b>Kế toán đơn giản, minh bạch.</b> Một tài sản (SOL), một công thức share, USDC chỉ hiển thị — ít chỗ gian lận/sai số; non-custodial + pro-rata dễ kiểm chứng on-chain.</li>
+  </ul>
+</section>
+
+<!-- §6 -->
+<section id="s6">
+  <h2>§6 — Điểm yếu &amp; rủi ro <span class="tag loss">8 điểm</span></h2>
+  <p class="sub">Đọc với con mắt phản biện — những chỗ logic này có thể gãy khi gặp thị trường thật.</p>
+  <ul class="tight badlist">
+    <li><b>Stop −50% quá rộng với memecoin Solana.</b> <span class="tag gain">QĐ: stop ATR</span> Bỏ stop cứng. Thay bằng <span class="mono">stopPct = clamp(2×ATR(1h,14)/giá, 8%, 40%)</span>: coin bay 30%/nến → stop ~40–60% (tránh quét); SOL hiền → stop ~8%. Cộng thêm <b>time-stop</b>: sau 24h không chạm TP1 → thoát 50% (tránh ôm lệnh chết) + kill-switch vault −15%/tuần. ATR lấy từ candles (sau P2 FluxData); trước đó dùng tạm stop −30% + kill-switch.</li>
+    <li><b>TP1 +60% có thể không bao giờ tới (sau khi đã trễ).</b> <span class="tag gain">QĐ: giữ 60%, đo drag + shadow-validate</span> Vì giờ múc luôn tại giá tín hiệu (không trễ 5–30' nữa), TP +60% tính từ giá <i>vault khớp</i> khả thi hơn trước nhiều. Giữ mặc định, nhưng: lưu <span class="mono">delayDragPct</span> mỗi lệnh, skip khi drag &gt;25%, và cho shadow-validator quyết số cuối (có thể ra regime: meme nóng +50%, majors +40%).</li>
+    <li><b>Cửa 30 phút quá chậm với tốc độ Solana.</b> <span class="tag gain">QĐ: múc luôn (immediate)</span> Bỏ chờ đợi: qua Qualify là mua ngay 100% size (ENTRY_MODE=immediate mặc định). Pullback chỉ còn là chế độ tùy chọn (scaled/patient) cho majors. Chi tiết §7 mới.</li>
+    <li><b>Nhánh momentum (+10%) = mua đuổi có hệ thống.</b> <span class="tag gain">QĐ: backtest shadow trước</span> Chạy shadow-validator trên DB 30d sẵn có rồi mới quyết giữ/sửa/bỏ +10% (xem §7 mới).</li>
+    <li><b>Copyable PnL khó đo.</b> <span class="tag violet">QĐ: bỏ khỏi messaging</span> Theo feedback: không nhắc copyable-score với user. Ranking dùng realized risk-adjusted có sẵn (Sharpe/win-rate/maxDD). Latency vẫn đo nội bộ để tính drag, nhưng không brand hóa.</li>
+    <li><b>Tập trung 1 trader/vault.</b> <span class="tag gain">QĐ: vault đa trader + cap 2 lớp (xem §7)</span> Rổ 3–5 trader thay vì 1. Câu hỏi "3% có cao không" trả lời ở §7 mới.</li>
+    <li><b>Kế toán HWM + share phức tạp khi có nạp/rút giữa chừng.</b> <span class="tag warn">QĐ: epoch checkpoint — cần input MoneyFi</span> Thiết kế v1 ở §7 mới (settle cuối epoch, HWM/share chuẩn). Team cho mình xem model MoneyFi đang làm để align, tránh phát minh lại.</li>
+    <li><b>Phụ thuộc hạ tầng ngoài.</b> <span class="tag gain">QĐ: chấp nhận + fallback matrix</span> Đúng như bạn nói — build trên API bên khác thì phụ thuộc là đương nhiên. Giải pháp = fallback từng món + health status (chi tiết §7 mới), không cố "hết phụ thuộc".</li>
+  </ul>
+  <div class="tip bad"><b>Phép tính kỳ vọng thô:</b> size 1% NAV, thua −50% (mất 0.5% NAV), thắng TP1+TP2+runner trung bình giả sử +80% size (lãi ~0.7% NAV sau khi đã chốt dần).
+  Hòa vốn cần win-rate ≈ 42%. Với độ trễ copy + mua đuổi +10%, đạt 42% win-rate <i>liên tục</i> là bài toán khó — đây là con số team phải backtest đầu tiên.</div>
+</section>
+
+<!-- §7 -->
+<section id="s7">
+  <h2>§7 — Solution v2 (chốt sau feedback 01/10)</h2>
+  <p class="sub">Bản solution sửa theo đúng 6 ý bạn duyệt. Mỗi mục: quyết định → spec v1 → làm bằng gì trong src hiện tại.</p>
+
+  <h4>1. Entry: múc luôn khi có signal (bỏ chờ)</h4>
+  <div class="card"><p style="font-size:14px;margin:0 0 8px">Chốt theo bạn: <b>qua Qualify là mua ngay 100% size</b> (<span class="mono">ENTRY_MODE=immediate</span> mặc định). Pullback/momentum chỉ còn là chế độ tùy chọn (<span class="mono">scaled|patient</span>) cho majors.</p>
+  <ul class="tight">
+    <li><b>TP1 giữ +60%</b> — vì entry giờ sát giá tín hiệu (không còn trễ 5–30'), TP tính từ giá <i>vault khớp</i> nên khả thi hơn bản cũ nhiều. Vẫn lưu <span class="mono">delayDragPct</span>, skip khi drag &gt;25%; shadow-validator sẽ chốt số cuối (dự kiến có thể ra regime: meme nóng +50%, majors +40%).</li>
+    <li>Trần trượt giá từ quote vẫn áp mọi lệnh market (không khớp đẹp hơn ngưỡng → bỏ).</li>
+  </ul>
+  <p style="font-size:13px;color:var(--faint)">Làm bằng: Qualify pass → fire ngay; <span class="mono">CopyOrder</span> thêm entry fields; config regime khi cần.</p></div>
+
+  <h4>2. Stop: suggestion của mình — ATR + time-stop + kill-switch</h4>
+  <div class="card"><p style="font-size:14px;margin:0 0 8px">Bỏ stop −50% cứng. Công thức đề xuất:</p>
+    <div class="formula"><b>stopPct</b> = clamp(2 × ATR(1h,14) / giá, 8%, 40%)</div>
+  <ul class="tight">
+    <li>Cộng <b>time-stop</b>: 24h không chạm TP1 → thoát 50% (chống ôm lệnh chết).</li>
+    <li>Cộng <b>kill-switch vault</b>: −15% NAV/tuần → dừng copy, chỉ quan sát.</li>
+    <li>Tạm thời (chưa có candles): stop −30% + kill-switch — vẫn an toàn hơn −50%.</li>
+  </ul>
+  <p style="font-size:13px;color:var(--faint)">Làm bằng: ATR từ candles DataStream (sau P2 Flux); Manage engine mới đọc stopPct từ đây thay vì hằng số.</p></div>
+
+  <h4>3. Copyable PnL: bỏ khỏi messaging</h4>
+  <div class="card"><p style="font-size:14px;margin:0">Theo ý bạn: khó đo thì <b>không nhắc</b>. Ranking dùng realized risk-adjusted sẵn có (Sharpe/win-rate/maxDD từ <span class="mono">pnl.service</span>). Latency/drag vẫn đo nội bộ (phục vụ TP thích ứng + báo cáo trung thực) nhưng không brand hóa thành score. Bỏ luôn mục "copyable-score" khỏi roadmap comms.</p></div>
+
+  <h4>4. Multi-trader + cap 2 lớp (trả lời: 3% có cao không?)</h4>
+  <div class="card"><p style="font-size:14px;margin:0 0 8px">Bạn tính đúng: 3 trader × 3% = <b>~9–10% NAV bốc hơi nếu cả 3 toác cùng lúc</b> — và meme trader hay toác cùng lúc (cùng ôm 1 con, cùng chết khi market sập). Nên cap 1 lớp là chưa đủ:</p>
+  <ul class="tight">
+    <li><b>Lớp 1 — per-trader 20% exposure budget</b> (≈2% NAV, hạ từ 30%): 3 trader cùng toác hết cỡ mất ~6%, không phải 10%.</li>
+    <li><b>Lớp 2 — per-mint 2% NAV</b>: 3 trader cùng ôm 1 con coin cũng không vượt 2% — chặn đúng case "cùng ôm cùng chết".</li>
+    <li><b>Lớp 3 — kill-switch ngày −5% NAV</b>: dừng copy trong ngày, chỉ quan sát (tuần −15% giữ nguyên). Đây mới là thứ cứu pool khi cả rổ đỏ cùng lúc — stop từng lệnh không làm được.</li>
+    <li>Thực tế mất ít hơn cap: stop ATR cắt trước khi về 0 (lỗ thực ~0.3× exposure). Cap là trần, không phải lỗ dự kiến.</li>
+    <li>Onboarding so le: chạy 1 trader validate trước, thêm trader 2, 3 sau khi có số — không bật cả rổ chưa kiểm chứng cùng lúc.</li>
+  </ul>
+  <p style="font-size:13px;color:var(--faint)">Làm bằng: <span class="mono">masterWallet</span> đã có attribution; thêm bảng exposure/trader + exposure/mint + job flag hàng giờ (thuần DB) + kill-switch check trước mỗi lệnh.</p></div>
+
+  <h4>5. Kế toán epoch (cần input MoneyFi)</h4>
+  <div class="card"><ul class="tight">
+    <li>Model mới: <span class="mono">Vault</span> + <span class="mono">Deposit/Withdrawal</span> (trạng thái queued → settled) + <span class="mono">EpochCheckpoint</span> (chốt NAV cuối ngày) + HWM/share tính trong module <span class="mono">vaults/</span> mới.</li>
+    <li>Quy tắc: nạp/rút chỉ settle ở checkpoint (cuối epoch) theo NAV lúc đó → hết pha loãng; phí 20% chỉ trên lãi mới vượt HWM của từng share-lot.</li>
+    <li><b>Cần bạn gửi:</b> model/cách MoneyFi đang làm (doc, link, hoặc mô tả: epoch bao lâu? settle thế nào? HWM tính ra sao?) — mình sẽ align theo, không phát minh lại.</li>
+  </ul></div>
+
+  <h4>6. Infra: chấp nhận phụ thuộc + fallback chạy như thế nào</h4>
+  <div class="card"><p style="font-size:14px;margin:0 0 8px">Cơ chế fallback cụ thể (không phải khẩu hiệu):</p>
+  <table>
+    <tr><th>Món</th><th>Chạy thế nào khi hỏng</th></tr>
+    <tr><td>RPC</td><td>Wrapper <span class="mono">FailoverConnection</span>: primary FluxRPC (+Lantern) → timeout 3s không đáp → backup public → đánh dấu <span class="mono">degraded</span>. Health endpoint hiện provider đang dùng + latency để team thấy. Test định kỳ bằng cách <b>chủ động kill primary ở staging</b>.</td></tr>
+    <tr><td>Giá</td><td>DataStream → cache giá cuối → 3 tầng cũ (DAS→DexScreener→Jupiter). Hết giá thì lệnh ghi <span class="mono">unpriced</span> + vào hàng đợi retry (cơ chế retry đã có trong history-sync) — không bao giờ dùng giá cũ tính NAV mới.</td></tr>
+    <tr><td>RugCheck</td><td>Cache report 24h trước; sập hẳn thì theo config: <span class="mono">strict</span> = skip kèo, <span class="mono">lenient</span> = cho qua + gắn cờ vàng để review tay.</td></tr>
+    <tr><td>Execute</td><td>Jito bundle rớt quá N lần / quá T giây → fallback <span class="mono">sendTransaction</span> thường + priority fee (chậm hơn nhưng không kẹt lệnh). Mọi lần fallback đều log để đo tỷ lệ.</td></tr>
+    <tr><td>Oracle NAV</td><td>Mọi quote/giá mang theo slot; quá cũ (>N slot) → từ chối lệnh/nạp-rút kỳ đó. Share price sai còn nguy hiểm hơn bỏ lỡ 1 kỳ.</td></tr>
+  </table></div>
+
+  <h4>Thứ tự làm mới (rút gọn)</h4>
+  <div class="card"><p style="font-size:14px;margin:0">Shadow-validator (quyết số +10%) → entry scaled + window regime → stop ATR/time-stop (sau candles) → multi-trader + manipulation flag → fallback matrix (kèm migration Flux) → vault accounting epoch (chờ input MoneyFi) → TP thích ứng theo drag.</p></div>
+
+  <div class="tip"><b>Cần bạn:</b> (1) chốt Solution v2 này; (2) gửi model MoneyFi (để làm mục 5); (3) chọn việc đầu tiên mình code (đề xuất: shadow-validator vì rẻ nhất mà trả lời câu hỏi lớn nhất).</div>
+</section>
+
+<!-- §8 -->
+<section id="s8">
+  <h2>§8 — Đối chiếu: logic deck vs hệ thống ta hiện có</h2>
+  <p class="sub">Để follow logic này, team đang đứng ở đâu (trung thực).</p>
+  <table>
+    <tr><th>Bước deck</th><th>Ta đã có</th><th>Còn thiếu</th></tr>
+    <tr><td>01 Rank (copyable 24h/7d/30d)</td><td><span class="tag gain">Có 70%</span> Leaderboard + realized PnL/FIFO + win-rate 3 khung giờ</td><td>Copyable-score (trừ latency/liquidity/fees) — đang xếp theo PnL headline</td></tr>
+    <tr><td>02 Detect (fill price realtime)</td><td><span class="tag gain">Có</span> WS + poll 60s, SSE, copySignal realtime</td><td>—</td></tr>
+    <tr><td>03/04 Momentum +10% / Pullback −10%</td><td><span class="tag loss">Chưa</span></td><td>Price watcher sau tín hiệu + cửa 30 phút + Skip</td></tr>
+    <tr><td>05 Qualify (RugCheck/liq/slip/mcap)</td><td><span class="tag loss">Chưa</span></td><td>RugCheck API + liquidity/slippage check trước lệnh</td></tr>
+    <tr><td>06 Size min(1% NAV, 0.1 SOL, liq cap)</td><td><span class="tag warn">Một nửa</span> allocationWeight × amountUsd</td><td>NAV vault + trần 0.1 SOL + liquidity cap + max 10 vị thế/10% exposure</td></tr>
+    <tr><td>07 Execute (Jito protected)</td><td><span class="tag warn">Paper</span> dust devnet proof (chưa fund)</td><td>Jupiter swap thật + Jito bundle + vault key funded</td></tr>
+    <tr><td>08 Manage (stop/TP/runner/exit)</td><td><span class="tag loss">Chưa</span></td><td>Engine theo dõi vị thế + TP ladder + 5 cầu dao</td></tr>
+    <tr><td>Vault NAV/shares/HWM/fees</td><td><span class="tag loss">Chưa</span></td><td>Model Vault + Deposit/Withdraw + fee 20% HWM (module mới)</td></tr>
+  </table>
+  <div class="tip warn"><b>Khuyến nghị thứ tự follow:</b> (1) fund vault + E2E paper hiện tại (P5 đang dở) →
+  (2) shadow-mode validator đo expectancy (rẻ, không rủi ro) → (3) Qualify + Size theo deck →
+  (4) Manage engine → (5) Vault accounting + fees. Momentum/pullback entry để sau cùng vì cần price-feed realtime ổn định.</div>
+</section>
+
+</div><!-- /wrap -->
+
+<footer><div class="wrap">
+  Báo cáo nội bộ — logic trích từ <span class="mono">Design.pdf</span> (Edgepool Colosseum deck, 10 slides).
+  Số liệu ví dụ mang tính minh họa. Quyết định follow chính thức do team chốt sau khi backtest.
+</div></footer>
+
+<script>
+// Trade-size calculator: min(1% NAV, 0.1 SOL)
+const navIn = document.getElementById('navIn'),
+      navOut = document.getElementById('navOut'),
+      navBar = document.getElementById('navBar'),
+      navNote = document.getElementById('navNote');
+function recalc(){
+  const nav = Math.max(0, parseFloat(navIn.value) || 0);
+  const size = Math.min(nav * 0.01, 0.1);
+  const pct = nav > 0 ? (size / nav * 100) : 0;
+  navOut.textContent = size.toFixed(4) + ' SOL / lệnh (' + pct.toFixed(2) + '% NAV)';
+  navBar.style.width = Math.min(100, pct * 10) + '%';
+  const n10 = Math.min(10 * size, nav * 0.10);
+  navNote.textContent = '10 lệnh full-size ≈ ' + n10.toFixed(3) + ' SOL lộ rủi ro (≤10% NAV). ' +
+    (nav >= 10 ? 'Vault ≥10 SOL: chạm trần 0.1 SOL — tăng NAV nữa cũng không tăng size (đúng ý deck).'
+               : 'Vault <10 SOL: size = đúng 1% NAV.');
+}
+navIn.addEventListener('input', recalc); recalc();
+</script>
+</body>
+</html>

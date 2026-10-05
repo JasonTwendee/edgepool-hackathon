@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Edgepool Nocturne brand tokens (Edgepool Identity v1.0 §07) */
+:root {
+  --edge-midnight: #161826;
+  --edge-abyss: #0d0f18;
+  --edge-surface: #232532;
+  --edge-slate-500: #9397ab;
+  --edge-slate-800: #3f424d;
+  --edge-white: #e9e9ed;
+  --edge-aqua: #49e6d7;
+  --edge-aqua-deep: #00968b;
+  --edge-violet: #9184d9;
+  --edge-gain: #73dea4;
+  --edge-loss: #f28881;
+  --edge-caution: #f0be67;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--edge-midnight);
+  color: var(--edge-white);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display headings: Inter Tight Medium (brand §08) */
+.font-display {
+  font-family: 'Inter Tight', 'Inter', sans-serif;
+}
+
+/* Financial numbers: JetBrains Mono + tabular-nums (brand §08) */
+.font-mono,
+code,
+kbd,
+samp {
+  font-family: 'JetBrains Mono', 'Roboto Mono', 'SF Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Independent thin scrollbars per pane */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #3f424d transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #3f424d;
+  border-radius: 999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #4d5160;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+::selection {
+  background: rgba(73, 230, 215, 0.25);
+  color: #e0fcf8;
+}
