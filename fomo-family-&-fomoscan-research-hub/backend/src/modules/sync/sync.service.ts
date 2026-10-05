@@ -1,4 +1,5 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service.js';
 import { SYNC_INTERVAL_MS } from '../../config/solana.config.js';
 import { WalletsService } from '../wallets/wallets.service.js';
 import { PnlService } from '../portfolio/pnl.service.js';
@@ -24,11 +25,13 @@ const HISTORY_DAYS =
 export class SyncService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
+  private lastPruneAt = 0;
 
   constructor(
     @Inject(WalletsService) private readonly wallets: WalletsService,
     @Inject(HistorySyncService) private readonly history: HistorySyncService,
     @Inject(PnlService) private readonly pnl: PnlService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
   onModuleInit(): void {
@@ -69,12 +72,40 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
         }
       }
       const statsUpdated = await this.pnl.syncWalletStats(HISTORY_DAYS);
+      const pruned = await this.pruneOnce();
       // eslint-disable-next-line no-console
       console.log(
-        `[SyncScheduler] (${reason}) wallets=${wallets.length} newTx=${fresh} statsUpdated=${statsUpdated}`,
+        `[SyncScheduler] (${reason}) wallets=${wallets.length} newTx=${fresh} statsUpdated=${statsUpdated} pruned=${pruned}`,
       );
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Rolling window cleanup (max once/day): drop ledger rows older than the
+   * history window so the DB never grows stale. Audit/sessions/orders/vaults
+   * are NEVER pruned — only raw chain data (re-fetchable from archive).
+   */
+  private async pruneOnce(): Promise<number> {
+    if (Date.now() - this.lastPruneAt < 86400000) return 0;
+    this.lastPruneAt = Date.now();
+    const cutoff = new Date(Date.now() - HISTORY_DAYS * 86400000);
+    try {
+      const [tx, ev] = await Promise.all([
+        this.prisma.transaction.deleteMany({ where: { blockTime: { lt: BigInt(Math.floor(cutoff.getTime() / 1000)) } } }),
+        this.prisma.realtimeEvent.deleteMany({ where: { broadcastedAt: { lt: cutoff } } }),
+      ]);
+      const n = tx.count + ev.count;
+      if (n > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`[SyncScheduler] pruned ${tx.count} tx + ${ev.count} events older than ${HISTORY_DAYS}d`);
+      }
+      return n;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[SyncScheduler] prune failed:', (err as Error).message);
+      return 0;
     }
   }
 }
