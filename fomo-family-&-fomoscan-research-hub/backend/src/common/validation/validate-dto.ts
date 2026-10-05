@@ -17,7 +17,7 @@ export async function validateDto<T extends object>(
   if (errors.length > 0) {
     const message =
       errors.flatMap((e) => Object.values(e.constraints ?? {})).join('; ') ||
-      'Dữ liệu không hợp lệ.';
+      'Invalid request data.';
     throw new BadRequestException({ success: false, message });
   }
   return dto;

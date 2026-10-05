@@ -196,11 +196,11 @@ export class DemoService {
           id: w.id,
           status: w.status,
           pending: true,
-          message: 'Lệnh rút tiền đang chờ xử lý ở epoch tới — demo dừng ở đây (không auto-settle).',
+          message: 'Withdrawal is queued for the next epoch — the demo stops here (no auto-settle).',
         };
       }
     } catch (e) {
-      withdrawal = { id: -1, status: 'SKIPPED', pending: true, message: `Không tạo được lệnh rút demo: ${(e as Error).message}` };
+      withdrawal = { id: -1, status: 'SKIPPED', pending: true, message: `Demo withdrawal failed: ${(e as Error).message}` };
     }
     await this.audit.record({
       actor,

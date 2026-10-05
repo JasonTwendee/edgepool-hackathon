@@ -48,7 +48,7 @@ export function base58Encode(input: Buffer | Uint8Array): string {
 /** Validate a Solana wallet address (base58, 32 bytes when decoded). */
 export function decodeWalletAddress(address: string): Buffer {
   const raw = base58Decode(address.trim());
-  if (raw.length !== 32) throw new Error('Địa chỉ ví Solana không hợp lệ (phải là 32 bytes).');
+  if (raw.length !== 32) throw new Error('Invalid Solana wallet address (must be 32 bytes).');
   return raw;
 }
 

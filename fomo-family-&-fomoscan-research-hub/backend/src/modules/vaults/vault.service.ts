@@ -493,7 +493,7 @@ export class VaultService {
     try {
       decodeWalletAddress(clean);
     } catch {
-      fail(`Địa chỉ ví Solana không hợp lệ: ${wallet}`);
+      fail(`Invalid Solana wallet address: ${wallet}`);
     }
     if (!Number.isInteger(weightBps) || weightBps < 0 || weightBps > 10000) {
       fail('weightBps must be an integer 0..10000.');

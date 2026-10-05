@@ -55,7 +55,7 @@ export class HoldingsService {
 
   async getHoldings(walletAddress: string): Promise<WalletHoldings> {
     const wallet = await this.wallets.findByAddress(walletAddress);
-    if (!wallet) throw new Error(`Ví chưa được tracking: ${walletAddress}`);
+    if (!wallet) throw new Error(`Wallet is not tracked: ${walletAddress}`);
     const owner = new PublicKey(walletAddress);
     const connection = this.connection();
 

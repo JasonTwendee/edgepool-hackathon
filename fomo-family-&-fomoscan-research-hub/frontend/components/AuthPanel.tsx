@@ -110,7 +110,7 @@ export function AuthPanel({ session, onSession }: Props) {
       storeSession(res.data);
       onSession({ token: res.data.token, user: res.data.user, expiresAt: res.data.expiresAt });
       setPassword('');
-      setMsg(accMode === 'register' ? `Tài khoản ${res.data.user.wallet} đã tạo (${res.data.user.role}).` : `Đăng nhập (${res.data.user.role}).`);
+      setMsg(accMode === 'register' ? `Account ${res.data.user.wallet} created (${res.data.user.role}).` : `Signed in (${res.data.user.role}).`);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -168,7 +168,7 @@ export function AuthPanel({ session, onSession }: Props) {
                   tab === t ? 'bg-[#49E6D7] text-[#161826] border-[#49E6D7]' : 'text-[#A7AABF] border-[#3F424D]'
                 }`}
               >
-                {t === 'wallet' ? 'Ví' : 'Tài khoản'}
+                {t === 'wallet' ? 'Wallet' : 'Account'}
               </button>
             ))}
           </div>
@@ -181,28 +181,28 @@ export function AuthPanel({ session, onSession }: Props) {
                     onClick={() => setAccMode(m)}
                     className={accMode === m ? 'font-bold text-[#49E6D7]' : 'text-[#75798C]'}
                   >
-                    {m === 'login' ? 'Đăng nhập' : 'Đăng ký'}
+                    {m === 'login' ? 'Sign in' : 'Register'}
                   </button>
                 ))}
               </div>
               <input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Tên đăng nhập (a-z, 0-9, _)"
+                placeholder="Username (a-z, 0-9, _)"
                 className="w-full text-xs font-mono bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5 text-[#E9E9ED] placeholder:text-[#4A4D5E]"
               />
               {accMode === 'register' && (
                 <input
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email (tùy chọn)"
+                  placeholder="Email (optional)"
                   className="w-full text-xs font-mono bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5 text-[#E9E9ED] placeholder:text-[#4A4D5E]"
                 />
               )}
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mật khẩu (≥8 ký tự)"
+                placeholder="Password (8+ chars)"
                 type="password"
                 className="w-full text-xs font-mono bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5 text-[#E9E9ED] placeholder:text-[#4A4D5E]"
               />
@@ -211,7 +211,7 @@ export function AuthPanel({ session, onSession }: Props) {
                 disabled={busy}
                 className="text-xs font-bold text-[#161826] bg-[#49E6D7] rounded-lg px-2.5 py-1.5 disabled:opacity-50"
               >
-                {accMode === 'register' ? 'Đăng ký' : 'Đăng nhập'}
+                {accMode === 'register' ? 'Register' : 'Sign in'}
               </button>
             </div>
           ) : (

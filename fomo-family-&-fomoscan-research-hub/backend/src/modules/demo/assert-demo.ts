@@ -232,7 +232,7 @@ async function main(): Promise<void> {
     // Withdraw stays QUEUED pending.
     assert.equal(r.withdrawal?.pending, true);
     assert.equal(r.withdrawal?.status, 'QUEUED');
-    assert.ok((r.withdrawal?.message ?? '').includes('chờ'));
+    assert.ok((r.withdrawal?.message ?? '').includes('queued'));
     assert.equal(r.environment, 'sandbox');
   }
   // 4. Replay refuses non-demo vaults/bots.

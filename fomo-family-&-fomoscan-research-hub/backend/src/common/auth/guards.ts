@@ -91,13 +91,13 @@ export class AuthGuard implements CanActivate {
       user?: AuthedUser;
     };
     const raw = extractSessionToken(req);
-    if (!raw) unauthorized('Thiếu Bearer token. Đăng nhập ví qua POST /api/auth/verify.');
+    if (!raw) unauthorized('Missing bearer token. Sign in with a wallet via POST /api/auth/verify.');
     const row = await this.prisma.session.findUnique({
       where: { tokenHash: hashToken(raw) },
       include: { user: true },
     });
-    if (!row?.user) unauthorized('Session không hợp lệ. Đăng nhập lại.');
-    if (row.expiresAt.getTime() <= Date.now()) unauthorized('Session đã hết hạn. Đăng nhập lại.');
+    if (!row?.user) unauthorized('Invalid session. Sign in again.');
+    if (row.expiresAt.getTime() <= Date.now()) unauthorized('Session expired. Sign in again.');
     req.user = { id: row.user.id, wallet: row.user.wallet, role: row.user.role };
     return true;
   }
@@ -145,9 +145,9 @@ export class RolesGuard implements CanActivate {
     ]);
     if (!required || required.length === 0) return true;
     const req = context.switchToHttp().getRequest() as { user?: AuthedUser };
-    if (!req.user) unauthorized('Yêu cầu đăng nhập.');
+    if (!req.user) unauthorized('Authentication required.');
     if (!required.includes(req.user.role)) {
-      forbidden(`Quyền ${req.user.role} không được phép. Yêu cầu: ${required.join(',')}.`);
+      forbidden(`Role ${req.user.role} is not allowed. Required: ${required.join(',')}.`);
     }
     return true;
   }

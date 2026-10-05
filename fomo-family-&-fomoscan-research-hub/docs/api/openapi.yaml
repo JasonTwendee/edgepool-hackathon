@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     Canonical REST + SSE contract. BE DTOs (`backend/src/modules/*/dto/*.dto.ts`)
-    và FE client (`frontend/lib/api.ts`) phải khớp file này.
+    and the FE client (`frontend/lib/api.ts`) must match this file.
 servers:
   - url: http://localhost:3000
     description: Local dev (legacy compat + NestJS-spec BE)

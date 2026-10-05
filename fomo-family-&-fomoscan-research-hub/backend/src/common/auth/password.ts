@@ -23,15 +23,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export function validateCredentials(input: { username?: unknown; email?: unknown; password?: unknown }): string | null {
   const { username, email, password } = input;
   if (typeof username !== 'string' || !USERNAME_RE.test(username)) {
-    return 'Username 3–32 ký tự, chỉ gồm chữ/số/gạch dưới.';
+    return 'Username must be 3–32 characters: letters, digits, underscore.';
   }
   if (email !== undefined && email !== null && email !== '' && (typeof email !== 'string' || !EMAIL_RE.test(email))) {
-    return 'Email không hợp lệ.';
+    return 'Invalid email address.';
   }
   if (typeof password !== 'string' || password.length < 8) {
-    return 'Mật khẩu tối thiểu 8 ký tự.';
+    return 'Password must be at least 8 characters.';
   }
-  if (password.length > 128) return 'Mật khẩu tối đa 128 ký tự.';
+  if (password.length > 128) return 'Password must be at most 128 characters.';
   return null;
 }
 

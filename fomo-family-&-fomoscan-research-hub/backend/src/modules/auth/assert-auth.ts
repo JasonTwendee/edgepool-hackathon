@@ -123,8 +123,8 @@ async function main(): Promise<void> {
   const raw = Buffer.from(Array.from({ length: 32 }, (_, i) => i));
   assert.equal(base58Decode(base58Encode(raw)).toString('hex'), raw.toString('hex'));
   assert.equal(decodeWalletAddress(base58Encode(raw)).length, 32);
-  assert.throws(() => decodeWalletAddress('not-a-wallet!!'), /không hợp lệ|Invalid/);
-  assert.throws(() => decodeWalletAddress(base58Encode(Buffer.from([1, 2, 3]))), /không hợp lệ/);
+  assert.throws(() => decodeWalletAddress('not-a-wallet!!'), /Invalid/);
+  assert.throws(() => decodeWalletAddress(base58Encode(Buffer.from([1, 2, 3]))), /Invalid/);
 
   // 2. Ed25519 sign/verify with real crypto.
   const kp = generateKeyPairSync('ed25519');
@@ -144,7 +144,7 @@ async function main(): Promise<void> {
   const signMsg = (m: Buffer): string => base58Encode(sign(null, m, kp.privateKey));
 
   // 3. Nonce: invalid wallet rejected; valid returns signable message.
-  await assert.rejects(() => auth.issueNonce('bad'), /không hợp lệ/);
+  await assert.rejects(() => auth.issueNonce('bad'), /Invalid/);
   const n1 = await auth.issueNonce(wallet);
   assert.ok(n1.message.includes(n1.nonce) && n1.message.includes(wallet));
 
@@ -213,8 +213,8 @@ async function main(): Promise<void> {
   assert.equal(await statusOf(() => rg.canActivate(ctxOf({}, adminHandler, class B {}))), 401);
 
   // 10. UsersService boundaries.
-  await assert.rejects(() => users.setRole(wallet, 'SUPER'), /Role không hợp lệ/);
-  await assert.rejects(() => users.setRole(base58Encode(Buffer.alloc(32, 5)), 'KOL'), /không tồn tại/);
+  await assert.rejects(() => users.setRole(wallet, 'SUPER'), /Invalid role/);
+  await assert.rejects(() => users.setRole(base58Encode(Buffer.alloc(32, 5)), 'KOL'), /not found/);
 
   // 11. Cookie transport: guard accepts httpOnly cookie; Bearer wins on conflict;
   // builders emit correct flags; revoke kills the session.
@@ -248,8 +248,8 @@ async function main(): Promise<void> {
   );
   assert.equal(validateCredentials({ username: 'alice_01', password: 's3cret!!' }), null);
   assert.ok((validateCredentials({ username: 'ab', password: 's3cret!!' }) ?? '').includes('Username'));
-  assert.ok((validateCredentials({ username: 'alice_01', password: 'short' }) ?? '').includes('8 ký tự'));
-  assert.ok((validateCredentials({ username: 'alice_01', email: 'nope', password: 's3cret!!' }) ?? '').includes('Email'));
+  assert.ok((validateCredentials({ username: 'alice_01', password: 'short' }) ?? '').includes('8 characters'));
+  assert.ok((validateCredentials({ username: 'alice_01', email: 'nope', password: 's3cret!!' }) ?? '').includes('Invalid email'));
   const hashed = await hashPassword('s3cret!!');
   assert.ok(hashed.startsWith('scrypt$'));
   assert.equal(await verifyPassword('s3cret!!', hashed), true);
@@ -259,21 +259,21 @@ async function main(): Promise<void> {
   const reg = await auth.register({ username: 'alice_01', email: 'alice@x.test', password: 's3cret!!' });
   assert.equal(reg.user.role, 'USER');
   assert.equal(reg.token.length, 64);
-  await assert.rejects(() => auth.register({ username: 'alice_01', password: 's3cret!!' }), /tồn tại/);
+  await assert.rejects(() => auth.register({ username: 'alice_01', password: 's3cret!!' }), /already exists/);
   await assert.rejects(
     () => auth.register({ username: 'bob_02', email: 'alice@x.test', password: 's3cret!!' }),
-    /tồn tại/,
+    /already exists/,
   );
   await assert.rejects(() => auth.register({ username: 'ab', password: 's3cret!!' }), /Username/);
-  await assert.rejects(() => auth.register({ username: 'carol_03', password: 'short' }), /Mật khẩu/);
+  await assert.rejects(() => auth.register({ username: 'carol_03', password: 'short' }), /Password/);
 
   const logged = await auth.login({ username: 'alice_01', password: 's3cret!!' });
   assert.equal(logged.user.wallet, reg.user.wallet);
   const reqCred: Row = { headers: { authorization: `Bearer ${logged.token}` } };
   assert.equal(await guard.canActivate(ctxOf(reqCred, () => 0, class A {})), true);
   assert.equal((reqCred.user as Row).role, 'USER');
-  await assert.rejects(() => auth.login({ username: 'alice_01', password: 'wrongpw!!' }), /Sai tên đăng nhập/);
-  await assert.rejects(() => auth.login({ username: 'ghost_99', password: 'whatever!!' }), /Sai tên đăng nhập/);
+  await assert.rejects(() => auth.login({ username: 'alice_01', password: 'wrongpw!!' }), /Invalid username or password/);
+  await assert.rejects(() => auth.login({ username: 'ghost_99', password: 'whatever!!' }), /Invalid username or password/);
 
   // 13. setRole resolves credential identity by wallet, cred:wallet, or bare username.
   const byName = await users.setRole('alice_01', 'KOL');

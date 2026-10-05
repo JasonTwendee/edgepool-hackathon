@@ -66,7 +66,7 @@ export class AuthService {
     try {
       decodeWalletAddress(clean);
     } catch {
-      fail(`Địa chỉ ví Solana không hợp lệ: ${wallet}`);
+      fail(`Invalid Solana wallet address: ${wallet}`);
     }
     const nonce = randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + NONCE_TTL_MS);
@@ -85,7 +85,7 @@ export class AuthService {
     });
     if (!row || row.expiresAt.getTime() <= Date.now()) {
       await this.auditFail('auth.verify_failed', clean, 'expired-or-missing-nonce');
-      denied('Nonce hết hạn hoặc không tồn tại. Lấy nonce mới qua POST /api/auth/nonce.');
+      denied('Nonce expired or missing. Get a new nonce via POST /api/auth/nonce.');
     }
     const ok = verifyEd25519Signature(
       Buffer.from(loginMessage(clean, row.nonce, row.expiresAt), 'utf8'),
@@ -94,7 +94,7 @@ export class AuthService {
     );
     if (!ok) {
       await this.auditFail('auth.verify_failed', clean, 'bad-signature');
-      denied('Chữ ký không hợp lệ.');
+      denied('Invalid signature.');
     }
     await this.prisma.authNonce.update({ where: { id: row.id }, data: { consumedAt: new Date() } });
     const user = await this.users.findOrCreate(clean);
@@ -137,10 +137,10 @@ export class AuthService {
     const username = input.username.trim();
     const email = input.email?.trim() || null;
     const dupeUser = await this.prisma.user.findUnique({ where: { username } });
-    if (dupeUser) fail('Username đã tồn tại.');
+    if (dupeUser) fail('Username already exists.');
     if (email) {
       const dupeMail = await this.prisma.user.findUnique({ where: { email } });
-      if (dupeMail) fail('Email đã tồn tại.');
+      if (dupeMail) fail('Email already exists.');
     }
     try {
       const created = await this.prisma.user.create({
@@ -154,7 +154,7 @@ export class AuthService {
       });
       return this.openSession({ id: created.id, wallet: created.wallet, role: created.role });
     } catch {
-      fail('Username hoặc email đã tồn tại.');
+      fail('Username or email already exists.');
     }
   }
 
@@ -169,7 +169,7 @@ export class AuthService {
     const ok = hash !== null && (await verifyPassword(input.password ?? '', hash));
     if (!found || !ok) {
       await this.auditFail('auth.login_failed', (input.username ?? '').trim().slice(0, 100), 'bad-credentials');
-      denied('Sai tên đăng nhập hoặc mật khẩu.');
+      denied('Invalid username or password.');
     }
     return this.openSession({ id: found.id, wallet: found.wallet, role: found.role });
   }
