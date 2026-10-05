@@ -21,7 +21,10 @@ interface Props {
 }
 
 export function AuthPanel({ session, onSession }: Props) {
-  const [tab, setTab] = useState<'wallet' | 'account'>('wallet');
+  // Account tab first: public visitors log in with username/password, no wallet needed.
+  const [tab, setTab] = useState<'wallet' | 'account'>('account');
+  // Operator token shortcut is dev-only (hidden unless explicitly enabled at build).
+  const showDevShortcut = process.env.NEXT_PUBLIC_SHOW_DEV_LOGIN === '1';
   const [wallet, setWallet] = useState('');
   const [nonce, setNonce] = useState<AuthNonce | null>(null);
   const [signature, setSignature] = useState('');
@@ -254,6 +257,7 @@ export function AuthPanel({ session, onSession }: Props) {
               </button>
             </div>
           )}
+          {showDevShortcut && (
           <div className="pt-1 border-t border-[#3F424D] space-y-2">
             <div className="text-[10px] text-[#75798C] font-medium">Operator shortcut (dev only)</div>
             <input
@@ -271,6 +275,7 @@ export function AuthPanel({ session, onSession }: Props) {
               Use token
             </button>
           </div>
+          )}
           </div>
           )}
         </div>
