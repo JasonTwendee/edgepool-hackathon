@@ -48,8 +48,10 @@ export class WalletsService implements OnModuleInit {
     for (const w of all) this.solana.addTrackedWallet(toTrackedWallet(w));
     // Reconcile WS subscriptions AFTER the DB registry is loaded (stream's own
     // onModuleInit fires earlier with only the 10 default wallets).
+    // Dropped (inactive) wallets stay frozen: no live slot wasted on them.
     const actives = all.filter((w) => w.isActive);
     for (const w of actives) await this.stream.watch(w.address);
+    for (const w of all.filter((w) => !w.isActive)) await this.stream.unwatch(w.address);
   }
 
   async findAll(): Promise<TrackedWallet[]> {
