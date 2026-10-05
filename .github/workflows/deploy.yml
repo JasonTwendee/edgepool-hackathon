@@ -28,6 +28,11 @@ jobs:
         working-directory: /opt/edgepool/hackathon-solana
         run: git pull --ff-only origin main
 
+      - name: Env auto-sync (append missing keys, never overwrite)
+        run: |
+          bash scripts/sync-env.sh backend/.env.example backend/.env
+          bash scripts/sync-env.sh frontend/.env.example frontend/.env
+
       - name: Rebuild + restart (prod overlay)
         run: |
           docker compose -f docker-compose.yml -f docker-compose.prod.yml build backend frontend
