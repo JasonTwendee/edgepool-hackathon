@@ -242,7 +242,7 @@ async function main(): Promise<void> {
   assert.equal(await statusOf(() => guard.canActivate(ctxOf(reqCookie, () => 0, class A {}))), 401);
   assert.equal((await auth.revoke('nope')).revoked, false);
 
-  // 12. Credential auth: validation + scrypt + register/login.
+  // 12. Credential auth: validation + scrypt + login.
   const { validateCredentials, hashPassword, verifyPassword } = await import(
     '../../common/auth/password.js'
   );
@@ -256,19 +256,24 @@ async function main(): Promise<void> {
   assert.equal(await verifyPassword('wrong', hashed), false);
   assert.equal(await verifyPassword('x', 'garbage'), false);
 
-  const reg = await auth.register({ username: 'alice_01', email: 'alice@x.test', password: 's3cret!!' });
-  assert.equal(reg.user.role, 'USER');
-  assert.equal(reg.token.length, 64);
-  await assert.rejects(() => auth.register({ username: 'alice_01', password: 's3cret!!' }), /already exists/);
-  await assert.rejects(
-    () => auth.register({ username: 'bob_02', email: 'alice@x.test', password: 's3cret!!' }),
-    /already exists/,
-  );
-  await assert.rejects(() => auth.register({ username: 'ab', password: 's3cret!!' }), /Username/);
-  await assert.rejects(() => auth.register({ username: 'carol_03', password: 'short' }), /Password/);
+  // Provisioning mirrors seed-accounts.ts
+  // (no public registration — accounts are operator-issued).
+  const provision = async (username: string, password: string): Promise<Row> =>
+    (fake as unknown as { user: { create: (a: unknown) => Promise<Row> } }).user.create({
+      data: {
+        wallet: `cred:${username}`,
+        username,
+        email: null,
+        passwordHash: await hashPassword(password),
+        role: 'USER',
+      },
+    });
+
+  const alice = await provision('alice_01', 's3cret!!');
+  assert.equal(alice.role, 'USER');
 
   const logged = await auth.login({ username: 'alice_01', password: 's3cret!!' });
-  assert.equal(logged.user.wallet, reg.user.wallet);
+  assert.equal(logged.user.wallet, alice.wallet);
   const reqCred: Row = { headers: { authorization: `Bearer ${logged.token}` } };
   assert.equal(await guard.canActivate(ctxOf(reqCred, () => 0, class A {})), true);
   assert.equal((reqCred.user as Row).role, 'USER');

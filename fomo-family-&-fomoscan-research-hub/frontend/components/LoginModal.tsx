@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { EnvelopeSimple, LockKey, User, Wallet } from '@phosphor-icons/react';
+import { LockKey, User, Wallet } from '@phosphor-icons/react';
 import {
   getAuthMe,
   issueAuthNonce,
   loginAccount,
-  registerAccount,
   storeSession,
   verifyAuthSignature,
 } from '../lib/api';
-import { connectBrowserWallet, signWithBrowserWallet } from '../lib/solana';
+import { connectProvider, detectWallets, signWithProvider } from '../lib/solana';
 import type { AuthNonce, FundSession } from '../types/fund';
+import type { DetectedWallet, InjectedSolanaProvider } from '../lib/solana';
 
 interface Props {
   session: FundSession | null;
@@ -27,26 +27,27 @@ const inputCls =
  * Password reset does not exist yet — Forgot shows an inline notice.
  */
 export function LoginModal({ session, onSession }: Props) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [wallet, setWallet] = useState('');
   const [nonce, setNonce] = useState<AuthNonce | null>(null);
   const [signature, setSignature] = useState('');
   const [showWallet, setShowWallet] = useState(false);
+  const [detected, setDetected] = useState<DetectedWallet[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  function openWalletPicker() {
+    setDetected(detectWallets());
+    setShowWallet(true);
+  }
 
   async function handleAccount() {
     if (busy || !username.trim() || !password) return;
     setBusy(true);
     setMsg(null);
     try {
-      const res =
-        mode === 'register'
-          ? await registerAccount({ username: username.trim(), email: email.trim() || undefined, password })
-          : await loginAccount({ username: username.trim(), password });
+      const res = await loginAccount({ username: username.trim(), password });
       storeSession(res.data);
       onSession({ token: res.data.token, user: res.data.user, expiresAt: res.data.expiresAt });
       setPassword('');
@@ -59,12 +60,24 @@ export function LoginModal({ session, onSession }: Props) {
 
   async function handleBrowserLogin() {
     if (busy) return;
+    const first = detectWallets().find((d) => d.installed && d.provider);
+    if (!first?.provider) {
+      openWalletPicker();
+      setMsg('No Solana wallet found in this browser. Install Phantom or OKX Wallet, or use paste-signature below.');
+      return;
+    }
+    await handleProviderLogin(first.label, first.provider);
+  }
+
+  /** One-click wallet login: connect → sign login message → verify. */
+  async function handleProviderLogin(label: string, provider: InjectedSolanaProvider) {
+    if (busy) return;
     setBusy(true);
-    setMsg(null);
+    setMsg(`Waiting for ${label} — approve the connection and signature…`);
     try {
-      const address = await connectBrowserWallet();
+      const address = await connectProvider(provider);
       const res = await issueAuthNonce(address);
-      const { signature: sig } = await signWithBrowserWallet(res.data.message);
+      const { signature: sig } = await signWithProvider(provider, res.data.message);
       const verified = await verifyAuthSignature(res.data.wallet, sig);
       storeSession(verified.data);
       onSession({ token: verified.data.token, user: verified.data.user, expiresAt: verified.data.expiresAt });
@@ -112,24 +125,10 @@ export function LoginModal({ session, onSession }: Props) {
     <div className="w-full rounded-2xl bg-[#14161D] border border-[#2A2D38] p-6 space-y-4 shadow-2xl">
       <div className="space-y-1">
         <h2 className="font-display text-lg font-bold text-[#E9E9ED]">
-          {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
+          Sign in to your account
         </h2>
         <p className="text-[11px] tracking-wide text-[#75798C]">
-          {mode === 'login' ? (
-            <>
-              DON&apos;T HAVE AN ACCOUNT YET?{' '}
-              <button onClick={() => { setMode('register'); setMsg(null); }} className="font-bold text-[#E9E9ED] hover:underline">
-                REGISTER
-              </button>
-            </>
-          ) : (
-            <>
-              ALREADY HAVE AN ACCOUNT?{' '}
-              <button onClick={() => { setMode('login'); setMsg(null); }} className="font-bold text-[#E9E9ED] hover:underline">
-                SIGN IN
-              </button>
-            </>
-          )}
+          NO ACCOUNT YET? CONTACT YOUR ADMINISTRATOR.
         </p>
       </div>
 
@@ -147,21 +146,6 @@ export function LoginModal({ session, onSession }: Props) {
             />
           </div>
         </div>
-        {mode === 'register' && (
-          <div>
-            <label className="text-[11px] font-medium text-[#A7AABF]">Email (optional)</label>
-            <div className="relative mt-1">
-              <EnvelopeSimple size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#595D6C]" />
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@domain.com"
-                autoComplete="email"
-                className={inputCls}
-              />
-            </div>
-          </div>
-        )}
         <div>
           <div className="flex items-center justify-between">
             <label className="text-[11px] font-medium text-[#A7AABF]">Password</label>
@@ -179,7 +163,7 @@ export function LoginModal({ session, onSession }: Props) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your password"
               type="password"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoComplete="current-password"
               onKeyDown={(e) => { if (e.key === 'Enter') void handleAccount(); }}
               className={inputCls}
             />
@@ -190,7 +174,7 @@ export function LoginModal({ session, onSession }: Props) {
           disabled={busy}
           className="w-full py-2.5 rounded-lg bg-[#E9E9ED] hover:bg-white text-[#161826] text-sm font-bold transition-colors disabled:opacity-50"
         >
-          {mode === 'login' ? 'Sign in' : 'Register'}
+          Sign in
         </button>
       </div>
 
@@ -201,7 +185,7 @@ export function LoginModal({ session, onSession }: Props) {
       </div>
 
       <button
-        onClick={() => (showWallet ? void handleBrowserLogin() : setShowWallet(true))}
+        onClick={() => (showWallet ? void handleBrowserLogin() : openWalletPicker())}
         disabled={busy}
         className="w-full py-2.5 px-3 rounded-lg bg-[#232532] hover:bg-[#2A2D38] border border-[#3F424D] text-xs font-bold text-[#E9E9ED] flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
       >
@@ -210,13 +194,28 @@ export function LoginModal({ session, onSession }: Props) {
 
       {showWallet && (
         <div className="space-y-2 rounded-lg bg-[#0D0F18] border border-[#2A2D38] p-3">
-          <button
-            onClick={() => void handleBrowserLogin()}
-            disabled={busy}
-            className="w-full text-[11px] text-[#A7AABF] hover:text-[#E9E9ED] disabled:opacity-50"
-          >
-            Use browser wallet (Phantom) — or paste manually below
-          </button>
+          {detected.filter((d) => d.installed && d.provider).map((d) => (
+            <button
+              key={d.id}
+              onClick={() => d.provider && void handleProviderLogin(d.label, d.provider)}
+              disabled={busy}
+              className="w-full py-2 px-3 rounded-lg bg-[#232532] hover:bg-[#2A2D38] border border-[#3F424D] text-xs font-bold text-[#E9E9ED] transition-colors disabled:opacity-50"
+            >
+              Continue with {d.label}
+            </button>
+          ))}
+          {detected.filter((d) => !d.installed).map((d) => (
+            <a
+              key={d.id}
+              href={d.installUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full py-2 px-3 rounded-lg border border-[#2A2D38] text-[11px] text-[#75798C] hover:text-[#E9E9ED] text-center transition-colors"
+            >
+              Install {d.label}
+            </a>
+          ))}
+          <div className="text-[10px] text-[#4A4D5E] text-center">or paste manually below</div>
           <input
             value={wallet}
             onChange={(e) => setWallet(e.target.value)}

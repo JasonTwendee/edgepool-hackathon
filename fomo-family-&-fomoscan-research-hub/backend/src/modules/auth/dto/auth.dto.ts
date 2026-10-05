@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsString, MinLength } from 'class-validator';
 
 /** POST /api/auth/nonce body. Mirrors openapi.yaml#AuthNonce flow. */
 export class NonceDto {
@@ -16,19 +16,6 @@ export class VerifyDto {
   @IsString()
   @MinLength(64)
   signature!: string;
-}
-
-/** POST /api/auth/register body. Deep validation lives in password.ts. */
-export class RegisterDto {
-  @IsString()
-  username!: string;
-
-  @IsOptional()
-  @IsString()
-  email?: string;
-
-  @IsString()
-  password!: string;
 }
 
 /** POST /api/auth/login body. */
