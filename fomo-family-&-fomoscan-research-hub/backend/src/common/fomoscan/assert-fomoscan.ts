@@ -44,7 +44,7 @@ async function main(): Promise<void> {
         handle: 'unipcs', wallet: 'W1', evmWallet: '0x1', status: 'ready', updatedAt: 1,
         windows: { '24h': { netUsd: -5, returnPct: 0, volumeUsd: 1, trades: 2, buys: 1, sells: 1, tokensTraded: 1, winningTokens: 0, rank: null, status: 'ready', updatedAt: 1 } },
       },
-      'GET /v2/pump/leaderboard/traders?limit=2': {
+      'GET /v2/pump/leaderboard/traders?period=weekly&limit=2': {
         entries: [{ rank: 1, wallet: 'W9', username: 'u', isVerified: true, pnlSol: 1, pnlUsd: 2, pnlPercent: 3, realizedPnlUsd: 4, unrealizedPnlUsd: 5 }],
       },
       'GET /v2/user/wallet/W1': {
@@ -75,10 +75,12 @@ async function main(): Promise<void> {
   await assert.rejects(() => svc.batchPnl(Array.from({ length: 101 }, (_, i) => `h${i}`), f), /at most 100/);
   assert.deepEqual(await svc.batchPnl([], f), { count: 0, entries: [] });
 
-  // 4. Leaderboard clamp + mapping.
-  const lb = await svc.leaderboard(2, f);
+  // 4. Leaderboard clamp + period + mapping.
+  const lb = await svc.leaderboard(2, 'weekly', f);
   assert.equal(lb.entries[0].username, 'u');
   assert.ok(lb.entries[0].isVerified);
+  const lbDefault = await svc.leaderboard(2, 'bogus' as 'weekly', f);
+  assert.equal(lbDefault.entries[0].username, 'u');
 
   // 5. Cache: second identical call performs no fetch.
   const before = calls.length;

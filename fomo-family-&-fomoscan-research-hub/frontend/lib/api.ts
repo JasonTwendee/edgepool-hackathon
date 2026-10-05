@@ -64,19 +64,6 @@ export function listWallets(): Promise<WalletListResponse> {
   return fetchJson<WalletListResponse>('/api/wallets');
 }
 
-export function addWallet(input: {
-  address: string;
-  label?: string;
-  handle?: string;
-  allocationWeight?: number;
-}): Promise<{ success: boolean; message?: string; data: TrackedWallet }> {
-  return fetchJson('/api/wallets', { method: 'POST', body: JSON.stringify(input) });
-}
-
-export function removeWallet(address: string): Promise<{ success: boolean; message?: string }> {
-  return fetchJson(`/api/wallets/${encodeURIComponent(address)}`, { method: 'DELETE' });
-}
-
 export function updateWalletCopy(
   address: string,
   input: { isCopyEnabled?: boolean; allocationWeight?: number },

@@ -165,10 +165,15 @@ export class FomoscanService {
     return this.call('POST', '/v2/user/handles/pnl', { handles: clean }, 300_000, fetcher);
   }
 
-  /** Verified pump.fun PnL leaderboard. */
-  async leaderboard(limit = 25, fetcher?: FomoscanFetch): Promise<{ entries: LeaderboardEntry[] }> {
+  /** Verified pump.fun PnL leaderboard (period: daily|weekly|monthly). */
+  async leaderboard(
+    limit = 25,
+    period: 'daily' | 'weekly' | 'monthly' = 'weekly',
+    fetcher?: FomoscanFetch,
+  ): Promise<{ period?: string; entries: LeaderboardEntry[] }> {
     const n = Math.min(Math.max(limit | 0, 1), 100);
-    return this.call('GET', `/v2/pump/leaderboard/traders?limit=${n}`, undefined, 600_000, fetcher);
+    const p = ['daily', 'weekly', 'monthly'].includes(period) ? period : 'weekly';
+    return this.call('GET', `/v2/pump/leaderboard/traders?period=${p}&limit=${n}`, undefined, 600_000, fetcher);
   }
 
   /** Newest theses (P3 feed source; exposed here, not yet ingested). */

@@ -15,6 +15,7 @@ import { MarketModule } from './modules/market/market.module.js';
 import { VaultsModule } from './modules/vaults/vaults.module.js';
 import { SolanaModule } from './server/solana.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
+import { LeaderboardModule } from './modules/leaderboard/leaderboard.module.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { SyncModule } from './modules/sync/sync.module.js';
     MarketModule,
     VaultsModule,
     SyncModule,
+    LeaderboardModule,
   ],
 })
 export class AppModule {}

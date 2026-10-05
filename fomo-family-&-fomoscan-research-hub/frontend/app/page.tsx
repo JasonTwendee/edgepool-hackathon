@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import type { OnChainTransactionEvent, TrackedWallet } from '../types/onchain';
 import {
-  addWallet,
   clearSession,
   getAuthMe,
   getHoldings,
@@ -12,7 +11,6 @@ import {
   getWalletPnl,
   listWallets,
   logout as logoutRequest,
-  removeWallet,
   updateWalletCopy,
   type SwapAction,
   type WalletHoldings,
@@ -320,34 +318,6 @@ export default function HomePage() {
     });
   }
 
-  async function handleAdd(input: {
-    address: string;
-    label?: string;
-    allocationWeight?: number;
-  }): Promise<string | null> {
-    try {
-      const res = await addWallet(input);
-      setSelectedAddress(res.data.address);
-      await refreshWallets();
-      await refreshPnlOverview();
-      await portfolio.refresh();
-      return null;
-    } catch (e) {
-      return (e as Error).message;
-    }
-  }
-
-  async function handleRemove(address: string) {
-    try {
-      await removeWallet(address);
-      await refreshWallets();
-      await refreshPnlOverview();
-      await portfolio.refresh();
-    } catch (e) {
-      setWalletsError((e as Error).message);
-    }
-  }
-
   async function handleToggleFollow() {
     if (!selectedWallet) return;
     setFollowBusy(true);
@@ -394,8 +364,6 @@ export default function HomePage() {
           pnlMap={pnlMap}
           selectedAddress={selectedAddress}
           onSelect={setSelectedAddress}
-          onAdd={handleAdd}
-          onRemove={(addr) => void handleRemove(addr)}
           loading={walletsLoading}
           showRight={showRight}
           showTicker={showTicker}

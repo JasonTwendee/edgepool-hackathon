@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, CaretDoubleLeft, Coins, Newspaper, Plus, Trophy, X } from '@phosphor-icons/react';
+import { Bell, CaretDoubleLeft, Coins, Newspaper, Trophy } from '@phosphor-icons/react';
 import type { TrackedWallet } from '../types/onchain';
 import type { WalletPnl } from '../lib/api';
 import { formatUsdSigned, shortAddress } from '../lib/format';
@@ -12,8 +12,6 @@ interface Props {
   pnlMap: Record<string, WalletPnl>;
   selectedAddress: string | null;
   onSelect: (address: string) => void;
-  onAdd: (input: { address: string; label?: string; allocationWeight?: number }) => Promise<string | null>;
-  onRemove: (address: string) => void;
   loading: boolean;
   showRight: boolean;
   showTicker: boolean;
@@ -49,8 +47,6 @@ export function FomoLeftSidebar({
   pnlMap,
   selectedAddress,
   onSelect,
-  onAdd,
-  onRemove,
   loading,
   showRight,
   showTicker,
@@ -59,12 +55,6 @@ export function FomoLeftSidebar({
 }: Props) {
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [compact, setCompact] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [address, setAddress] = useState('');
-  const [label, setLabel] = useState('');
-  const [weight, setWeight] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   const sorted = [...wallets].sort(
     (a, b) => (displayPnl(b, pnlMap).value ?? 0) - (displayPnl(a, pnlMap).value ?? 0),
@@ -72,26 +62,6 @@ export function FomoLeftSidebar({
   const selectedRank = selectedAddress ? sorted.findIndex((w) => w.address === selectedAddress) : -1;
   const selectedShown = selectedAddress ? sorted[selectedRank] : undefined;
   const selectedPnl = selectedShown ? displayPnl(selectedShown, pnlMap) : undefined;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setFormError(null);
-    const err = await onAdd({
-      address: address.trim(),
-      label: label.trim() || undefined,
-      allocationWeight: weight ? Number(weight) : undefined,
-    });
-    setSubmitting(false);
-    if (err) {
-      setFormError(err);
-    } else {
-      setAddress('');
-      setLabel('');
-      setWeight('');
-      setShowForm(false);
-    }
-  }
 
   return (
     <aside className="w-full lg:w-[330px] shrink-0 bg-[#0D0F18] border-b lg:border-b-0 lg:border-r border-[#3F424D] lg:h-full lg:overflow-y-auto scrollbar-thin">
@@ -154,54 +124,16 @@ export function FomoLeftSidebar({
           </>
         )}
 
-        {/* Tracked wallets header + Add */}
+        {/* Tracked wallets (auto-rotated from the verified leaderboard) */}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-[#E9E9ED]">
             Tracked Wallets{' '}
             <span className="ml-1 text-[11px] font-semibold text-[#9397AB]">{wallets.length}</span>
           </h2>
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-[#49E6D7] text-[#49E6D7] hover:bg-[rgba(73,230,215,0.12)] transition-colors"
-          >
-            <Plus size={14} className="" />
-            Add
-          </button>
+          <span className="text-[10px] text-[#595D6C] font-medium" title="Top traders rotate in automatically">
+            auto top
+          </span>
         </div>
-
-        {showForm && (
-          <form onSubmit={handleSubmit} className="space-y-2 rounded-lg border border-[#3F424D] bg-[#161826] p-3">
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Solana address (base58)"
-              className="w-full text-xs font-mono px-2.5 py-2 rounded-lg bg-[#0D0F18] border border-[#3F424D] text-[#E9E9ED] placeholder:text-[#75798C] outline-none focus:border-[#49E6D7]"
-            />
-            <div className="flex gap-2">
-              <input
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                placeholder="Label (optional)"
-                className="flex-1 min-w-0 text-xs px-2.5 py-2 rounded-lg bg-[#0D0F18] border border-[#3F424D] text-[#E9E9ED] placeholder:text-[#75798C] outline-none focus:border-[#49E6D7]"
-              />
-              <input
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                placeholder="Weight"
-                inputMode="decimal"
-                className="w-20 text-xs font-mono px-2.5 py-2 rounded-lg bg-[#0D0F18] border border-[#3F424D] text-[#E9E9ED] placeholder:text-[#75798C] outline-none focus:border-[#49E6D7]"
-              />
-            </div>
-            {formError && <p className="text-[11px] text-[#F28881]">{formError}</p>}
-            <button
-              type="submit"
-              disabled={submitting || !address.trim()}
-              className="w-full text-xs font-bold px-2.5 py-2 rounded-lg border border-[#49E6D7] text-[#49E6D7] hover:bg-[rgba(73,230,215,0.12)] disabled:opacity-50 transition-colors"
-            >
-              {submitting ? 'Adding…' : 'Start tracking'}
-            </button>
-          </form>
-        )}
 
         {/* Leaderboard list (real wallets) */}
         {loading && wallets.length === 0 ? (
@@ -239,18 +171,6 @@ export function FomoLeftSidebar({
                       </div>
                       <div className="text-[10px] text-[#75798C] font-mono">{shown.winRate?.toFixed(1) ?? '—'}% win</div>
                     </div>
-                    <button
-                      title="Stop tracking"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`Stop tracking ${w.label}? History will be deleted.`)) {
-                          onRemove(w.address);
-                        }
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded text-[#75798C] hover:text-[#F28881] hover:bg-rose-500/10 transition-all shrink-0"
-                    >
-                      <X size={14} className="" />
-                    </button>
                   </div>
                 </li>
               );
