@@ -329,6 +329,7 @@ export type VaultWhereInput = {
   epochs?: Prisma.EpochCheckpointListRelationFilter
   traders?: Prisma.VaultTraderListRelationFilter
   bots?: Prisma.BotListRelationFilter
+  payouts?: Prisma.PartnerPayoutListRelationFilter
 }
 
 export type VaultOrderByWithRelationInput = {
@@ -351,6 +352,7 @@ export type VaultOrderByWithRelationInput = {
   epochs?: Prisma.EpochCheckpointOrderByRelationAggregateInput
   traders?: Prisma.VaultTraderOrderByRelationAggregateInput
   bots?: Prisma.BotOrderByRelationAggregateInput
+  payouts?: Prisma.PartnerPayoutOrderByRelationAggregateInput
 }
 
 export type VaultWhereUniqueInput = Prisma.AtLeast<{
@@ -376,6 +378,7 @@ export type VaultWhereUniqueInput = Prisma.AtLeast<{
   epochs?: Prisma.EpochCheckpointListRelationFilter
   traders?: Prisma.VaultTraderListRelationFilter
   bots?: Prisma.BotListRelationFilter
+  payouts?: Prisma.PartnerPayoutListRelationFilter
 }, "id">
 
 export type VaultOrderByWithAggregationInput = {
@@ -439,6 +442,7 @@ export type VaultCreateInput = {
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateInput = {
@@ -461,6 +465,7 @@ export type VaultUncheckedCreateInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUpdateInput = {
@@ -482,6 +487,7 @@ export type VaultUpdateInput = {
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateInput = {
@@ -504,6 +510,7 @@ export type VaultUncheckedUpdateInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateManyInput = {
@@ -715,6 +722,20 @@ export type VaultUpdateOneWithoutBotsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.VaultUpdateToOneWithWhereWithoutBotsInput, Prisma.VaultUpdateWithoutBotsInput>, Prisma.VaultUncheckedUpdateWithoutBotsInput>
 }
 
+export type VaultCreateNestedOneWithoutPayoutsInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutPayoutsInput, Prisma.VaultUncheckedCreateWithoutPayoutsInput>
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutPayoutsInput
+  connect?: Prisma.VaultWhereUniqueInput
+}
+
+export type VaultUpdateOneRequiredWithoutPayoutsNestedInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutPayoutsInput, Prisma.VaultUncheckedCreateWithoutPayoutsInput>
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutPayoutsInput
+  upsert?: Prisma.VaultUpsertWithoutPayoutsInput
+  connect?: Prisma.VaultWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.VaultUpdateToOneWithWhereWithoutPayoutsInput, Prisma.VaultUpdateWithoutPayoutsInput>, Prisma.VaultUncheckedUpdateWithoutPayoutsInput>
+}
+
 export type VaultCreateWithoutDepositsInput = {
   name: string
   feeBps?: number
@@ -733,6 +754,7 @@ export type VaultCreateWithoutDepositsInput = {
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutDepositsInput = {
@@ -754,6 +776,7 @@ export type VaultUncheckedCreateWithoutDepositsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutDepositsInput = {
@@ -790,6 +813,7 @@ export type VaultUpdateWithoutDepositsInput = {
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutDepositsInput = {
@@ -811,6 +835,7 @@ export type VaultUncheckedUpdateWithoutDepositsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutWithdrawalsInput = {
@@ -831,6 +856,7 @@ export type VaultCreateWithoutWithdrawalsInput = {
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutWithdrawalsInput = {
@@ -852,6 +878,7 @@ export type VaultUncheckedCreateWithoutWithdrawalsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutWithdrawalsInput = {
@@ -888,6 +915,7 @@ export type VaultUpdateWithoutWithdrawalsInput = {
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
@@ -909,6 +937,7 @@ export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutEpochsInput = {
@@ -929,6 +958,7 @@ export type VaultCreateWithoutEpochsInput = {
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutEpochsInput = {
@@ -950,6 +980,7 @@ export type VaultUncheckedCreateWithoutEpochsInput = {
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutEpochsInput = {
@@ -986,6 +1017,7 @@ export type VaultUpdateWithoutEpochsInput = {
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutEpochsInput = {
@@ -1007,6 +1039,7 @@ export type VaultUncheckedUpdateWithoutEpochsInput = {
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutTradersInput = {
@@ -1027,6 +1060,7 @@ export type VaultCreateWithoutTradersInput = {
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutTradersInput = {
@@ -1048,6 +1082,7 @@ export type VaultUncheckedCreateWithoutTradersInput = {
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutTradersInput = {
@@ -1084,6 +1119,7 @@ export type VaultUpdateWithoutTradersInput = {
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutTradersInput = {
@@ -1105,6 +1141,7 @@ export type VaultUncheckedUpdateWithoutTradersInput = {
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutBotsInput = {
@@ -1125,6 +1162,7 @@ export type VaultCreateWithoutBotsInput = {
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutBotsInput = {
@@ -1146,6 +1184,7 @@ export type VaultUncheckedCreateWithoutBotsInput = {
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutBotsInput = {
@@ -1182,6 +1221,7 @@ export type VaultUpdateWithoutBotsInput = {
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutBotsInput = {
@@ -1203,6 +1243,109 @@ export type VaultUncheckedUpdateWithoutBotsInput = {
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultCreateWithoutPayoutsInput = {
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+}
+
+export type VaultUncheckedCreateWithoutPayoutsInput = {
+  id?: number
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+}
+
+export type VaultCreateOrConnectWithoutPayoutsInput = {
+  where: Prisma.VaultWhereUniqueInput
+  create: Prisma.XOR<Prisma.VaultCreateWithoutPayoutsInput, Prisma.VaultUncheckedCreateWithoutPayoutsInput>
+}
+
+export type VaultUpsertWithoutPayoutsInput = {
+  update: Prisma.XOR<Prisma.VaultUpdateWithoutPayoutsInput, Prisma.VaultUncheckedUpdateWithoutPayoutsInput>
+  create: Prisma.XOR<Prisma.VaultCreateWithoutPayoutsInput, Prisma.VaultUncheckedCreateWithoutPayoutsInput>
+  where?: Prisma.VaultWhereInput
+}
+
+export type VaultUpdateToOneWithWhereWithoutPayoutsInput = {
+  where?: Prisma.VaultWhereInput
+  data: Prisma.XOR<Prisma.VaultUpdateWithoutPayoutsInput, Prisma.VaultUncheckedUpdateWithoutPayoutsInput>
+}
+
+export type VaultUpdateWithoutPayoutsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultUncheckedUpdateWithoutPayoutsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deposits?: Prisma.DepositUncheckedUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 
@@ -1216,6 +1359,7 @@ export type VaultCountOutputType = {
   epochs: number
   traders: number
   bots: number
+  payouts: number
 }
 
 export type VaultCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1224,6 +1368,7 @@ export type VaultCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   epochs?: boolean | VaultCountOutputTypeCountEpochsArgs
   traders?: boolean | VaultCountOutputTypeCountTradersArgs
   bots?: boolean | VaultCountOutputTypeCountBotsArgs
+  payouts?: boolean | VaultCountOutputTypeCountPayoutsArgs
 }
 
 /**
@@ -1271,6 +1416,13 @@ export type VaultCountOutputTypeCountBotsArgs<ExtArgs extends runtime.Types.Exte
   where?: Prisma.BotWhereInput
 }
 
+/**
+ * VaultCountOutputType without action
+ */
+export type VaultCountOutputTypeCountPayoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PartnerPayoutWhereInput
+}
+
 
 export type VaultSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1292,6 +1444,7 @@ export type VaultSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   epochs?: boolean | Prisma.Vault$epochsArgs<ExtArgs>
   traders?: boolean | Prisma.Vault$tradersArgs<ExtArgs>
   bots?: boolean | Prisma.Vault$botsArgs<ExtArgs>
+  payouts?: boolean | Prisma.Vault$payoutsArgs<ExtArgs>
   _count?: boolean | Prisma.VaultCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vault"]>
 
@@ -1353,6 +1506,7 @@ export type VaultInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   epochs?: boolean | Prisma.Vault$epochsArgs<ExtArgs>
   traders?: boolean | Prisma.Vault$tradersArgs<ExtArgs>
   bots?: boolean | Prisma.Vault$botsArgs<ExtArgs>
+  payouts?: boolean | Prisma.Vault$payoutsArgs<ExtArgs>
   _count?: boolean | Prisma.VaultCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type VaultIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1366,6 +1520,7 @@ export type $VaultPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     epochs: Prisma.$EpochCheckpointPayload<ExtArgs>[]
     traders: Prisma.$VaultTraderPayload<ExtArgs>[]
     bots: Prisma.$BotPayload<ExtArgs>[]
+    payouts: Prisma.$PartnerPayoutPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1781,6 +1936,7 @@ export interface Prisma__VaultClient<T, Null = never, ExtArgs extends runtime.Ty
   epochs<T extends Prisma.Vault$epochsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$epochsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EpochCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   traders<T extends Prisma.Vault$tradersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$tradersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VaultTraderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bots<T extends Prisma.Vault$botsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$botsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  payouts<T extends Prisma.Vault$payoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PartnerPayoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2334,6 +2490,30 @@ export type Vault$botsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
   take?: number
   skip?: number
   distinct?: Prisma.BotScalarFieldEnum | Prisma.BotScalarFieldEnum[]
+}
+
+/**
+ * Vault.payouts
+ */
+export type Vault$payoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PartnerPayout
+   */
+  select?: Prisma.PartnerPayoutSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PartnerPayout
+   */
+  omit?: Prisma.PartnerPayoutOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PartnerPayoutInclude<ExtArgs> | null
+  where?: Prisma.PartnerPayoutWhereInput
+  orderBy?: Prisma.PartnerPayoutOrderByWithRelationInput | Prisma.PartnerPayoutOrderByWithRelationInput[]
+  cursor?: Prisma.PartnerPayoutWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PartnerPayoutScalarFieldEnum | Prisma.PartnerPayoutScalarFieldEnum[]
 }
 
 /**

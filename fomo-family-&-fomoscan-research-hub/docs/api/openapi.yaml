@@ -1116,6 +1116,7 @@ paths:
               type: object
               required: [reason]
               properties:
+                feeBps: { type: integer, description: Performance fee 0-10000 bps on new profit above HWM (default 0); fee splits 75% partner traders / 25% Edgepool treasury per report §4 }
                 reserveBps: { type: integer, description: Reserve floor 0-10000 bps (default 0) }
                 withdrawFeeBps: { type: integer, description: Withdrawal fee 0-10000 bps (default 0) }
                 lockHours: { type: integer, description: Deposit lock 0-8760h (default 0) }
@@ -1136,6 +1137,33 @@ paths:
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/{id}/earnings:
+    get:
+      summary: Partner-trader earnings ledger (report §4 80/15/5; public read)
+      operationId: getVaultEarnings
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: trader
+          in: query
+          required: false
+          schema: { type: string }
+          description: Filter by trader wallet
+      responses:
+        '200':
+          description: Earnings totals + rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/VaultEarnings' }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/market/ticks:
     get:
       summary: Major ticks (server-side, keyless)
@@ -1568,11 +1596,33 @@ components:
           type: object
           required: [reserveBps, withdrawFeeBps, lockHours]
           properties:
+            feeBps: { type: integer, description: Performance fee bps (report §4) }
             reserveBps: { type: integer }
             withdrawFeeBps: { type: integer }
             lockHours: { type: integer }
             settlePeriodHours: { type: integer, description: Settlement window period hours, 0 = always open }
             settleLengthMin: { type: integer, description: Window length minutes }
+    PartnerPayout:
+      type: object
+      required: [id, trader, amountSol, status, createdAt]
+      properties:
+        id: { type: integer }
+        trader: { type: string }
+        amountSol: { type: number }
+        epochId: { type: integer, nullable: true }
+        kind: { type: string, enum: [PERF_FEE] }
+        status: { type: string, enum: [ACCRUED] }
+        createdAt: { type: string, format: date-time }
+    VaultEarnings:
+      type: object
+      required: [vaultId, totalSol, byTrader, payouts]
+      properties:
+        vaultId: { type: integer }
+        totalSol: { type: number, description: Total ACCRUED partner earnings (SOL) }
+        byTrader: { type: object, additionalProperties: { type: number } }
+        payouts:
+          type: array
+          items: { $ref: '#/components/schemas/PartnerPayout' }
     Bot:
       type: object
       required: [id, name, mode, status, createdAt]

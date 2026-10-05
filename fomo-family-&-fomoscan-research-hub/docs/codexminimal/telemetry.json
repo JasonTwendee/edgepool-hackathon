@@ -269,6 +269,20 @@
      "openapi 40 paths YAML valid",
      "review APPROVE"
     ]
+   },
+   {
+    "at": "2026-10-05T00:00:00Z",
+    "detail": "KOL earnings K1-K4: PartnerPayout ledger + 75/25 fee split + earnings endpoint + VaultCard block, live report-example E2E",
+    "phase": "K1-K4",
+    "status": "done",
+    "topic": "kol-earnings",
+    "verification": [
+     "assert-partner 6 groups GREEN + 14/14 suites GREEN",
+     "root tsc BE+FE + FE next build",
+     "live vault 12: fee 0.2 -> 0.1125/0.0375 partner + 0.05 treasury",
+     "openapi 41 paths YAML valid",
+     "review APPROVE"
+    ]
    }
   ],
  "sessions": [],

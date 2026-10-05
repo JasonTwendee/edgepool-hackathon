@@ -65,7 +65,8 @@ export const ModelName = {
   Session: 'Session',
   AuditLog: 'AuditLog',
   VaultTrader: 'VaultTrader',
-  Bot: 'Bot'
+  Bot: 'Bot',
+  PartnerPayout: 'PartnerPayout'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -325,6 +326,20 @@ export const BotScalarFieldEnum = {
 } as const
 
 export type BotScalarFieldEnum = (typeof BotScalarFieldEnum)[keyof typeof BotScalarFieldEnum]
+
+
+export const PartnerPayoutScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  epochId: 'epochId',
+  trader: 'trader',
+  amountSol: 'amountSol',
+  kind: 'kind',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type PartnerPayoutScalarFieldEnum = (typeof PartnerPayoutScalarFieldEnum)[keyof typeof PartnerPayoutScalarFieldEnum]
 
 
 export const SortOrder = {

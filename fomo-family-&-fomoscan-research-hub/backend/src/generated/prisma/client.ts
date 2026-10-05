@@ -116,3 +116,8 @@ export type VaultTrader = Prisma.VaultTraderModel
  * 
  */
 export type Bot = Prisma.BotModel
+/**
+ * Model PartnerPayout
+ * 
+ */
+export type PartnerPayout = Prisma.PartnerPayoutModel

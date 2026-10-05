@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Vault } from '@phosphor-icons/react';
 import {
+  getVaultEarnings,
   getVaultStatus,
   queueVaultDeposit,
   requestVaultWithdraw,
+  type VaultEarningsResponse,
   type VaultStatusResponse,
 } from '../lib/api';
 
@@ -13,6 +15,7 @@ type VaultData = VaultStatusResponse['data'];
 
 export function VaultCard({ isAdmin = true }: { isAdmin?: boolean }) {
   const [status, setStatus] = useState<VaultData | null>(null);
+  const [earnings, setEarnings] = useState<VaultEarningsResponse['data'] | null>(null);
   const [depositor, setDepositor] = useState('local');
   const [amount, setAmount] = useState('');
   const [shares, setShares] = useState('');
@@ -25,6 +28,12 @@ export function VaultCard({ isAdmin = true }: { isAdmin?: boolean }) {
       setStatus(res.data);
     } catch {
       // best-effort; panel keeps last state
+    }
+    try {
+      const res = await getVaultEarnings(1);
+      setEarnings(res.data);
+    } catch {
+      // earnings ledger optional; panel keeps last state
     }
   }, []);
 
@@ -147,6 +156,28 @@ export function VaultCard({ isAdmin = true }: { isAdmin?: boolean }) {
       {msg && <p className="text-[11px] text-[#9397AB] leading-snug">{msg}</p>}
       </>
       )}
+      {(status?.partnerAccruedSol !== undefined && status.partnerAccruedSol > 0) ||
+      (earnings && earnings.totalSol > 0) ? (
+        <div className="rounded-lg bg-[#161826] border border-[#49E6D7]/30 p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold tracking-widest text-[#49E6D7]">PARTNER EARNINGS</span>
+            <span className="text-xs font-mono font-medium text-[#E9E9ED]">
+              {(earnings?.totalSol ?? status?.partnerAccruedSol ?? 0).toFixed(4)} SOL
+            </span>
+          </div>
+          <p className="text-[10px] text-[#75798C] leading-snug">
+            15% of new profit above HWM, split pro-rata by trader weight (report §4).
+          </p>
+          {earnings && Object.entries(earnings.byTrader).slice(0, 3).map(([wallet, amt]) => (
+            <div key={wallet} className="flex items-center justify-between gap-2 text-[11px] font-mono">
+              <span className="text-[#A7AABF] truncate" title={wallet}>
+                {wallet.slice(0, 6)}…{wallet.slice(-4)}
+              </span>
+              <span className="text-[#E9E9ED] shrink-0">{amt.toFixed(4)}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <p className="text-[10px] text-[#595D6C] leading-snug">
         Paper only — deposits mint shares at settle price, no retro profit.
         {status?.treasurySol !== undefined && status.treasurySol > 0

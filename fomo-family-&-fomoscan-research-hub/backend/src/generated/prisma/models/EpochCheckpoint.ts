@@ -253,6 +253,7 @@ export type EpochCheckpointWhereInput = {
   feeSol?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
+  payouts?: Prisma.PartnerPayoutListRelationFilter
 }
 
 export type EpochCheckpointOrderByWithRelationInput = {
@@ -264,6 +265,7 @@ export type EpochCheckpointOrderByWithRelationInput = {
   feeSol?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   vault?: Prisma.VaultOrderByWithRelationInput
+  payouts?: Prisma.PartnerPayoutOrderByRelationAggregateInput
 }
 
 export type EpochCheckpointWhereUniqueInput = Prisma.AtLeast<{
@@ -278,6 +280,7 @@ export type EpochCheckpointWhereUniqueInput = Prisma.AtLeast<{
   feeSol?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
+  payouts?: Prisma.PartnerPayoutListRelationFilter
 }, "id">
 
 export type EpochCheckpointOrderByWithAggregationInput = {
@@ -315,6 +318,7 @@ export type EpochCheckpointCreateInput = {
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
   vault: Prisma.VaultCreateNestedOneWithoutEpochsInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutEpochInput
 }
 
 export type EpochCheckpointUncheckedCreateInput = {
@@ -325,6 +329,7 @@ export type EpochCheckpointUncheckedCreateInput = {
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutEpochInput
 }
 
 export type EpochCheckpointUpdateInput = {
@@ -334,6 +339,7 @@ export type EpochCheckpointUpdateInput = {
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   vault?: Prisma.VaultUpdateOneRequiredWithoutEpochsNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutEpochNestedInput
 }
 
 export type EpochCheckpointUncheckedUpdateInput = {
@@ -344,6 +350,7 @@ export type EpochCheckpointUncheckedUpdateInput = {
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutEpochNestedInput
 }
 
 export type EpochCheckpointCreateManyInput = {
@@ -432,6 +439,11 @@ export type EpochCheckpointSumOrderByAggregateInput = {
   feeSol?: Prisma.SortOrder
 }
 
+export type EpochCheckpointNullableScalarRelationFilter = {
+  is?: Prisma.EpochCheckpointWhereInput | null
+  isNot?: Prisma.EpochCheckpointWhereInput | null
+}
+
 export type EpochCheckpointCreateNestedManyWithoutVaultInput = {
   create?: Prisma.XOR<Prisma.EpochCheckpointCreateWithoutVaultInput, Prisma.EpochCheckpointUncheckedCreateWithoutVaultInput> | Prisma.EpochCheckpointCreateWithoutVaultInput[] | Prisma.EpochCheckpointUncheckedCreateWithoutVaultInput[]
   connectOrCreate?: Prisma.EpochCheckpointCreateOrConnectWithoutVaultInput | Prisma.EpochCheckpointCreateOrConnectWithoutVaultInput[]
@@ -474,12 +486,29 @@ export type EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput = {
   deleteMany?: Prisma.EpochCheckpointScalarWhereInput | Prisma.EpochCheckpointScalarWhereInput[]
 }
 
+export type EpochCheckpointCreateNestedOneWithoutPayoutsInput = {
+  create?: Prisma.XOR<Prisma.EpochCheckpointCreateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedCreateWithoutPayoutsInput>
+  connectOrCreate?: Prisma.EpochCheckpointCreateOrConnectWithoutPayoutsInput
+  connect?: Prisma.EpochCheckpointWhereUniqueInput
+}
+
+export type EpochCheckpointUpdateOneWithoutPayoutsNestedInput = {
+  create?: Prisma.XOR<Prisma.EpochCheckpointCreateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedCreateWithoutPayoutsInput>
+  connectOrCreate?: Prisma.EpochCheckpointCreateOrConnectWithoutPayoutsInput
+  upsert?: Prisma.EpochCheckpointUpsertWithoutPayoutsInput
+  disconnect?: Prisma.EpochCheckpointWhereInput | boolean
+  delete?: Prisma.EpochCheckpointWhereInput | boolean
+  connect?: Prisma.EpochCheckpointWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EpochCheckpointUpdateToOneWithWhereWithoutPayoutsInput, Prisma.EpochCheckpointUpdateWithoutPayoutsInput>, Prisma.EpochCheckpointUncheckedUpdateWithoutPayoutsInput>
+}
+
 export type EpochCheckpointCreateWithoutVaultInput = {
   navSol: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutEpochInput
 }
 
 export type EpochCheckpointUncheckedCreateWithoutVaultInput = {
@@ -489,6 +518,7 @@ export type EpochCheckpointUncheckedCreateWithoutVaultInput = {
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Date | string
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutEpochInput
 }
 
 export type EpochCheckpointCreateOrConnectWithoutVaultInput = {
@@ -530,6 +560,60 @@ export type EpochCheckpointScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
 }
 
+export type EpochCheckpointCreateWithoutPayoutsInput = {
+  navSol: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
+  feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+  vault: Prisma.VaultCreateNestedOneWithoutEpochsInput
+}
+
+export type EpochCheckpointUncheckedCreateWithoutPayoutsInput = {
+  id?: number
+  vaultId: number
+  navSol: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
+  feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Date | string
+}
+
+export type EpochCheckpointCreateOrConnectWithoutPayoutsInput = {
+  where: Prisma.EpochCheckpointWhereUniqueInput
+  create: Prisma.XOR<Prisma.EpochCheckpointCreateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedCreateWithoutPayoutsInput>
+}
+
+export type EpochCheckpointUpsertWithoutPayoutsInput = {
+  update: Prisma.XOR<Prisma.EpochCheckpointUpdateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedUpdateWithoutPayoutsInput>
+  create: Prisma.XOR<Prisma.EpochCheckpointCreateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedCreateWithoutPayoutsInput>
+  where?: Prisma.EpochCheckpointWhereInput
+}
+
+export type EpochCheckpointUpdateToOneWithWhereWithoutPayoutsInput = {
+  where?: Prisma.EpochCheckpointWhereInput
+  data: Prisma.XOR<Prisma.EpochCheckpointUpdateWithoutPayoutsInput, Prisma.EpochCheckpointUncheckedUpdateWithoutPayoutsInput>
+}
+
+export type EpochCheckpointUpdateWithoutPayoutsInput = {
+  navSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  vault?: Prisma.VaultUpdateOneRequiredWithoutEpochsNestedInput
+}
+
+export type EpochCheckpointUncheckedUpdateWithoutPayoutsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  vaultId?: Prisma.IntFieldUpdateOperationsInput | number
+  navSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type EpochCheckpointCreateManyVaultInput = {
   id?: number
   navSol: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -545,6 +629,7 @@ export type EpochCheckpointUpdateWithoutVaultInput = {
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutEpochNestedInput
 }
 
 export type EpochCheckpointUncheckedUpdateWithoutVaultInput = {
@@ -554,6 +639,7 @@ export type EpochCheckpointUncheckedUpdateWithoutVaultInput = {
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutEpochNestedInput
 }
 
 export type EpochCheckpointUncheckedUpdateManyWithoutVaultInput = {
@@ -566,6 +652,35 @@ export type EpochCheckpointUncheckedUpdateManyWithoutVaultInput = {
 }
 
 
+/**
+ * Count Type EpochCheckpointCountOutputType
+ */
+
+export type EpochCheckpointCountOutputType = {
+  payouts: number
+}
+
+export type EpochCheckpointCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  payouts?: boolean | EpochCheckpointCountOutputTypeCountPayoutsArgs
+}
+
+/**
+ * EpochCheckpointCountOutputType without action
+ */
+export type EpochCheckpointCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EpochCheckpointCountOutputType
+   */
+  select?: Prisma.EpochCheckpointCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * EpochCheckpointCountOutputType without action
+ */
+export type EpochCheckpointCountOutputTypeCountPayoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PartnerPayoutWhereInput
+}
+
 
 export type EpochCheckpointSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -576,6 +691,8 @@ export type EpochCheckpointSelect<ExtArgs extends runtime.Types.Extensions.Inter
   feeSol?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
+  payouts?: boolean | Prisma.EpochCheckpoint$payoutsArgs<ExtArgs>
+  _count?: boolean | Prisma.EpochCheckpointCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["epochCheckpoint"]>
 
 export type EpochCheckpointSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -613,6 +730,8 @@ export type EpochCheckpointSelectScalar = {
 export type EpochCheckpointOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "navSol" | "sharePrice" | "sharesOutstanding" | "feeSol" | "createdAt", ExtArgs["result"]["epochCheckpoint"]>
 export type EpochCheckpointInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
+  payouts?: boolean | Prisma.EpochCheckpoint$payoutsArgs<ExtArgs>
+  _count?: boolean | Prisma.EpochCheckpointCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EpochCheckpointIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -625,6 +744,7 @@ export type $EpochCheckpointPayload<ExtArgs extends runtime.Types.Extensions.Int
   name: "EpochCheckpoint"
   objects: {
     vault: Prisma.$VaultPayload<ExtArgs>
+    payouts: Prisma.$PartnerPayoutPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1029,6 +1149,7 @@ readonly fields: EpochCheckpointFieldRefs;
 export interface Prisma__EpochCheckpointClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   vault<T extends Prisma.VaultDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.VaultDefaultArgs<ExtArgs>>): Prisma.Prisma__VaultClient<runtime.Types.Result.GetResult<Prisma.$VaultPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  payouts<T extends Prisma.EpochCheckpoint$payoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EpochCheckpoint$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PartnerPayoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1463,6 +1584,30 @@ export type EpochCheckpointDeleteManyArgs<ExtArgs extends runtime.Types.Extensio
    * Limit how many EpochCheckpoints to delete.
    */
   limit?: number
+}
+
+/**
+ * EpochCheckpoint.payouts
+ */
+export type EpochCheckpoint$payoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PartnerPayout
+   */
+  select?: Prisma.PartnerPayoutSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PartnerPayout
+   */
+  omit?: Prisma.PartnerPayoutOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PartnerPayoutInclude<ExtArgs> | null
+  where?: Prisma.PartnerPayoutWhereInput
+  orderBy?: Prisma.PartnerPayoutOrderByWithRelationInput | Prisma.PartnerPayoutOrderByWithRelationInput[]
+  cursor?: Prisma.PartnerPayoutWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PartnerPayoutScalarFieldEnum | Prisma.PartnerPayoutScalarFieldEnum[]
 }
 
 /**

@@ -10,6 +10,7 @@ export interface VaultStatus {
   hwmSharePrice: number;
   totalShares: number;
   treasurySol: number;
+  partnerAccruedSol: number;
   policy: { reserveBps: number; withdrawFeeBps: number; lockHours: number };
   window: WindowState | null;
   lastEpoch: {
@@ -29,6 +30,8 @@ export interface SettleResult {
   sharePrice: number;
   sharesOutstanding: number;
   feeSol: number;
+  partnerPayouts: { trader: string; amountSol: number }[];
+  edgepoolSol: number;
   settledDeposits: { id: number; shares: number }[];
   settledWithdrawals: { id: number; payoutSol: number }[];
 }
@@ -51,6 +54,17 @@ function missing(message: string): never {
 
 /** Max active traders per vault (fund spec §5: 3–5). */
 export const MAX_VAULT_TRADERS = 5;
+
+/**
+ * Report §4 (edgepool-core-logic-report.html): performance fee is 20% of new
+ * profit above HWM, split as 80 depositors / 15 partner traders / 5 Edgepool.
+ * Of the FEE itself that means 75% to partner traders, 25% to Edgepool.
+ * Dust from pro-rata rounding goes to treasury so the split always conserves.
+ */
+export const PARTNER_FEE_SHARE = 0.75;
+
+const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
+const f9 = (v: number): number => Math.floor(v * 1e9) / 1e9;
 
 export interface WindowState {
   open: boolean;
@@ -296,14 +310,102 @@ export class VaultService {
         feeSol: dec(feeSol),
       },
     });
+    // Report §4 split: book partner/edgepool shares AFTER the epoch exists so
+    // payouts link to it. Runs only when a performance fee was taken.
+    const split = feeSol > 0 ? await this.bookFeeSplit(vaultId, epoch.id, feeSol) : { payouts: [], edgepoolSol: 0 };
+    if (split.edgepoolSol > 0) {
+      const cur = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+      await this.prisma.vault.update({
+        where: { id: vaultId },
+        data: { treasurySol: dec(r9(num(cur?.treasurySol) + split.edgepoolSol)) },
+      });
+    }
     return {
       epochId: epoch.id,
       navSol: nav,
       sharePrice: price,
       sharesOutstanding: shares,
       feeSol,
+      partnerPayouts: split.payouts,
+      edgepoolSol: split.edgepoolSol,
       settledDeposits,
       settledWithdrawals,
+    };
+  }
+
+  /**
+   * Split a performance fee per report §4: 75% pro-rata to ACTIVE partner
+   * traders (by weightBps) as ACCRUED PartnerPayout rows, 25% + rounding dust
+   * to Edgepool (returned for treasury booking). No active/weighted traders →
+   * the whole fee accrues to treasury. Conservation: payouts + edgepool == fee.
+   */
+  private async bookFeeSplit(
+    vaultId: number,
+    epochId: number,
+    feeSol: number,
+  ): Promise<{ payouts: { trader: string; amountSol: number }[]; edgepoolSol: number }> {
+    const traders = await this.prisma.vaultTrader.findMany({ where: { vaultId, isActive: true } });
+    const weighted = traders.filter((t) => ((t.weightBps as number | null) ?? 0) > 0);
+    const totalWeight = weighted.reduce((s, t) => s + ((t.weightBps as number | null) ?? 0), 0);
+    if (weighted.length === 0 || totalWeight <= 0) {
+      return { payouts: [], edgepoolSol: r9(feeSol) };
+    }
+    const partnerPool = f9(feeSol * PARTNER_FEE_SHARE);
+    const payouts: { trader: string; amountSol: number }[] = [];
+    let assigned = 0;
+    for (const t of weighted) {
+      const amt = f9((partnerPool * (((t.weightBps as number | null) ?? 0))) / totalWeight);
+      if (amt <= 0) continue;
+      assigned = r9(assigned + amt);
+      const row = await this.prisma.partnerPayout.create({
+        data: {
+          vaultId,
+          epochId,
+          trader: t.wallet,
+          amountSol: dec(amt),
+          kind: 'PERF_FEE',
+          status: 'ACCRUED',
+        },
+      });
+      payouts.push({ trader: (row.trader as string) ?? t.wallet, amountSol: amt });
+    }
+    return { payouts, edgepoolSol: r9(feeSol - assigned) };
+  }
+
+  /** Partner earnings ledger (report §4): totals + rows, optional trader filter. */
+  async earnings(vaultId: number, trader?: string): Promise<{
+    vaultId: number;
+    totalSol: number;
+    byTrader: Record<string, number>;
+    payouts: { id: number; trader: string; amountSol: number; epochId: number | null; status: string; createdAt: string }[];
+  }> {
+    const { id } = await this.resolveVault(vaultId);
+    vaultId = id;
+    const clean = (trader ?? '').trim();
+    const rows = await this.prisma.partnerPayout.findMany({
+      where: clean ? { vaultId, trader: clean } : { vaultId },
+      orderBy: { id: 'desc' },
+      take: 100,
+    });
+    const byTrader: Record<string, number> = {};
+    let total = 0;
+    for (const r of rows) {
+      const amt = num(r.amountSol);
+      total = r9(total + amt);
+      byTrader[r.trader] = r9((byTrader[r.trader] ?? 0) + amt);
+    }
+    return {
+      vaultId,
+      totalSol: total,
+      byTrader,
+      payouts: rows.map((r) => ({
+        id: r.id,
+        trader: r.trader,
+        amountSol: num(r.amountSol),
+        epochId: (r.epochId as number | null) ?? null,
+        status: r.status,
+        createdAt: (r.createdAt as Date).toISOString(),
+      })),
     };
   }
 
@@ -317,6 +419,10 @@ export class VaultService {
       this.prisma.deposit.count({ where: { vaultId, status: 'QUEUED' } }),
       this.prisma.withdrawal.count({ where: { vaultId, status: 'QUEUED' } }),
     ]);
+    const accrued = await this.prisma.partnerPayout.aggregate({
+      where: { vaultId },
+      _sum: { amountSol: true },
+    });
     return {
       id: vault.id,
       name: vault.name,
@@ -325,6 +431,7 @@ export class VaultService {
       hwmSharePrice: num(vault.hwmSharePrice),
       totalShares: num(vault.totalShares),
       treasurySol: num(vault.treasurySol),
+      partnerAccruedSol: num(((accrued._sum ?? {}) as { amountSol?: number | string | null }).amountSol ?? null),
       policy: {
         reserveBps: vault.reserveBps ?? 0,
         withdrawFeeBps: vault.withdrawFeeBps ?? 0,
@@ -426,12 +533,18 @@ export class VaultService {
 
   async setPolicy(
     vaultId: number,
-    patch: { reserveBps?: number; withdrawFeeBps?: number; lockHours?: number; settlePeriodHours?: number; settleLengthMin?: number },
-  ): Promise<{ id: number; policy: { reserveBps: number; withdrawFeeBps: number; lockHours: number; settlePeriodHours: number; settleLengthMin: number } }> {
+    patch: { reserveBps?: number; withdrawFeeBps?: number; lockHours?: number; settlePeriodHours?: number; settleLengthMin?: number; feeBps?: number },
+  ): Promise<{ id: number; policy: { reserveBps: number; withdrawFeeBps: number; lockHours: number; settlePeriodHours: number; settleLengthMin: number; feeBps: number } }> {
     const { id } = await this.resolveVault(vaultId);
     const current = await this.prisma.vault.findUnique({ where: { id } });
     if (!current) fail(`Vault ${id} not found.`);
     const data: Record<string, number> = {};
+    if (patch.feeBps !== undefined) {
+      if (!Number.isInteger(patch.feeBps) || patch.feeBps < 0 || patch.feeBps > 10000) {
+        fail('feeBps must be an integer 0..10000.');
+      }
+      data.feeBps = patch.feeBps;
+    }
     if (patch.reserveBps !== undefined) {
       if (!Number.isInteger(patch.reserveBps) || patch.reserveBps < 0 || patch.reserveBps > 10000) {
         fail('reserveBps must be an integer 0..10000.');
@@ -462,7 +575,7 @@ export class VaultService {
       }
       data.settleLengthMin = patch.settleLengthMin;
     }
-    if (Object.keys(data).length === 0) fail('Nothing to update: provide reserveBps, withdrawFeeBps, lockHours, settlePeriodHours or settleLengthMin.');
+    if (Object.keys(data).length === 0) fail('Nothing to update: provide feeBps, reserveBps, withdrawFeeBps, lockHours, settlePeriodHours or settleLengthMin.');
     const period = data.settlePeriodHours ?? (current.settlePeriodHours as number | null) ?? 0;
     const length = data.settleLengthMin ?? (current.settleLengthMin as number | null) ?? 0;
     if (length > 0 && period <= 0) fail('settleLengthMin requires settlePeriodHours > 0.');
@@ -471,6 +584,7 @@ export class VaultService {
     return {
       id: updated.id,
       policy: {
+        feeBps: updated.feeBps as number,
         reserveBps: updated.reserveBps as number,
         withdrawFeeBps: updated.withdrawFeeBps as number,
         lockHours: updated.lockHours as number,

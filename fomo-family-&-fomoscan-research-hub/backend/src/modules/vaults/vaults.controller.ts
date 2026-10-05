@@ -80,6 +80,7 @@ export class VaultsController {
     const parsed = parseInt(id, 10);
     const dto = await validateDto(VaultPolicyDto, body);
     const data = await this.vaults.setPolicy(Number.isFinite(parsed) ? parsed : -1, {
+      feeBps: dto.feeBps,
       reserveBps: dto.reserveBps,
       withdrawFeeBps: dto.withdrawFeeBps,
       lockHours: dto.lockHours,
@@ -87,6 +88,20 @@ export class VaultsController {
       settleLengthMin: dto.settleLengthMin,
     });
     return { success: true, data: { ...data, environment: 'sandbox' } };
+  }
+
+  @Get(':id/earnings')
+  async earnings(
+    @Param('id') id: string,
+    @Query() query: Record<string, string | string[] | undefined>,
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const raw = query.trader;
+    const data = await this.vaults.earnings(
+      Number.isFinite(parsed) ? parsed : -1,
+      typeof raw === 'string' ? raw : undefined,
+    );
+    return { success: true, data };
   }
 
   @Post('deposit')

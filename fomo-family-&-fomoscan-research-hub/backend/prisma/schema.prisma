@@ -166,6 +166,7 @@ model Vault {
   epochs      EpochCheckpoint[]
   traders     VaultTrader[]
   bots        Bot[]
+  payouts     PartnerPayout[]
 
   @@map("vaults")
 }
@@ -218,6 +219,8 @@ model EpochCheckpoint {
   sharesOutstanding Decimal  @map("shares_outstanding") @db.Decimal(24, 12)
   feeSol            Decimal  @map("fee_sol") @db.Decimal(24, 12) @default(0)
   createdAt         DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  payouts PartnerPayout[]
 
   @@map("vault_epochs")
   @@index([vaultId, createdAt(sort: Desc)])
@@ -315,4 +318,25 @@ model Bot {
   updatedAt DateTime @map("updated_at") @updatedAt @db.Timestamptz()
 
   @@map("bots")
+}
+
+// Partner-trader earnings (report §4: profit split 80 depositors / 15 partner /
+// 5 Edgepool). Performance fee is 20% of new profit above HWM, so the partner
+// share = 75% of the fee and Edgepool = 25%. Rows are ACCRUED bookkeeping —
+// on-chain/cash payout is a later phase. Unassigned partner share (no active
+// traders) accrues to treasury (Edgepool holds).
+model PartnerPayout {
+  id        Int      @id @default(autoincrement())
+  vaultId   Int      @map("vault_id")
+  vault     Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  epochId   Int?     @map("epoch_id")
+  epoch     EpochCheckpoint? @relation(fields: [epochId], references: [id], onDelete: SetNull)
+  trader    String   @db.VarChar(64)
+  amountSol Decimal  @map("amount_sol") @db.Decimal(24, 12)
+  kind      String   @db.VarChar(16) @default("PERF_FEE")
+  status    String   @db.VarChar(16) @default("ACCRUED")
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("partner_payouts")
+  @@index([vaultId, trader])
 }

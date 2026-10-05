@@ -95,6 +95,11 @@ function makeFake() {
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
     },
     vaultTrader: { findMany: async () => [], findUnique: async () => null, count: async () => 0 },
+    partnerPayout: {
+      create: async ({ data }: { data: Row }) => ({ id: nid(), ...data, createdAt: new Date() }),
+      findMany: async () => [],
+      aggregate: async () => ({ _sum: { amountSol: null } }),
+    },
     db,
   } as never;
 }
@@ -113,7 +118,10 @@ async function main(): Promise<void> {
     assert.equal((st as unknown as Row).treasurySol, 0);
     assert.equal((st as unknown as Row).window, null);
     const p = await svc.setPolicy(id, { withdrawFeeBps: 1000, lockHours: 24 });
-    assert.deepEqual(p.policy, { reserveBps: 0, withdrawFeeBps: 1000, lockHours: 24, settlePeriodHours: 0, settleLengthMin: 0 });
+    assert.deepEqual(p.policy, { feeBps: 0, reserveBps: 0, withdrawFeeBps: 1000, lockHours: 24, settlePeriodHours: 0, settleLengthMin: 0 });
+    await assert.rejects(() => svc.setPolicy(id, { feeBps: 10001 }), /feeBps/);
+    const pf = await svc.setPolicy(id, { feeBps: 2000 });
+    assert.equal(pf.policy.feeBps, 2000);
   }
   // 2. Fee: 10% withdraw fee → payout reduced, treasury accrues.
   // (reserve disabled here to isolate the fee leg; reserve is tested in §4.)

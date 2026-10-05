@@ -70,6 +70,12 @@ function makeFake() {
       },
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
     },
+    vaultTrader: { findMany: async () => [], findUnique: async () => null, count: async () => 0 },
+    partnerPayout: {
+      create: async ({ data }: { data: Row }) => ({ id: nid(), ...data, createdAt: new Date() }),
+      findMany: async () => [],
+      aggregate: async () => ({ _sum: { amountSol: null } }),
+    },
   } as never;
 }
 

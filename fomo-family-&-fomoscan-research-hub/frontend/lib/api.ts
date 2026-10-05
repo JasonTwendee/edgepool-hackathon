@@ -147,6 +147,7 @@ export interface VaultStatusResponse {
     hwmSharePrice: number;
     totalShares: number;
     treasurySol?: number;
+    partnerAccruedSol?: number;
     policy?: { reserveBps: number; withdrawFeeBps: number; lockHours: number };
     lastEpoch: {
       navSol: number;
@@ -162,6 +163,21 @@ export interface VaultStatusResponse {
 
 export function getVaultStatus(vaultId = 1): Promise<VaultStatusResponse> {
   return fetchJson(`/api/vaults/status?vaultId=${vaultId}`);
+}
+
+export interface VaultEarningsResponse {
+  success: boolean;
+  data: {
+    vaultId: number;
+    totalSol: number;
+    byTrader: Record<string, number>;
+    payouts: { id: number; trader: string; amountSol: number; epochId: number | null; status: string; createdAt: string }[];
+  };
+}
+
+export function getVaultEarnings(vaultId = 1, trader?: string): Promise<VaultEarningsResponse> {
+  const qs = trader ? `?trader=${encodeURIComponent(trader)}` : '';
+  return fetchJson(`/api/vaults/${vaultId}/earnings${qs}`);
 }
 
 export function queueVaultDeposit(input: {

@@ -1,14 +1,14 @@
 {
  "blockedBy": [],
-  "currentPhase": "H1-H4",
+  "currentPhase": "K1-K4",
   "currentStage": "done",
   "executionWorkflow": "repo-phase-orchestrator -> native execution",
   "lastUpdated": "2026-10-05T00:00:00Z",
   "openQuestions": [],
-  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-hardening-intent.md",
-  "specPath": "docs/codexminimal/idsd/2026-10-05-hardening-intent.md",
+  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-kol-earnings-intent.md",
+  "specPath": "docs/codexminimal/idsd/2026-10-05-kol-earnings-intent.md",
   "status": "done",
-  "topic": "hardening",
-  "trackerPath": "docs/codexminimal/trackers/2026-10-05-hardening-tracker.md",
+  "topic": "kol-earnings",
+  "trackerPath": "docs/codexminimal/trackers/2026-10-05-kol-earnings-tracker.md",
  "version": 2
 }

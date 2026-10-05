@@ -34,6 +34,12 @@ export class VaultPolicyDto {
   @IsInt()
   @Min(0)
   @Max(10000)
+  feeBps?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10000)
   reserveBps?: number;
 
   @IsOptional()
