@@ -253,6 +253,16 @@ async function main(): Promise<void> {
   await assert.rejects(() => auth.login({ username: 'alice_01', password: 'wrongpw!!' }), /Sai tên đăng nhập/);
   await assert.rejects(() => auth.login({ username: 'ghost_99', password: 'whatever!!' }), /Sai tên đăng nhập/);
 
+  // 13. setRole resolves credential identity by wallet, cred:wallet, or bare username.
+  const byName = await users.setRole('alice_01', 'KOL');
+  assert.equal(byName.role, 'KOL');
+  const byCred = await users.setRole('cred:alice_01', 'ADMIN');
+  assert.equal(byCred.role, 'ADMIN');
+  const listed = await users.list();
+  assert.ok(listed.some((u) => ((u as unknown) as Row).username === 'alice_01'));
+  assert.equal(await statusOf(() => users.setRole('ghost_99', 'KOL')), 404);
+  assert.equal(await statusOf(() => users.setRole('alice_01', 'SUPER')), 400);
+
   console.log('auth asserts: ALL GREEN');
 }
 

@@ -272,6 +272,7 @@ export function AuthPanel({ session, onSession }: Props) {
             </button>
           </div>
           </div>
+          )}
         </div>
       )}
       {msg && <div className="text-[11px] text-[#A7AABF] break-all">{msg}</div>}

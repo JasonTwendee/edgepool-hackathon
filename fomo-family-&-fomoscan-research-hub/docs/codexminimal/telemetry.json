@@ -236,12 +236,27 @@
     "demo asserts ALL GREEN (7 groups)",
     "root tsc BE+FE",
     "live seed/replay/withdraw-pending/performance/reset 6/6",
-    "13/13 asserts GREEN",
-    "openapi 37 paths YAML valid",
-    "review APPROVE"
-   ]
-  }
- ],
+      "13/13 asserts GREEN",
+      "openapi 37 paths YAML valid",
+      "review APPROVE"
+    ]
+   },
+   {
+    "at": "2026-10-05T00:00:00Z",
+    "detail": "Accounts tk+mk A1-A3: setRole by wallet|cred|username + list username/email, seed admin/user/kol, FE username display, AuthPanel JSX fix",
+    "phase": "A1-A3",
+    "status": "done",
+    "topic": "accounts",
+    "verification": [
+     "assert-auth §13 GREEN",
+     "root tsc BE+FE",
+     "FE next build",
+     "live login x3 roles + 401 + 400 + logout/revoke + set-role username/cred + 403 + list usernames",
+     "openapi 39 paths YAML valid",
+     "review APPROVE"
+    ]
+   }
+  ],
  "sessions": [],
  "updatedAt": "2026-10-02T00:00:00Z",
  "version": 2

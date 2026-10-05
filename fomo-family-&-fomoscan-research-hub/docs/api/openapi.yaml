@@ -622,6 +622,7 @@ paths:
           in: path
           required: true
           schema: { type: string }
+          description: Wallet address, cred:<username>, or bare credential username
       requestBody:
         required: true
         content:
@@ -1454,7 +1455,9 @@ components:
       required: [id, wallet, role, createdAt]
       properties:
         id: { type: integer }
-        wallet: { type: string }
+        wallet: { type: string, description: Base58 wallet OR cred:<username> for account login }
+        username: { type: string, nullable: true, description: Credential username (null for wallet-only users) }
+        email: { type: string, nullable: true }
         role: { type: string, enum: [USER, KOL, ADMIN] }
         createdAt: { type: string, format: date-time }
     AuthNonce:

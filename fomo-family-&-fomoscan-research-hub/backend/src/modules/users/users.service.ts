@@ -4,6 +4,24 @@ import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 
 export const USER_ROLES = ['USER', 'KOL', 'ADMIN'] as const;
 
+export interface FundIdentity {
+  id: number;
+  wallet: string;
+  role: string;
+  username: string | null;
+  email: string | null;
+}
+
+function toIdentity(r: {
+  id: number;
+  wallet: string;
+  role: string;
+  username?: string | null;
+  email?: string | null;
+}): FundIdentity {
+  return { id: r.id, wallet: r.wallet, role: r.role, username: r.username ?? null, email: r.email ?? null };
+}
+
 function fail(message: string): never {
   throw new BadRequestException({ success: false, message });
 }
@@ -34,20 +52,30 @@ export class UsersService {
     return { id: created.id, wallet: created.wallet, role: created.role };
   }
 
-  async list(): Promise<{ id: number; wallet: string; role: string }[]> {
+  async list(): Promise<FundIdentity[]> {
     const rows = await this.prisma.user.findMany({ orderBy: { id: 'asc' } });
-    return rows.map((r) => ({ id: r.id, wallet: r.wallet, role: r.role }));
+    return rows.map((r) => toIdentity(r));
   }
 
-  async setRole(wallet: string, role: string): Promise<{ id: number; wallet: string; role: string }> {
-    const clean = UsersService.assertWallet(wallet);
+  /**
+   * Resolve an identity for role changes. Accepts (in order):
+   * 1. exact wallet match (Base58 wallets AND `cred:<username>` credential wallets),
+   * 2. bare credential username (e.g. `kol_01` → wallet `cred:kol_01`).
+   * Wallet-shape validation is intentionally NOT required here so ADMIN can
+   * manage credential accounts created via POST /api/auth/register.
+   */
+  async setRole(identity: string, role: string): Promise<FundIdentity> {
     if (!USER_ROLES.includes(role as (typeof USER_ROLES)[number])) {
       fail(`Role không hợp lệ: ${role}. Cho phép: ${USER_ROLES.join(',')}.`);
     }
-    const existing = await this.prisma.user.findUnique({ where: { wallet: clean } });
+    const clean = (identity ?? '').trim();
+    let existing = clean ? await this.prisma.user.findUnique({ where: { wallet: clean } }) : null;
+    if (!existing && clean) {
+      existing = await this.prisma.user.findUnique({ where: { username: clean } });
+    }
     if (!existing) notFound(`User không tồn tại: ${clean}.`);
-    const updated = await this.prisma.user.update({ where: { wallet: clean }, data: { role } });
-    return { id: updated.id, wallet: updated.wallet, role: updated.role };
+    const updated = await this.prisma.user.update({ where: { id: existing.id }, data: { role } });
+    return toIdentity(updated);
   }
 
   async countAdmins(): Promise<number> {

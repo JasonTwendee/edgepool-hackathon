@@ -8,6 +8,8 @@ export interface FundUser {
   id: number;
   wallet: string;
   role: 'USER' | 'KOL' | 'ADMIN';
+  username?: string | null;
+  email?: string | null;
   createdAt?: string;
 }
 

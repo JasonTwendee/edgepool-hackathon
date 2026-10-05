@@ -176,12 +176,12 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
           </button>
           {users.map((u) => (
             <div key={u.id} className="text-[11px] font-mono text-[#A7AABF] flex justify-between gap-2">
-              <span className="break-all">{u.wallet}</span>
+              <span className="break-all">{u.username ? `@${u.username} (${u.wallet})` : u.wallet}</span>
               <span className="text-[#49E6D7] shrink-0">{u.role}</span>
             </div>
           ))}
           <div className="flex gap-1.5 flex-wrap pt-1">
-            <input value={roleWallet} onChange={(e) => setRoleWallet(e.target.value)} placeholder="Wallet" className={`${inputCls} flex-1 min-w-[140px] font-mono`} />
+            <input value={roleWallet} onChange={(e) => setRoleWallet(e.target.value)} placeholder="Wallet hoặc username" className={`${inputCls} flex-1 min-w-[140px] font-mono`} />
             <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
               <option>USER</option>
               <option>KOL</option>
