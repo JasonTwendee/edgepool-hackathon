@@ -9,11 +9,12 @@ import { base58Decode, base58Encode, decodeWalletAddress, verifyEd25519Signature
 import { AuthGuard, RolesGuard } from '../../common/auth/guards.js';
 import { AuthService, loginMessage } from './auth.service.js';
 import { UsersService } from '../users/users.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 type Row = Record<string, unknown>;
 
 function makeFake() {
-  const db = { user: [] as Row[], nonce: [] as Row[], session: [] as Row[] };
+  const db = { user: [] as Row[], nonce: [] as Row[], session: [] as Row[], audit: [] as Row[] };
   let seq = 0;
   const nid = (): number => {
     seq += 1;
@@ -24,6 +25,22 @@ function makeFake() {
       if (v !== null && typeof v === 'object') return true; // skip complex filters in fake
       return r[k] === v;
     });
+  // Expiry matcher for purge: { expiresAt: { lte: Date } }.
+  const expired = (r: Row, w: Row): boolean =>
+    Object.entries(w).every(([k, v]) => {
+      if (k === 'expiresAt' && v !== null && typeof v === 'object' && 'lte' in (v as Row)) {
+        return (r[k] as Date).getTime() <= ((v as Row).lte as Date).getTime();
+      }
+      if (v !== null && typeof v === 'object') return true;
+      return r[k] === v;
+    });
+  const purge = (rows: Row[], where: Row): number => {
+    const before = rows.length;
+    const kept = rows.filter((x) => !expired(x, where));
+    rows.length = 0;
+    rows.push(...kept);
+    return before - kept.length;
+  };
   const users = {
     findUnique: async ({ where }: { where: Row }) => db.user.find((r) => match(r, where)) ?? null,
     findMany: async () => [...db.user],
@@ -56,6 +73,7 @@ function makeFake() {
       Object.assign(r, data);
       return r;
     },
+    deleteMany: async ({ where }: { where: Row }) => ({ count: purge(db.nonce, where) }),
   };
   const session = {
     create: async ({ data }: { data: Row }) => {
@@ -68,13 +86,16 @@ function makeFake() {
       if (!r) return null;
       return { ...r, user: db.user.find((u) => u.id === r.userId) ?? null };
     },
-    deleteMany: async ({ where }: { where: Row }) => {
-      const before = db.session.length;
-      db.session = db.session.filter((x) => !match(x, where));
-      return { count: before - db.session.length };
+    deleteMany: async ({ where }: { where: Row }) => ({ count: purge(db.session, where) }),
+  };
+  const auditLog = {
+    create: async ({ data }: { data: Row }) => {
+      const r = { id: nid(), createdAt: new Date(), ...data };
+      db.audit.push(r);
+      return r;
     },
   };
-  return { user: users, authNonce, session } as never;
+  return { user: users, authNonce, session, auditLog, __db: db } as never;
 }
 
 function ctxOf(req: Row, handler: unknown, cls: unknown): never {
@@ -118,7 +139,8 @@ async function main(): Promise<void> {
 
   const fake = makeFake();
   const users = new UsersService(fake);
-  const auth = new AuthService(fake, users);
+  const audit = new AuditService(fake);
+  const auth = new AuthService(fake, users, audit);
   const signMsg = (m: Buffer): string => base58Encode(sign(null, m, kp.privateKey));
 
   // 3. Nonce: invalid wallet rejected; valid returns signable message.
@@ -262,6 +284,29 @@ async function main(): Promise<void> {
   assert.ok(listed.some((u) => ((u as unknown) as Row).username === 'alice_01'));
   assert.equal(await statusOf(() => users.setRole('ghost_99', 'KOL')), 404);
   assert.equal(await statusOf(() => users.setRole('alice_01', 'SUPER')), 400);
+
+  // 14. purgeExpired: removes only expired rows, keeps live ones.
+  const liveToken = logged.token;
+  const { hashToken } = await import('../../common/auth/guards.js');
+  (fake as unknown as { __db: { session: Row[]; nonce: Row[]; audit: Row[] } }).__db.session.push({
+    id: 9999,
+    tokenHash: hashToken('stale-token'),
+    userId: 1,
+    expiresAt: new Date(Date.now() - 1000),
+  });
+  const purged = await auth.purgeExpired();
+  assert.equal(purged.sessions >= 1, true);
+  // live session survives; stale token is gone.
+  const reqLive: Row = { headers: { authorization: `Bearer ${liveToken}` } };
+  assert.equal(await guard.canActivate(ctxOf(reqLive, () => 0, class A {})), true);
+  assert.equal(await statusOf(() => guard.canActivate(ctxOf({ headers: { authorization: 'Bearer stale-token' } }, () => 0, class A {}))), 401);
+
+  // 15. Failed logins are audited (identity + reason only, never secrets).
+  const dbRows = (fake as unknown as { __db: { audit: Row[] } }).__db.audit;
+  const fails = dbRows.filter((r) => r.action === 'auth.login_failed');
+  assert.ok(fails.length >= 2); // wrongpw + ghost_99 from §12
+  assert.ok(fails.every((r) => typeof r.actor === 'string' && typeof r.reason === 'string'));
+  assert.ok(dbRows.some((r) => r.action === 'auth.verify_failed'));
 
   console.log('auth asserts: ALL GREEN');
 }

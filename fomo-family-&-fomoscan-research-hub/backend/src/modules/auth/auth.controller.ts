@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Post, Req, Res, UseGuards, UseInterceptors } from '@nestjs/common';
 import type { Response } from 'express';
 import { validateDto } from '../../common/validation/validate-dto.js';
 import {
@@ -7,7 +7,10 @@ import {
   buildSessionCookie,
   clearSessionCookie,
   extractSessionToken,
+  Roles,
+  RolesGuard,
 } from '../../common/auth/guards.js';
+import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { AuthService } from './auth.service.js';
 import { LoginDto, NonceDto, RegisterDto, VerifyDto } from './dto/auth.dto.js';
 
@@ -70,6 +73,16 @@ export class AuthController {
   ): Promise<{ success: boolean; data: unknown }> {
     const data = await this.auth.revoke(extractSessionToken(req));
     res.setHeader('Set-Cookie', clearSessionCookie());
+    return { success: true, data };
+  }
+
+  @Post('purge')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('auth.purge')
+  async purge(): Promise<{ success: boolean; data: unknown }> {
+    const data = await this.auth.purgeExpired();
     return { success: true, data };
   }
 }

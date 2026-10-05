@@ -59,10 +59,6 @@
 - Ops lessons: `docker compose restart` KHÔNG đọc lại `env_file` — đổi `.env`
   phải `up -d <service>` recreate; POST thành công trả 201 là behavior có sẵn
   (giữ nhất quán, smoke chấp nhận 200/201).
-- [ ] P3 multi-vault + traders + bots + environment: `open`
-  (`assert-multivault.ts` GREEN + list 2 vaults + cap 5 + PRODUCTION reject)
-- [ ] P4 smoke full + docs/index + review gate: `open`
-  (smoke cũ+mới + 7 asserts GREEN + reviewer pass → đóng)
 
 ## Handoff log
 

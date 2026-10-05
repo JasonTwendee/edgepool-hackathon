@@ -1,14 +1,14 @@
 {
  "blockedBy": [],
-  "currentPhase": "A1-A3",
+  "currentPhase": "H1-H4",
   "currentStage": "done",
   "executionWorkflow": "repo-phase-orchestrator -> native execution",
   "lastUpdated": "2026-10-05T00:00:00Z",
   "openQuestions": [],
- "phasePlanPath": "docs/codexminimal/plans/2026-10-02-t1-autofire-phase-plan.md",
- "specPath": "docs/codexminimal/idsd/2026-10-02-accounts-intent.md",
+  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-hardening-intent.md",
+  "specPath": "docs/codexminimal/idsd/2026-10-05-hardening-intent.md",
   "status": "done",
-  "topic": "accounts",
- "trackerPath": "docs/codexminimal/trackers/2026-10-02-accounts-tracker.md",
+  "topic": "hardening",
+  "trackerPath": "docs/codexminimal/trackers/2026-10-05-hardening-tracker.md",
  "version": 2
 }

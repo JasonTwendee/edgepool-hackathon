@@ -29,10 +29,10 @@
 - [x] P4 FE modal + un-veil + history: `done`
   (`CopyConfirmModal` + `CopyHistory` mới; veil/popup gỡ, panel live;
   `tsc` FE + `next build` ✅; `:3001` 200, veil absent ✅)
-- [ ] P5 devnet E2E + review gate + docs/indexes: `in_progress`
-  (review REQUEST CHANGES nhẹ đã fix — null-status guard + catch gọn, asserts +
-  `tsc` xanh; indexes/ARCHITECTURE cập nhật; gate ON verified live;
-  BLOCKED: vault devnet 0 SOL — faucet IP cạn, chờ fund tay, xem handoff log)
+- [x] P5 devnet E2E + review gate + docs/indexes: `done`
+  (E2E CLOSED 2026-10-02: vault funded 5 devnet SOL → order #4 CONFIRMED
+  `5RYRk…8RJTraN8A5` finalized; review comments fixed; indexes updated.
+  Cleanup 2026-10-05: checkbox tồn `in_progress` → `done`.)
 
 ## Handoff log
 

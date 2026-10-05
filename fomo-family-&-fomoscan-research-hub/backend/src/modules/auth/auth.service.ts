@@ -5,6 +5,7 @@ import { decodeWalletAddress, verifyEd25519Signature } from '../../common/auth/s
 import { hashPassword, validateCredentials, verifyPassword } from '../../common/auth/password.js';
 import { hashToken } from '../../common/auth/guards.js';
 import { UsersService } from '../users/users.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -34,7 +35,31 @@ export class AuthService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(UsersService) private readonly users: UsersService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
+
+  /**
+   * Best-effort security audit for failed attempts. Never throws: an audit
+   * outage must not lock users out (same tradeoff as AuditInterceptor).
+   * Only identity + reason code are logged — never passwords/signatures.
+   */
+  private async auditFail(action: string, actor: string, reason: string): Promise<void> {
+    try {
+      await this.audit.record({ actor, action, reason });
+    } catch (e) {
+      console.warn('[audit] failed-login record failed:', (e as Error).message);
+    }
+  }
+
+  /** Delete expired sessions + nonces. Manual ADMIN-only op (no loop). */
+  async purgeExpired(): Promise<{ sessions: number; nonces: number }> {
+    const expired = { expiresAt: { lte: new Date() } };
+    const [sessions, nonces] = await Promise.all([
+      this.prisma.session.deleteMany({ where: expired }),
+      this.prisma.authNonce.deleteMany({ where: expired }),
+    ]);
+    return { sessions: sessions.count, nonces: nonces.count };
+  }
 
   async issueNonce(wallet: string): Promise<{ wallet: string; nonce: string; message: string; expiresAt: string }> {
     const clean = (wallet ?? '').trim();
@@ -59,6 +84,7 @@ export class AuthService {
       orderBy: { id: 'desc' },
     });
     if (!row || row.expiresAt.getTime() <= Date.now()) {
+      await this.auditFail('auth.verify_failed', clean, 'expired-or-missing-nonce');
       denied('Nonce hết hạn hoặc không tồn tại. Lấy nonce mới qua POST /api/auth/nonce.');
     }
     const ok = verifyEd25519Signature(
@@ -66,7 +92,10 @@ export class AuthService {
       (signature ?? '').trim(),
       clean,
     );
-    if (!ok) denied('Chữ ký không hợp lệ.');
+    if (!ok) {
+      await this.auditFail('auth.verify_failed', clean, 'bad-signature');
+      denied('Chữ ký không hợp lệ.');
+    }
     await this.prisma.authNonce.update({ where: { id: row.id }, data: { consumedAt: new Date() } });
     const user = await this.users.findOrCreate(clean);
     // Bootstrap: first ADMIN comes from the local-only allowlist.
@@ -138,7 +167,10 @@ export class AuthService {
     const found = await this.prisma.user.findUnique({ where: { username: (input.username ?? '').trim() } });
     const hash = (found?.passwordHash as string | null) ?? null;
     const ok = hash !== null && (await verifyPassword(input.password ?? '', hash));
-    if (!found || !ok) denied('Sai tên đăng nhập hoặc mật khẩu.');
+    if (!found || !ok) {
+      await this.auditFail('auth.login_failed', (input.username ?? '').trim().slice(0, 100), 'bad-credentials');
+      denied('Sai tên đăng nhập hoặc mật khẩu.');
+    }
     return this.openSession({ id: found.id, wallet: found.wallet, role: found.role });
   }
 }

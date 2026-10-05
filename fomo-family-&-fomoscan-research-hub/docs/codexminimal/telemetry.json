@@ -255,6 +255,20 @@
      "openapi 39 paths YAML valid",
      "review APPROVE"
     ]
+   },
+   {
+    "at": "2026-10-05T00:00:00Z",
+    "detail": "Hardening H1-H4: purgeExpired ADMIN endpoint + failed-login audit, openapi 201/CSRF/purge, stale tracker cleanup",
+    "phase": "H1-H4",
+    "status": "done",
+    "topic": "hardening",
+    "verification": [
+     "assert-auth §14+§15 GREEN + 13/13 suites GREEN",
+     "root tsc BE+FE",
+     "live purge 21 nonces + 403/401 matrix + login_failed audit row",
+     "openapi 40 paths YAML valid",
+     "review APPROVE"
+    ]
    }
   ],
  "sessions": [],

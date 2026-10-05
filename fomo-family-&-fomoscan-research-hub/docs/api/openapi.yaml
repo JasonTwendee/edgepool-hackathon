@@ -498,6 +498,16 @@ paths:
                 properties:
                   success: { type: boolean }
                   data: { $ref: '#/components/schemas/AuthSession' }
+        '201':
+          description: Session token (Nest POST default — live behavior)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/auth/register:
@@ -526,6 +536,16 @@ paths:
                 properties:
                   success: { type: boolean }
                   data: { $ref: '#/components/schemas/AuthSession' }
+        '201':
+          description: Session token (Nest POST default — live behavior)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/auth/login:
     post:
@@ -544,6 +564,16 @@ paths:
       responses:
         '200':
           description: Session token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AuthSession' }
+        '201':
+          description: Session token (Nest POST default — live behavior)
           content:
             application/json:
               schema:
@@ -591,6 +621,29 @@ paths:
                     properties:
                       revoked: { type: boolean }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/auth/purge:
+    post:
+      summary: Delete expired sessions + nonces (ADMIN only, audited, manual-only)
+      operationId: purgeExpiredSessions
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Purged counts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    required: [sessions, nonces]
+                    properties:
+                      sessions: { type: integer }
+                      nonces: { type: integer }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/users:
     get:
       summary: List users (ADMIN only)
@@ -1647,4 +1700,4 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Opaque session token from POST /api/auth/verify
+      description: Opaque session token from POST /api/auth/verify (also accepted via httpOnly fomo_session cookie, SameSite=Lax; production CSRF token is follow-up work — see fe-auth-plus tracker)
