@@ -1,6 +1,7 @@
 # Demo script — Edgepool/FOMO Fund (5 phút, đã rehearse trên local)
 
-- FE: http://localhost:3001 · BE: http://localhost:3000 · compose project `fomo`
+- Public (Tailscale Funnel, URL cố định): https://edgepool-dev.tailec308e.ts.net/
+- LAN/server: http://100.110.155.108/ · local: http://localhost:3001 · BE: :3000
 - Không cần ví crypto trên sân khấu: login bằng TK đã seed (tab **Tài khoản**).
 - TK: `admin` / `$SEED_ADMIN_PASSWORD` (ADMIN) · `user` / `$SEED_USER_PASSWORD` (USER) ·
   `kol` / `$SEED_KOL_PASSWORD` (KOL). Đổi pass trước khi public.
