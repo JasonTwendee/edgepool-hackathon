@@ -60,14 +60,21 @@ export default function HomePage() {
   // user can collapse via the toggle button.
   const [showFund, setShowFund] = useState(true);
   const [session, setSession] = useState<FundSession | null>(null);
+  // Gate is strict: no session = no app. Checked flag avoids flashing the
+  // modal while a stored token is being validated against BE.
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   // Restore fund session (token in localStorage; validated against BE).
   useEffect(() => {
     const token = getStoredToken();
-    if (!token) return;
+    if (!token) {
+      setSessionChecked(true);
+      return;
+    }
     getAuthMe(token)
       .then((res) => setSession({ token, user: res.data, expiresAt: '' }))
-      .catch(() => setSession(null));
+      .catch(() => setSession(null))
+      .finally(() => setSessionChecked(true));
   }, []);
 
   const days = rangeDays(range);
@@ -91,8 +98,9 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!session) return;
     void refreshWallets();
-  }, [refreshWallets]);
+  }, [refreshWallets, session]);
 
   const refreshPnlOverview = useCallback(async () => {
     try {
@@ -106,10 +114,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!session) return;
     void refreshPnlOverview();
     const timer = setInterval(() => void refreshPnlOverview(), 60000);
     return () => clearInterval(timer);
-  }, [refreshPnlOverview]);
+  }, [refreshPnlOverview, session]);
 
   const portfolio = usePortfolio({
     walletAddress: selectedAddress ?? 'ALL',
@@ -118,6 +127,7 @@ export default function HomePage() {
     action,
     days,
     hideZero: !showZero,
+    enabled: !!session,
   });
 
   // Chart fallback dataset (flow mode only): full range for the wallet.
@@ -131,7 +141,7 @@ export default function HomePage() {
     action,
     days,
     pollMs: 60000,
-    enabled: needFlow,
+    enabled: !!session && needFlow,
     hideZero: !showZero,
   });
 
@@ -166,6 +176,7 @@ export default function HomePage() {
     setLiveSwaps([]);
     setSwapsPage(1);
     setPnl(null);
+    if (!session) return;
     if (!selectedAddress) return;
     setPnlLoading(true);
     getWalletPnl(selectedAddress, days)
@@ -173,17 +184,19 @@ export default function HomePage() {
       .catch(() => setPnl(null))
       .finally(() => setPnlLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAddress, days]);
+  }, [selectedAddress, days, session]);
 
   useEffect(() => {
     setHoldings(null);
+    if (!session) return;
     if (!selectedAddress) return;
     setHoldingsLoading(true);
     getHoldings(selectedAddress)
       .then((res) => setHoldings(res.data))
       .catch(() => setHoldings(null))
       .finally(() => setHoldingsLoading(false));
-  }, [selectedAddress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddress, session]);
 
   // App boot timestamp: live notifications/ledger prepends only apply to
   // transactions newer than this (older stream arrivals are backfill).
@@ -225,7 +238,7 @@ export default function HomePage() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, []);
 
-  const { connected: liveConnected } = useOnchainStream(handleLiveEvent);
+  const { connected: liveConnected } = useOnchainStream(handleLiveEvent, !!session);
 
   const lastSyncSec = portfolio.updatedAt ? Math.floor(portfolio.updatedAt / 1000) : null;
   const syncLabel = liveConnected
@@ -447,6 +460,22 @@ export default function HomePage() {
       </div>
 
       {showTicker && <FomoBottomTicker liveConnected={liveConnected} />}
+
+      {sessionChecked && !session && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D0F18]/90 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md space-y-3">
+            <div className="text-center space-y-1">
+              <div className="font-display text-xl font-bold text-[#E9E9ED]">
+                edgepool
+              </div>
+              <p className="text-xs text-[#75798C]">
+                Đăng nhập để vào terminal — tài khoản hoặc ví Solana.
+              </p>
+            </div>
+            <AuthPanel session={session} onSession={setSession} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
