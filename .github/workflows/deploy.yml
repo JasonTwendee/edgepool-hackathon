@@ -38,3 +38,12 @@ jobs:
           sleep 10
           curl -sf http://localhost:3000/api/health | head -c 120; echo
           curl -sf -o /dev/null -w 'FE :3001 %{http_code}\n' http://localhost:3001/
+
+      - name: Public demo URL via trycloudflare (opt-in, ephemeral)
+        if: ${{ vars.TUNNEL_ENABLED == 'true' }}
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.tunnel.yml up -d trycloudflare
+          sleep 10
+          URL=$(docker logs fomo-trycloudflare 2>&1 | grep -o 'https://[^ ]*trycloudflare.com' | head -n 1)
+          echo "## Demo URL (doi moi lan restart): $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "$URL"
