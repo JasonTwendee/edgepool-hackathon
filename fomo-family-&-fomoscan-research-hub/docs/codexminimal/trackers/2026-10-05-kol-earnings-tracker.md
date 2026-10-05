@@ -30,3 +30,6 @@ Non-goals giữ nguyên (cash-out, link user↔ví, per-vault split).
 
 - 2026-10-05: intake xong (report §4 80/15/5; hằng số split; dust về treasury).
 - 2026-10-05: K1–K4 đóng. BE+FE rebuild + E2E vault 12 khớp report VD.
+- 2026-10-05 (demo-prep): vault 1 bật feeBps 2000 + gán trader Unipcs 10000 +
+  deposit demo 2 + settle NAV 22 → partner 0.30/treasury 0.10 live trên card chính.
+  Thêm `docs/setup/DEMO_SCRIPT.md` (5 phút).
