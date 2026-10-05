@@ -283,6 +283,20 @@
      "openapi 41 paths YAML valid",
      "review APPROVE"
     ]
+   },
+   {
+    "at": "2026-10-05T00:00:00Z",
+    "detail": "FomoScan F1-F4: throttled client + wallet enrich (bio/EVM) + cross-check + flagged PnL fast-path, live 4/10 enriched",
+    "phase": "F1-F4",
+    "status": "done",
+    "topic": "fomoscan",
+    "verification": [
+     "assert-fomoscan + assert-enrich GREEN + 15/15 suites GREEN",
+     "root tsc BE+FE",
+     "live enrich 4/10 + cross-check delta documented (flag stays false)",
+     "openapi 42 paths YAML valid",
+     "review APPROVE"
+    ]
    }
   ],
  "sessions": [],
