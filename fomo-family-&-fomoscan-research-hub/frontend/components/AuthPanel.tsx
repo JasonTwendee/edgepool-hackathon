@@ -144,14 +144,17 @@ export function AuthPanel({ session, onSession }: Props) {
       </h3>
 
       {session ? (
-        <div className="space-y-2">
-          <div className="text-xs font-mono text-[#E9E9ED] break-all">{session.user.wallet}</div>
-          <div className="text-[11px] text-[#75798C]">
-            Role: <span className="text-[#49E6D7] font-bold">{session.user.role}</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-xs font-mono text-[#E9E9ED] truncate" title={session.user.username ?? session.user.wallet}>
+              {session.user.username ? `@${session.user.username}` : `${session.user.wallet.slice(0, 6)}…${session.user.wallet.slice(-4)}`}
+            </div>
+            <div className="text-[10px] font-bold tracking-widest text-[#49E6D7]">{session.user.role}</div>
           </div>
           <button
             onClick={() => void handleLogout()}
-            className="text-xs flex items-center gap-1 text-[#75798C] hover:text-[#E9E9ED] border border-[#3F424D] rounded-lg px-2.5 py-1.5"
+            title="Log out"
+            className="shrink-0 text-xs flex items-center gap-1 text-[#75798C] hover:text-[#E9E9ED] border border-[#3F424D] rounded-lg px-2.5 py-1.5"
           >
             <SignOut size={14} /> Log out
           </button>
