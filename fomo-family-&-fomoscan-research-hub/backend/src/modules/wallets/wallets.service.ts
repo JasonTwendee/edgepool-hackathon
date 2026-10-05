@@ -46,6 +46,10 @@ export class WalletsService implements OnModuleInit {
     }
     const all = await this.prisma.trackedWallet.findMany({ orderBy: { id: 'asc' } });
     for (const w of all) this.solana.addTrackedWallet(toTrackedWallet(w));
+    // Reconcile WS subscriptions AFTER the DB registry is loaded (stream's own
+    // onModuleInit fires earlier with only the 10 default wallets).
+    const actives = all.filter((w) => w.isActive);
+    for (const w of actives) await this.stream.watch(w.address);
   }
 
   async findAll(): Promise<TrackedWallet[]> {
