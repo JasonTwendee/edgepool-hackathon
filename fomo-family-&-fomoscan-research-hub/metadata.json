@@ -1,6 +1,6 @@
 {
   "name": "FOMO Family & FOMOScan Research Hub",
-  "description": "Báo cáo nghiên cứu chi tiết & Công cụ khám phá hệ sinh thái FOMO Family và FOMOScan: kiến trúc, tính năng, API, bảo mật và phân tích ví on-chain.",
+  "description": "In-depth research report & discovery toolkit for the FOMO Family and FOMOScan ecosystem: architecture, features, API, security, and on-chain wallet analysis.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

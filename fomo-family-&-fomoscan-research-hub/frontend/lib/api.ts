@@ -354,14 +354,6 @@ export function logout(token?: string): Promise<{ success: boolean; data: { revo
   });
 }
 
-export function registerAccount(input: {
-  username: string;
-  email?: string;
-  password: string;
-}): Promise<{ success: boolean; data: import('../types/fund').AuthSessionData }> {
-  return fetchJson('/api/auth/register', { method: 'POST', body: JSON.stringify(input) });
-}
-
 export function loginAccount(input: {
   username: string;
   password: string;

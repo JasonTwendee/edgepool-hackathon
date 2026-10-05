@@ -62,7 +62,7 @@ export class UsersService {
    * 1. exact wallet match (Base58 wallets AND `cred:<username>` credential wallets),
    * 2. bare credential username (e.g. `kol_01` → wallet `cred:kol_01`).
    * Wallet-shape validation is intentionally NOT required here so ADMIN can
-   * manage credential accounts created via POST /api/auth/register.
+   * manage credential accounts provisioned by an operator (seed-accounts.ts).
    */
   async setRole(identity: string, role: string): Promise<FundIdentity> {
     if (!USER_ROLES.includes(role as (typeof USER_ROLES)[number])) {

@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, UnauthorizedException } from '
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress, verifyEd25519Signature } from '../../common/auth/solana-verify.js';
-import { hashPassword, validateCredentials, verifyPassword } from '../../common/auth/password.js';
+import { verifyPassword } from '../../common/auth/password.js';
 import { hashToken } from '../../common/auth/guards.js';
 import { UsersService } from '../users/users.service.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -124,38 +124,6 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     await this.prisma.session.create({ data: { tokenHash: hashToken(token), userId: user.id, expiresAt } });
     return { token, user, expiresAt: expiresAt.toISOString() };
-  }
-
-  /** Credential register: always role USER (promotion is ADMIN-only). */
-  async register(input: { username: string; email?: string; password: string }): Promise<{
-    token: string;
-    user: { id: number; wallet: string; role: string };
-    expiresAt: string;
-  }> {
-    const invalid = validateCredentials(input);
-    if (invalid) fail(invalid);
-    const username = input.username.trim();
-    const email = input.email?.trim() || null;
-    const dupeUser = await this.prisma.user.findUnique({ where: { username } });
-    if (dupeUser) fail('Username already exists.');
-    if (email) {
-      const dupeMail = await this.prisma.user.findUnique({ where: { email } });
-      if (dupeMail) fail('Email already exists.');
-    }
-    try {
-      const created = await this.prisma.user.create({
-        data: {
-          wallet: `cred:${username}`,
-          username,
-          email,
-          passwordHash: await hashPassword(input.password),
-          role: 'USER',
-        },
-      });
-      return this.openSession({ id: created.id, wallet: created.wallet, role: created.role });
-    } catch {
-      fail('Username or email already exists.');
-    }
   }
 
   /** Credential login: uniform 401 (never reveal which field was wrong). */

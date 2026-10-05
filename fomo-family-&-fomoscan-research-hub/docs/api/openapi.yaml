@@ -510,43 +510,6 @@ paths:
                   data: { $ref: '#/components/schemas/AuthSession' }
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
-  /api/auth/register:
-    post:
-      summary: Register with username/password (always USER, sets cookie)
-      operationId: registerAccount
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [username, password]
-              properties:
-                username: { type: string, description: 3-32 chars, letters/digits/underscore }
-                email: { type: string }
-                password: { type: string, description: Min 8 chars }
-      responses:
-        '200':
-          description: Session token
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success: { type: boolean }
-                  data: { $ref: '#/components/schemas/AuthSession' }
-        '201':
-          description: Session token (Nest POST default — live behavior)
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [success, data]
-                properties:
-                  success: { type: boolean }
-                  data: { $ref: '#/components/schemas/AuthSession' }
-        '400': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/auth/login:
     post:
       summary: Login with username/password (sets cookie, uniform 401)

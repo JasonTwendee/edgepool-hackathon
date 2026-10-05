@@ -12,7 +12,7 @@ import {
 } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { AuthService } from './auth.service.js';
-import { LoginDto, NonceDto, RegisterDto, VerifyDto } from './dto/auth.dto.js';
+import { LoginDto, NonceDto, VerifyDto } from './dto/auth.dto.js';
 
 @Controller('api/auth')
 export class AuthController {
@@ -43,16 +43,8 @@ export class AuthController {
     return { success: true, data: req.user ?? null };
   }
 
-  @Post('register')
-  async register(
-    @Body() body: Record<string, unknown>,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<{ success: boolean; data: unknown }> {
-    const dto = await validateDto(RegisterDto, body);
-    const data = await this.auth.register({ username: dto.username, email: dto.email, password: dto.password });
-    res.setHeader('Set-Cookie', buildSessionCookie(data.token));
-    return { success: true, data };
-  }
+  // NOTE: no public registration. Accounts are provisioned by an operator via
+  // seed-accounts.ts (or a future ADMIN endpoint). Wallet sign-in stays open.
 
   @Post('login')
   async login(
