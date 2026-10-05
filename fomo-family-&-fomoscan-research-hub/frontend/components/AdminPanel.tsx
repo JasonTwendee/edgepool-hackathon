@@ -139,6 +139,10 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
     );
   }
 
+  // Non-ADMIN never sees admin internals (bot names, vault ids, audit):
+  // authorization lives in BE guards; the panel is an ADMIN console only.
+  if (!isAdmin) return null;
+
   return (
     <section className="rounded-lg bg-[#232532] border border-[#3F424D] p-4 space-y-3">
       <h3 className="font-display text-sm font-medium text-[#E9E9ED] flex items-center gap-1.5">
