@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service.js';
 import type { OnChainTransactionEvent } from '../onchain/entities/onchain-event.entity.js';
 import { TransactionsService } from '../transactions/transactions.service.js';
 import { WalletsService } from '../wallets/wallets.service.js';
+import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 
 export interface SymbolPnl {
   symbol: string;
@@ -59,6 +60,7 @@ export class PnlService {
     @Inject(TransactionsService) private readonly tx: TransactionsService,
     @Inject(WalletsService) private readonly wallets: WalletsService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(FomoscanService) private readonly fomoscan: FomoscanService,
   ) {}
 
   private cutoffSec(days: number): number {
@@ -156,8 +158,89 @@ export class PnlService {
   }
 
   async getOverview(days = 30): Promise<WalletPnl[]> {
+    // P2 fast-path: one batch FomoScan call for all handled wallets instead of
+    // N full-ledger FIFO recomputes. METHODOLOGY DIFFERS from local FIFO
+    // (their whole-wallet net vs our matched-pair realized) — gated behind
+    // FOMOSCAN_PNL_PRIMARY (default false), any failure falls back to local.
+    if (process.env.FOMOSCAN_PNL_PRIMARY === 'true' && this.fomoscan.enabled()) {
+      try {
+        return await this.getOverviewFast(days);
+      } catch {
+        // fall through to local FIFO
+      }
+    }
     const wallets = await this.wallets.findAll();
     return Promise.all(wallets.map((w) => this.getWalletPnl(w.address, days)));
+  }
+
+  private fomoscanWindow(days: number): string {
+    if (days <= 1) return '24h';
+    if (days <= 7) return '7d';
+    if (days <= 31) return '30d';
+    return 'all';
+  }
+
+  private async getOverviewFast(days: number): Promise<WalletPnl[]> {
+    const wallets = await this.wallets.findAll();
+    const handled = wallets.filter((w) => (w.handle ?? '').trim());
+    const batch = await this.fomoscan.batchPnl(handled.map((w) => w.handle));
+    const byHandle = new Map(batch.entries.map((e) => [e.handle.toLowerCase(), e]));
+    const win = this.fomoscanWindow(days);
+    return Promise.all(
+      wallets.map(async (w) => {
+        const entry = byHandle.get((w.handle ?? '').toLowerCase());
+        const wdata = entry?.windows?.[win];
+        // No handle, no ready window → local FIFO for this wallet.
+        if (!wdata || entry.status !== 'ready') return this.getWalletPnl(w.address, days);
+        return {
+          wallet: w.address,
+          days,
+          realizedPnlUsd: Math.round(wdata.netUsd),
+          pairs: wdata.trades,
+          matchedSells: wdata.sells,
+          totalSells: wdata.sells,
+          totalBuys: wdata.buys,
+          winRate: wdata.tokensTraded > 0 ? (wdata.winningTokens / wdata.tokensTraded) * 100 : null,
+          perSymbol: [],
+          series: [],
+          topTrades: [],
+        };
+      }),
+    );
+  }
+
+  /**
+   * Cross-check one wallet: local FIFO realized vs FomoScan whole-wallet net.
+   * Read-only ops tool (ADMIN controller route) — informs the PRIMARY flip,
+   * never switches anything by itself.
+   */
+  async compare(walletAddress: string, days = 30): Promise<{
+    wallet: string;
+    handle: string | null;
+    localRealizedUsd: number;
+    fomoscanNetUsd: number | null;
+    fomoscanWindow: string;
+    deltaUsd: number | null;
+  }> {
+    const clean = (walletAddress ?? '').trim();
+    const tracked = await this.wallets.findByAddress(clean);
+    if (!tracked) throw new Error(`Wallet is not tracked: ${clean}.`);
+    const local = await this.getWalletPnl(clean, days);
+    const handle = (tracked.handle ?? '').trim() || null;
+    if (!handle) {
+      return { wallet: clean, handle, localRealizedUsd: local.realizedPnlUsd, fomoscanNetUsd: null, fomoscanWindow: this.fomoscanWindow(days), deltaUsd: null };
+    }
+    const remote = await this.fomoscan.getPnl(handle);
+    const win = this.fomoscanWindow(days);
+    const net = remote.windows?.[win]?.netUsd ?? null;
+    return {
+      wallet: clean,
+      handle,
+      localRealizedUsd: local.realizedPnlUsd,
+      fomoscanNetUsd: net === null ? null : Math.round(net),
+      fomoscanWindow: win,
+      deltaUsd: net === null ? null : Math.round(local.realizedPnlUsd - net),
+    };
   }
 
   /**

@@ -15,7 +15,11 @@ model TrackedWallet {
   address              String   @unique @db.VarChar(64)
   label                String    @db.VarChar(100)
   handle               String    @db.VarChar(50)
-  avatarUrl            String?   @map("avatar_url") @db.VarChar(255)
+  avatarUrl            String?  @map("avatar_url") @db.VarChar(255)
+  // FomoScan enrichment (P1): verified bio + EVM address. Nullable — legacy
+  // rows stay NULL until an ADMIN runs POST /api/wallets/:address/enrich.
+  bio                  String?  @db.Text
+  evmAddress           String?  @map("evm_address") @db.VarChar(64)
   ownerNotes           String?   @map("owner_notes") @db.Text
   allocationWeight     Decimal  @map("allocation_weight") @db.Decimal(4, 2)
   isActive             Boolean  @map("is_active") @default(true)

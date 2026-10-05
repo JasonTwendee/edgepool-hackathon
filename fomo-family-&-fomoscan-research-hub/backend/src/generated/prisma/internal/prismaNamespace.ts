@@ -1661,6 +1661,8 @@ export const TrackedWalletScalarFieldEnum = {
   label: 'label',
   handle: 'handle',
   avatarUrl: 'avatarUrl',
+  bio: 'bio',
+  evmAddress: 'evmAddress',
   ownerNotes: 'ownerNotes',
   allocationWeight: 'allocationWeight',
   isActive: 'isActive',

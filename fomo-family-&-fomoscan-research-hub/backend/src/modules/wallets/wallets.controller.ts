@@ -8,8 +8,12 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { validateDto } from '../../common/validation/validate-dto.js';
+import { AuthGuard, Roles, RolesGuard } from '../../common/auth/guards.js';
+import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { CreateWalletDto } from './dto/create-wallet.dto.js';
 import { UpdateWalletDto } from './dto/update-wallet.dto.js';
 import { WalletsService } from './wallets.service.js';
@@ -55,5 +59,15 @@ export class WalletsController {
       throw new NotFoundException({ success: false, message: 'Wallet not found.' });
     }
     return { success: true, message: `Copy config updated for wallet ${address}` };
+  }
+
+  @Post(':address/enrich')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('wallet.enrich')
+  async enrich(@Param('address') address: string): Promise<{ success: boolean; data: unknown }> {
+    const data = await this.wallets.enrich(address);
+    return { success: true, data };
   }
 }

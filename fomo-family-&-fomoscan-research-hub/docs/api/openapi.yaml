@@ -53,6 +53,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/wallets/{address}/enrich:
+    post:
+      summary: Backfill verified identity (avatar/bio/EVM) from FomoScan (ADMIN, audited)
+      operationId: enrichWallet
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/WalletAddress'
+      responses:
+        '200':
+          description: Enriched wallet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletResponse'
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/wallets/{address}:
     delete:
       summary: Remove wallet from tracking
@@ -239,6 +256,46 @@ paths:
                             balance: { type: number }
                             priceUsd: { type: number, nullable: true }
                             valueUsd: { type: number, nullable: true }
+  /api/portfolio/fomoscan:
+    get:
+      summary: Cross-check local FIFO realized vs FomoScan whole-wallet net (ADMIN)
+      operationId: crossCheckFomoscan
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: wallet
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Tracked Solana address (ALL not supported)
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Local vs FomoScan comparison
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    required: [wallet, handle, localRealizedUsd, fomoscanWindow]
+                    properties:
+                      wallet: { type: string }
+                      handle: { type: string, nullable: true }
+                      localRealizedUsd: { type: number }
+                      fomoscanNetUsd: { type: number, nullable: true }
+                      fomoscanWindow: { type: string }
+                      deltaUsd: { type: number, nullable: true }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/webhooks/helius:
     post:
       summary: Helius webhook receiver (push real-time for tracked wallets)
@@ -1204,6 +1261,8 @@ components:
         label: { type: string }
         handle: { type: string }
         avatar: { type: string }
+        bio: { type: string, nullable: true, description: Verified bio from FomoScan enrich }
+        evmAddress: { type: string, nullable: true, description: Verified EVM wallet from FomoScan enrich }
         totalPnlUsd: { type: number }
         winRate: { type: number }
         isCopyEnabled: { type: boolean }

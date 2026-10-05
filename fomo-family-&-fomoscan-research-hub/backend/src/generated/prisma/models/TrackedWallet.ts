@@ -50,6 +50,8 @@ export type TrackedWalletMinAggregateOutputType = {
   label: string | null
   handle: string | null
   avatarUrl: string | null
+  bio: string | null
+  evmAddress: string | null
   ownerNotes: string | null
   allocationWeight: runtime.Decimal | null
   isActive: boolean | null
@@ -68,6 +70,8 @@ export type TrackedWalletMaxAggregateOutputType = {
   label: string | null
   handle: string | null
   avatarUrl: string | null
+  bio: string | null
+  evmAddress: string | null
   ownerNotes: string | null
   allocationWeight: runtime.Decimal | null
   isActive: boolean | null
@@ -86,6 +90,8 @@ export type TrackedWalletCountAggregateOutputType = {
   label: number
   handle: number
   avatarUrl: number
+  bio: number
+  evmAddress: number
   ownerNotes: number
   allocationWeight: number
   isActive: number
@@ -124,6 +130,8 @@ export type TrackedWalletMinAggregateInputType = {
   label?: true
   handle?: true
   avatarUrl?: true
+  bio?: true
+  evmAddress?: true
   ownerNotes?: true
   allocationWeight?: true
   isActive?: true
@@ -142,6 +150,8 @@ export type TrackedWalletMaxAggregateInputType = {
   label?: true
   handle?: true
   avatarUrl?: true
+  bio?: true
+  evmAddress?: true
   ownerNotes?: true
   allocationWeight?: true
   isActive?: true
@@ -160,6 +170,8 @@ export type TrackedWalletCountAggregateInputType = {
   label?: true
   handle?: true
   avatarUrl?: true
+  bio?: true
+  evmAddress?: true
   ownerNotes?: true
   allocationWeight?: true
   isActive?: true
@@ -265,6 +277,8 @@ export type TrackedWalletGroupByOutputType = {
   label: string
   handle: string
   avatarUrl: string | null
+  bio: string | null
+  evmAddress: string | null
   ownerNotes: string | null
   allocationWeight: runtime.Decimal
   isActive: boolean
@@ -306,6 +320,8 @@ export type TrackedWalletWhereInput = {
   label?: Prisma.StringFilter<"TrackedWallet"> | string
   handle?: Prisma.StringFilter<"TrackedWallet"> | string
   avatarUrl?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
+  bio?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
+  evmAddress?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
   ownerNotes?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
   allocationWeight?: Prisma.DecimalFilter<"TrackedWallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFilter<"TrackedWallet"> | boolean
@@ -326,6 +342,8 @@ export type TrackedWalletOrderByWithRelationInput = {
   label?: Prisma.SortOrder
   handle?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  bio?: Prisma.SortOrderInput | Prisma.SortOrder
+  evmAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   allocationWeight?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -349,6 +367,8 @@ export type TrackedWalletWhereUniqueInput = Prisma.AtLeast<{
   label?: Prisma.StringFilter<"TrackedWallet"> | string
   handle?: Prisma.StringFilter<"TrackedWallet"> | string
   avatarUrl?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
+  bio?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
+  evmAddress?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
   ownerNotes?: Prisma.StringNullableFilter<"TrackedWallet"> | string | null
   allocationWeight?: Prisma.DecimalFilter<"TrackedWallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFilter<"TrackedWallet"> | boolean
@@ -369,6 +389,8 @@ export type TrackedWalletOrderByWithAggregationInput = {
   label?: Prisma.SortOrder
   handle?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  bio?: Prisma.SortOrderInput | Prisma.SortOrder
+  evmAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerNotes?: Prisma.SortOrderInput | Prisma.SortOrder
   allocationWeight?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -395,6 +417,8 @@ export type TrackedWalletScalarWhereWithAggregatesInput = {
   label?: Prisma.StringWithAggregatesFilter<"TrackedWallet"> | string
   handle?: Prisma.StringWithAggregatesFilter<"TrackedWallet"> | string
   avatarUrl?: Prisma.StringNullableWithAggregatesFilter<"TrackedWallet"> | string | null
+  bio?: Prisma.StringNullableWithAggregatesFilter<"TrackedWallet"> | string | null
+  evmAddress?: Prisma.StringNullableWithAggregatesFilter<"TrackedWallet"> | string | null
   ownerNotes?: Prisma.StringNullableWithAggregatesFilter<"TrackedWallet"> | string | null
   allocationWeight?: Prisma.DecimalWithAggregatesFilter<"TrackedWallet"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolWithAggregatesFilter<"TrackedWallet"> | boolean
@@ -412,6 +436,8 @@ export type TrackedWalletCreateInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -432,6 +458,8 @@ export type TrackedWalletUncheckedCreateInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -451,6 +479,8 @@ export type TrackedWalletUpdateInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -471,6 +501,8 @@ export type TrackedWalletUncheckedUpdateInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -491,6 +523,8 @@ export type TrackedWalletCreateManyInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -508,6 +542,8 @@ export type TrackedWalletUpdateManyMutationInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -526,6 +562,8 @@ export type TrackedWalletUncheckedUpdateManyInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -544,6 +582,8 @@ export type TrackedWalletCountOrderByAggregateInput = {
   label?: Prisma.SortOrder
   handle?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrder
+  bio?: Prisma.SortOrder
+  evmAddress?: Prisma.SortOrder
   ownerNotes?: Prisma.SortOrder
   allocationWeight?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -571,6 +611,8 @@ export type TrackedWalletMaxOrderByAggregateInput = {
   label?: Prisma.SortOrder
   handle?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrder
+  bio?: Prisma.SortOrder
+  evmAddress?: Prisma.SortOrder
   ownerNotes?: Prisma.SortOrder
   allocationWeight?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -589,6 +631,8 @@ export type TrackedWalletMinOrderByAggregateInput = {
   label?: Prisma.SortOrder
   handle?: Prisma.SortOrder
   avatarUrl?: Prisma.SortOrder
+  bio?: Prisma.SortOrder
+  evmAddress?: Prisma.SortOrder
   ownerNotes?: Prisma.SortOrder
   allocationWeight?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -696,6 +740,8 @@ export type TrackedWalletCreateWithoutTransactionsInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -715,6 +761,8 @@ export type TrackedWalletUncheckedCreateWithoutTransactionsInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -749,6 +797,8 @@ export type TrackedWalletUpdateWithoutTransactionsInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -768,6 +818,8 @@ export type TrackedWalletUncheckedUpdateWithoutTransactionsInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -786,6 +838,8 @@ export type TrackedWalletCreateWithoutRealtimeEventsInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -805,6 +859,8 @@ export type TrackedWalletUncheckedCreateWithoutRealtimeEventsInput = {
   label: string
   handle: string
   avatarUrl?: string | null
+  bio?: string | null
+  evmAddress?: string | null
   ownerNotes?: string | null
   allocationWeight: runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: boolean
@@ -839,6 +895,8 @@ export type TrackedWalletUpdateWithoutRealtimeEventsInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -858,6 +916,8 @@ export type TrackedWalletUncheckedUpdateWithoutRealtimeEventsInput = {
   label?: Prisma.StringFieldUpdateOperationsInput | string
   handle?: Prisma.StringFieldUpdateOperationsInput | string
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  evmAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerNotes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   allocationWeight?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -917,6 +977,8 @@ export type TrackedWalletSelect<ExtArgs extends runtime.Types.Extensions.Interna
   label?: boolean
   handle?: boolean
   avatarUrl?: boolean
+  bio?: boolean
+  evmAddress?: boolean
   ownerNotes?: boolean
   allocationWeight?: boolean
   isActive?: boolean
@@ -938,6 +1000,8 @@ export type TrackedWalletSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   label?: boolean
   handle?: boolean
   avatarUrl?: boolean
+  bio?: boolean
+  evmAddress?: boolean
   ownerNotes?: boolean
   allocationWeight?: boolean
   isActive?: boolean
@@ -956,6 +1020,8 @@ export type TrackedWalletSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   label?: boolean
   handle?: boolean
   avatarUrl?: boolean
+  bio?: boolean
+  evmAddress?: boolean
   ownerNotes?: boolean
   allocationWeight?: boolean
   isActive?: boolean
@@ -974,6 +1040,8 @@ export type TrackedWalletSelectScalar = {
   label?: boolean
   handle?: boolean
   avatarUrl?: boolean
+  bio?: boolean
+  evmAddress?: boolean
   ownerNotes?: boolean
   allocationWeight?: boolean
   isActive?: boolean
@@ -986,7 +1054,7 @@ export type TrackedWalletSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TrackedWalletOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "address" | "label" | "handle" | "avatarUrl" | "ownerNotes" | "allocationWeight" | "isActive" | "lastScannedSlot" | "lastScannedSignature" | "totalTradesCount" | "winRate" | "cumulativePnlUsd" | "createdAt" | "updatedAt", ExtArgs["result"]["trackedWallet"]>
+export type TrackedWalletOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "address" | "label" | "handle" | "avatarUrl" | "bio" | "evmAddress" | "ownerNotes" | "allocationWeight" | "isActive" | "lastScannedSlot" | "lastScannedSignature" | "totalTradesCount" | "winRate" | "cumulativePnlUsd" | "createdAt" | "updatedAt", ExtArgs["result"]["trackedWallet"]>
 export type TrackedWalletInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   transactions?: boolean | Prisma.TrackedWallet$transactionsArgs<ExtArgs>
   realtimeEvents?: boolean | Prisma.TrackedWallet$realtimeEventsArgs<ExtArgs>
@@ -1007,6 +1075,8 @@ export type $TrackedWalletPayload<ExtArgs extends runtime.Types.Extensions.Inter
     label: string
     handle: string
     avatarUrl: string | null
+    bio: string | null
+    evmAddress: string | null
     ownerNotes: string | null
     allocationWeight: runtime.Decimal
     isActive: boolean
@@ -1447,6 +1517,8 @@ export interface TrackedWalletFieldRefs {
   readonly label: Prisma.FieldRef<"TrackedWallet", 'String'>
   readonly handle: Prisma.FieldRef<"TrackedWallet", 'String'>
   readonly avatarUrl: Prisma.FieldRef<"TrackedWallet", 'String'>
+  readonly bio: Prisma.FieldRef<"TrackedWallet", 'String'>
+  readonly evmAddress: Prisma.FieldRef<"TrackedWallet", 'String'>
   readonly ownerNotes: Prisma.FieldRef<"TrackedWallet", 'String'>
   readonly allocationWeight: Prisma.FieldRef<"TrackedWallet", 'Decimal'>
   readonly isActive: Prisma.FieldRef<"TrackedWallet", 'Boolean'>

@@ -6,6 +6,8 @@ export interface TrackedWallet {
   label: string;
   handle: string;
   avatar?: string;
+  bio?: string | null;
+  evmAddress?: string | null;
   totalPnlUsd?: number;
   winRate?: number;
   isCopyEnabled: boolean;
@@ -26,6 +28,8 @@ export function toTrackedWallet(e: PrismaTrackedWallet): TrackedWallet {
     label: e.label,
     handle: e.handle,
     avatar: e.avatarUrl ?? undefined,
+    bio: e.bio ?? null,
+    evmAddress: e.evmAddress ?? null,
     totalPnlUsd: e.cumulativePnlUsd?.toNumber() ?? undefined,
     winRate: e.winRate?.toNumber() ?? undefined,
     isCopyEnabled: e.isActive,

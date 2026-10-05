@@ -1,5 +1,6 @@
-import { BadRequestException, Controller, Get, Inject, InternalServerErrorException, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Inject, InternalServerErrorException, Query, UseGuards } from '@nestjs/common';
 import { parsePortfolioQuery } from './dto/portfolio-query.dto.js';
+import { AuthGuard, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { HoldingsService } from './holdings.service.js';
 import { PnlService } from './pnl.service.js';
 import { PortfolioService } from './portfolio.service.js';
@@ -88,6 +89,31 @@ export class PortfolioController {
         success: false,
         message: (err as Error).message || 'Holdings query failed',
       });
+    }
+  }
+
+  @Get('fomoscan')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async crossCheck(@Query() rawQuery: Record<string, unknown>) {
+    const wallet = typeof rawQuery.wallet === 'string' ? rawQuery.wallet : '';
+    const days = parseDays(rawQuery.days, 30);
+    if (!wallet) {
+      throw new BadRequestException({
+        success: false,
+        message: 'The wallet query parameter (a specific wallet address) is required.',
+      });
+    }
+    try {
+      const data = await this.pnl.compare(wallet, days);
+      return { success: true, data };
+    } catch (err: unknown) {
+      const msg = (err as Error).message || 'FomoScan cross-check failed';
+      const notFound = /not tracked/i.test(msg);
+      if (notFound) {
+        throw new BadRequestException({ success: false, message: msg });
+      }
+      throw new InternalServerErrorException({ success: false, message: msg });
     }
   }
 }

@@ -1,14 +1,14 @@
 {
  "blockedBy": [],
-  "currentPhase": "K1-K4",
+  "currentPhase": "F1-F4",
   "currentStage": "done",
   "executionWorkflow": "repo-phase-orchestrator -> native execution",
   "lastUpdated": "2026-10-05T00:00:00Z",
   "openQuestions": [],
-  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-kol-earnings-intent.md",
-  "specPath": "docs/codexminimal/idsd/2026-10-05-kol-earnings-intent.md",
+  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-fomoscan-intent.md",
+  "specPath": "docs/codexminimal/idsd/2026-10-05-fomoscan-intent.md",
   "status": "done",
-  "topic": "kol-earnings",
-  "trackerPath": "docs/codexminimal/trackers/2026-10-05-kol-earnings-tracker.md",
+  "topic": "fomoscan",
+  "trackerPath": "docs/codexminimal/trackers/2026-10-05-fomoscan-tracker.md",
  "version": 2
 }

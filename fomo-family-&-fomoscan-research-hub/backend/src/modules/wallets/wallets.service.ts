@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { PublicKey } from '@solana/web3.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
@@ -12,6 +12,7 @@ import {
 } from './entities/tracked-wallet.entity.js';
 import type { CreateWalletDto } from './dto/create-wallet.dto.js';
 import type { UpdateWalletDto } from './dto/update-wallet.dto.js';
+import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 
 /**
  * Wallets CRUD — Postgres (reference schema `tracked_wallets`) is source of
@@ -26,6 +27,7 @@ export class WalletsService implements OnModuleInit {
     @Inject(SolanaOnChainListenerService)
     private readonly solana: SolanaOnChainListenerService,
     @Inject(SolanaStreamService) private readonly stream: SolanaStreamService,
+    @Inject(FomoscanService) private readonly fomoscan: FomoscanService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -124,5 +126,40 @@ export class WalletsService implements OnModuleInit {
       updated.allocationWeight.toNumber(),
     );
     return true;
+  }
+
+  /**
+   * Backfill verified identity (avatar/bio/EVM) from FomoScan for one tracked
+   * wallet. Manual ADMIN-only op (controller). Existing local values win when
+   * FomoScan returns nulls — enrichment never blanks data.
+   */
+  async enrich(address: string): Promise<TrackedWallet> {
+    const clean = (address ?? '').trim();
+    if (!clean) {
+      throw new BadRequestException({ success: false, message: 'A wallet address is required.' });
+    }
+    const existing = await this.prisma.trackedWallet.findUnique({ where: { address: clean } });
+    if (!existing) {
+      throw new NotFoundException({ success: false, message: `Wallet is not tracked: ${clean}.` });
+    }
+    let idn;
+    try {
+      idn = await this.fomoscan.lookupWallet(clean);
+    } catch (e) {
+      // Unknown to FomoScan (no verified identity) → 404, not 500.
+      throw new NotFoundException({
+        success: false,
+        message: `No verified FomoScan identity for wallet ${clean}.`,
+      });
+    }
+    const updated = await this.prisma.trackedWallet.update({
+      where: { address: clean },
+      data: {
+        avatarUrl: idn.profilePicture ?? existing.avatarUrl,
+        bio: idn.bio ?? existing.bio,
+        evmAddress: idn.evmAddress ?? existing.evmAddress,
+      },
+    });
+    return toTrackedWallet(updated);
   }
 }
