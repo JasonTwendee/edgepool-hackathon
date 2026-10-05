@@ -56,7 +56,9 @@ export default function HomePage() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [showRight, setShowRight] = useState(true);
   const [showTicker, setShowTicker] = useState(true);
-  const [showFund, setShowFund] = useState(false);
+  // Fund login/admin visible by default so login-logout-session is discoverable;
+  // user can collapse via the toggle button.
+  const [showFund, setShowFund] = useState(true);
   const [session, setSession] = useState<FundSession | null>(null);
 
   // Restore fund session (token in localStorage; validated against BE).
