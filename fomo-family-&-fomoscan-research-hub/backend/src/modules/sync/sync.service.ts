@@ -49,7 +49,8 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
-      const wallets = await this.wallets.findAll();
+      // Dropped wallets stay frozen: no fresh signals needed, history kept.
+      const wallets = (await this.wallets.findAll()).filter((w) => w.isActive !== false);
       let fresh = 0;
       for (const w of wallets) {
         try {
