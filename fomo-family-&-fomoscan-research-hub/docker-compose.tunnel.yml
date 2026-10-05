@@ -1,0 +1,22 @@
+# Opt-in public demo URL via Cloudflare QUICK tunnel (ephemeral).
+# Usage (on server): docker compose -f docker-compose.yml -f docker-compose.prod.yml
+#   -f docker-compose.tunnel.yml up -d trycloudflare
+# Then read the URL: docker logs fomo-trycloudflare 2>&1 | grep trycloudflare.com
+#
+# Notes:
+# - URL ĐỔI mỗi lần restart container → lấy lại URL sau mỗi deploy (CD in ra Summary).
+# - Quick tunnel là đồ demo/test (ToS Cloudflare, không SLA). Muốn URL cố định +
+#   prod thật: dùng Named Tunnel + domain riêng trong tài khoản Cloudflare.
+# - Server chỉ cần outbound 443/QUIC ra internet (hợp mạng cty sau NAT).
+# - Public URL lộ FE + /api (qua rewrites) → auth BE vẫn chặn, nhưng KHÔNG dùng
+#   khi đã có tiền thật (xem LAUNCH_RUNBOOK_PRODUCT.md).
+
+services:
+  trycloudflare:
+    image: cloudflare/cloudflared:latest
+    container_name: fomo-trycloudflare
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://frontend:3001
+    depends_on:
+      frontend:
+        condition: service_healthy
