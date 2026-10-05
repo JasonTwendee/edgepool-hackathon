@@ -3,7 +3,7 @@ import type { OnChainTransactionEvent } from '../types/onchain';
 import { subscribeOnchainStream } from '../lib/sse';
 
 /** Live SSE hook — toasts + ledger prepend live in UI layer. */
-export function useOnchainStream(onSwap?: (event: OnChainTransactionEvent) => void) {
+export function useOnchainStream(onSwap?: (event: OnChainTransactionEvent) => void, enabled = true) {
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<OnChainTransactionEvent | null>(null);
   // Ref avoids a stale closure: the EventSource subscribes once, but the
@@ -12,6 +12,7 @@ export function useOnchainStream(onSwap?: (event: OnChainTransactionEvent) => vo
   onSwapRef.current = onSwap;
 
   useEffect(() => {
+    if (!enabled) return;
     const unsubscribe = subscribeOnchainStream((msg) => {
       if (msg.type === 'CONNECTED') setConnected(true);
       if (msg.type === 'ONCHAIN_SWAP_EVENT') {
@@ -20,7 +21,7 @@ export function useOnchainStream(onSwap?: (event: OnChainTransactionEvent) => vo
       }
     });
     return unsubscribe;
-  }, []);
+  }, [enabled]);
 
   return { connected, lastEvent };
 }
