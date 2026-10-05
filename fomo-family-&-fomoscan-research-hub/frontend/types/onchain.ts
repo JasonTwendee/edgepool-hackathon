@@ -8,6 +8,7 @@ export interface TrackedWallet {
   totalPnlUsd?: number;
   winRate?: number;
   isCopyEnabled: boolean;
+  isActive?: boolean;
   allocationWeight: number;
   addedAt: string;
 }

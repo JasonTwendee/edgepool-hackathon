@@ -297,6 +297,20 @@
      "openapi 42 paths YAML valid",
      "review APPROVE"
     ]
+   },
+   {
+    "at": "2026-10-05T00:00:00Z",
+    "detail": "Leaderboard rotation R1-R3: auto top-20 weekly, cap 50, manual add/remove removed, live 20 active + FE active-only",
+    "phase": "R1-R3",
+    "status": "done",
+    "topic": "leaderboard-rotation",
+    "verification": [
+     "assert-leaderboard 6 groups GREEN + 17/17 suites GREEN",
+     "root tsc BE+FE + FE next build",
+     "live tick: added 3, deactivated 10, total 30, active 20",
+     "openapi 44 paths YAML valid",
+     "review APPROVE"
+    ]
    }
   ],
  "sessions": [],

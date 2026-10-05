@@ -11,6 +11,8 @@ export interface TrackedWallet {
   totalPnlUsd?: number;
   winRate?: number;
   isCopyEnabled: boolean;
+  /** Rotation state: false = dropped from top-N, history kept, read-only. */
+  isActive?: boolean;
   allocationWeight: number;
   addedAt: string;
 }
@@ -33,6 +35,7 @@ export function toTrackedWallet(e: PrismaTrackedWallet): TrackedWallet {
     totalPnlUsd: e.cumulativePnlUsd?.toNumber() ?? undefined,
     winRate: e.winRate?.toNumber() ?? undefined,
     isCopyEnabled: e.isActive,
+    isActive: e.isActive,
     allocationWeight: e.allocationWeight.toNumber(),
     addedAt: e.createdAt.toISOString().split('T')[0],
   };
