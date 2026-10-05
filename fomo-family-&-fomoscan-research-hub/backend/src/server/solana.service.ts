@@ -131,6 +131,7 @@ export const DEFAULT_TRACKED_WALLETS: TrackedWallet[] = [
 @Injectable()
 export class SolanaOnChainListenerService {
   private readonly connection: Connection;
+  private readonly historyConnection: Connection;
   private trackedWallets: Map<string, TrackedWallet> = new Map();
   private eventListeners: Array<(event: OnChainTransactionEvent) => void> = [];
 
@@ -143,6 +144,15 @@ export class SolanaOnChainListenerService {
       commitment: 'confirmed',
       wsEndpoint,
     });
+    // Archive connection for history: Flux-style tiers truncate
+    // getSignaturesForAddress (empty pages), Helius keeps full history.
+    // Falls back to the main connection when no key is configured.
+    const heliusKey = process.env.HELIUS_API_KEY || undefined;
+    this.historyConnection = heliusKey
+      ? new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusKey}`, {
+        commitment: 'confirmed',
+      })
+      : this.connection;
 
     // Initialize with default wallets
     DEFAULT_TRACKED_WALLETS.forEach(w => {
@@ -204,7 +214,7 @@ export class SolanaOnChainListenerService {
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        return await this.connection.getSignaturesForAddress(pubkey, {
+        return await this.historyConnection.getSignaturesForAddress(pubkey, {
           limit: opts.limit,
           ...(opts.before ? { before: opts.before } : {}),
           ...(opts.until ? { until: opts.until } : {}),
