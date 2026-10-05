@@ -181,7 +181,7 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
             </div>
           ))}
           <div className="flex gap-1.5 flex-wrap pt-1">
-            <input value={roleWallet} onChange={(e) => setRoleWallet(e.target.value)} placeholder="Wallet hoặc username" className={`${inputCls} flex-1 min-w-[140px] font-mono`} />
+            <input value={roleWallet} onChange={(e) => setRoleWallet(e.target.value)} placeholder="Wallet or username" className={`${inputCls} flex-1 min-w-[140px] font-mono`} />
             <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
               <option>USER</option>
               <option>KOL</option>

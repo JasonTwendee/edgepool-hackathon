@@ -110,7 +110,7 @@ async function main(): Promise<void> {
   for (let i = 0; i < 5; i++) await svc.assignTrader(vid, walletOf(i), 2000);
   await assert.rejects(() => svc.assignTrader(vid, walletOf(99)), /cap/);
   // Invalid wallet rejected; bad weight rejected.
-  await assert.rejects(() => svc.assignTrader(vid, 'nope'), /không hợp lệ/);
+  await assert.rejects(() => svc.assignTrader(vid, 'nope'), /Invalid/);
   await assert.rejects(() => svc.assignTrader(vid, walletOf(0), 20000), /weightBps/);
 
   // 4. Remove deactivates (soft); re-assign beyond cap still blocked until slot frees.
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
   await assert.rejects(() => bots.create('ghost', 999), /not found/);
   const b2 = (await bots.setMode(b1.id as number, 'PAUSED')) as Row;
   assert.equal(b2.mode, 'PAUSED');
-  await assert.rejects(() => bots.setMode(b1.id as number, 'TURBO'), /không hợp lệ/);
+  await assert.rejects(() => bots.setMode(b1.id as number, 'TURBO'), /Invalid/);
   await assert.rejects(() => bots.setMode(999, 'AUTO'), /not found/);
   assert.equal(((await bots.list()) as Row[]).length, 1);
 

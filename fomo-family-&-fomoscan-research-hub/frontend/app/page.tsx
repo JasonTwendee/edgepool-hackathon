@@ -19,6 +19,7 @@ import {
 import type { FundSession } from '../types/fund';
 import { AdminPanel } from '../components/AdminPanel';
 import { AuthPanel } from '../components/AuthPanel';
+import { LoginModal } from '../components/LoginModal';
 import { DemoBanner } from '../components/DemoBanner';
 import { useOnchainStream } from '../hooks/useOnchainStream';
 import { usePortfolio } from '../hooks/usePortfolio';
@@ -462,17 +463,14 @@ export default function HomePage() {
       {showTicker && <FomoBottomTicker liveConnected={liveConnected} />}
 
       {sessionChecked && !session && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D0F18]/90 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md space-y-3">
-            <div className="text-center space-y-1">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0D0F18]/90 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-md py-6">
+            <div className="text-center mb-4">
               <div className="font-display text-xl font-bold text-[#E9E9ED]">
                 edgepool
               </div>
-              <p className="text-xs text-[#75798C]">
-                Đăng nhập để vào terminal — tài khoản hoặc ví Solana.
-              </p>
             </div>
-            <AuthPanel session={session} onSession={setSession} />
+            <LoginModal session={session} onSession={setSession} />
           </div>
         </div>
       )}

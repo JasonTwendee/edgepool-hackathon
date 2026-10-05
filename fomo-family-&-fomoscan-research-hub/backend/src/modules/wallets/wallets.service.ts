@@ -62,7 +62,7 @@ export class WalletsService implements OnModuleInit {
     if (!dto.address || typeof dto.address !== 'string') {
       throw new BadRequestException({
         success: false,
-        message: 'Địa chỉ ví Solana không được để trống.',
+        message: 'A Solana wallet address is required.',
       });
     }
     const address = dto.address.trim();
@@ -71,10 +71,10 @@ export class WalletsService implements OnModuleInit {
     } catch {
       throw new BadRequestException({
         success: false,
-        message: `Địa chỉ ví Solana không hợp lệ: ${address}`,
+        message: `Invalid Solana wallet address: ${address}`,
       });
     }
-    // upsert = giữ semantics cũ của Map.set (ghi đè khi trùng address)
+    // upsert keeps the old Map.set semantics (overwrite on duplicate address)
     const saved = await this.prisma.trackedWallet.upsert({
       where: { address },
       update: {

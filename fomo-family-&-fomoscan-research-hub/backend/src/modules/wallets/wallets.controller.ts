@@ -30,7 +30,7 @@ export class WalletsController {
     const data = await this.wallets.create(dto);
     return {
       success: true,
-      message: `Đã kích hoạt lắng nghe on-chain thành công cho ví ${data.address}`,
+      message: `On-chain listening enabled for wallet ${data.address}`,
       data,
     };
   }
@@ -39,9 +39,9 @@ export class WalletsController {
   async remove(@Param('address') address: string) {
     const removed = await this.wallets.remove(address);
     if (!removed) {
-      throw new NotFoundException({ success: false, message: 'Không tìm thấy ví.' });
+      throw new NotFoundException({ success: false, message: 'Wallet not found.' });
     }
-    return { success: true, message: `Đã gỡ bỏ ví ${address}` };
+    return { success: true, message: `Wallet ${address} removed` };
   }
 
   @Patch(':address')
@@ -52,8 +52,8 @@ export class WalletsController {
     const dto = await validateDto(UpdateWalletDto, body);
     const updated = await this.wallets.updateCopyConfig(address, dto);
     if (!updated) {
-      throw new NotFoundException({ success: false, message: 'Không tìm thấy ví.' });
+      throw new NotFoundException({ success: false, message: 'Wallet not found.' });
     }
-    return { success: true, message: `Đã cập nhật cấu hình copy cho ví ${address}` };
+    return { success: true, message: `Copy config updated for wallet ${address}` };
   }
 }

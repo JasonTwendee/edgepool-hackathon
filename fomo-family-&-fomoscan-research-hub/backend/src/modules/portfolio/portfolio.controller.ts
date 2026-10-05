@@ -36,7 +36,7 @@ export class PortfolioController {
     } catch (err: unknown) {
       throw new InternalServerErrorException({
         success: false,
-        message: (err as Error).message || 'Lỗi truy vấn lịch sử on-chain',
+        message: (err as Error).message || 'On-chain history query failed',
       });
     }
   }
@@ -50,7 +50,7 @@ export class PortfolioController {
     if (!wallet || wallet === 'ALL') {
       throw new BadRequestException({
         success: false,
-        message: 'Tham số wallet (địa chỉ ví cụ thể) là bắt buộc.',
+        message: 'The wallet query parameter (a specific wallet address) is required.',
       });
     }
     const data = await this.pnl.getWalletPnl(wallet, parseDays(rawQuery.days, 30));
@@ -77,7 +77,7 @@ export class PortfolioController {
     if (!wallet || wallet === 'ALL') {
       throw new BadRequestException({
         success: false,
-        message: 'Tham số wallet (địa chỉ ví cụ thể) là bắt buộc.',
+        message: 'The wallet query parameter (a specific wallet address) is required.',
       });
     }
     try {
@@ -86,7 +86,7 @@ export class PortfolioController {
     } catch (err: unknown) {
       throw new InternalServerErrorException({
         success: false,
-        message: (err as Error).message || 'Lỗi truy vấn holdings',
+        message: (err as Error).message || 'Holdings query failed',
       });
     }
   }

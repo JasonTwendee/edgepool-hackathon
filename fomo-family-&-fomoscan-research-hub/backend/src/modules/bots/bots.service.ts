@@ -42,7 +42,7 @@ export class BotsService {
 
   async setMode(id: number, mode: string): Promise<unknown> {
     if (!BOT_MODES.includes(mode as (typeof BOT_MODES)[number])) {
-      fail(`Mode không hợp lệ: ${mode}. Cho phép: ${BOT_MODES.join(',')}.`);
+      fail(`Invalid mode: ${mode}. Allowed: ${BOT_MODES.join(',')}.`);
     }
     const existing = await this.prisma.bot.findUnique({ where: { id } });
     if (!existing) notFound(`Bot ${id} not found.`);

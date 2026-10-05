@@ -164,7 +164,7 @@ export class SolanaOnChainListenerService {
       new PublicKey(wallet.address);
       this.trackedWallets.set(wallet.address, wallet);
     } catch {
-      throw new Error(`Địa chỉ ví Solana không hợp lệ: ${wallet.address}`);
+      throw new Error(`Invalid Solana wallet address: ${wallet.address}`);
     }
   }
 

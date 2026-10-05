@@ -39,7 +39,7 @@ export class UsersService {
     try {
       decodeWalletAddress(trimmed);
     } catch {
-      fail(`Địa chỉ ví Solana không hợp lệ: ${wallet}`);
+      fail(`Invalid Solana wallet address: ${wallet}`);
     }
     return trimmed;
   }
@@ -66,14 +66,14 @@ export class UsersService {
    */
   async setRole(identity: string, role: string): Promise<FundIdentity> {
     if (!USER_ROLES.includes(role as (typeof USER_ROLES)[number])) {
-      fail(`Role không hợp lệ: ${role}. Cho phép: ${USER_ROLES.join(',')}.`);
+      fail(`Invalid role: ${role}. Allowed: ${USER_ROLES.join(',')}.`);
     }
     const clean = (identity ?? '').trim();
     let existing = clean ? await this.prisma.user.findUnique({ where: { wallet: clean } }) : null;
     if (!existing && clean) {
       existing = await this.prisma.user.findUnique({ where: { username: clean } });
     }
-    if (!existing) notFound(`User không tồn tại: ${clean}.`);
+    if (!existing) notFound(`User not found: ${clean}.`);
     const updated = await this.prisma.user.update({ where: { id: existing.id }, data: { role } });
     return toIdentity(updated);
   }
