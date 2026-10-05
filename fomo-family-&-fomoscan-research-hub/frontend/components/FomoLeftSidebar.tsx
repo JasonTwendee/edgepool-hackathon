@@ -56,9 +56,11 @@ export function FomoLeftSidebar({
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [compact, setCompact] = useState(false);
 
-  const sorted = [...wallets].sort(
-    (a, b) => (displayPnl(b, pnlMap).value ?? 0) - (displayPnl(a, pnlMap).value ?? 0),
-  );
+  const sorted = [...wallets]
+    .filter((w) => w.isActive !== false)
+    .sort(
+      (a, b) => (displayPnl(b, pnlMap).value ?? 0) - (displayPnl(a, pnlMap).value ?? 0),
+    );
   const selectedRank = selectedAddress ? sorted.findIndex((w) => w.address === selectedAddress) : -1;
   const selectedShown = selectedAddress ? sorted[selectedRank] : undefined;
   const selectedPnl = selectedShown ? displayPnl(selectedShown, pnlMap) : undefined;
