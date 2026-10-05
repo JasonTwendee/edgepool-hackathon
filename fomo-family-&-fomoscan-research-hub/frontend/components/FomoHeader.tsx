@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { MagnifyingGlass, SignOut, SlidersHorizontal } from '@phosphor-icons/react';
 import type { TrackedWallet } from '../types/onchain';
 import type { WalletPnl } from '../lib/api';
+import type { FundSession } from '../types/fund';
 import { formatUsd } from '../lib/format';
 import { WalletAvatar } from './WalletAvatar';
 
@@ -16,13 +17,36 @@ interface Props {
   /** Live-trade alert bell (wired by parent). */
   bell: React.ReactNode;
   liveConnected: boolean;
+  /** Session menu on the avatar (login wall guarantees non-null when visible). */
+  session: FundSession | null;
+  isAdmin: boolean;
+  showAdmin: boolean;
+  onToggleAdmin: () => void;
+  onLogout: () => void;
 }
 
-export function FomoHeader({ wallets, pnlMap, onSelectWallet, cryptoValueUsd, bell, liveConnected }: Props) {
+export function FomoHeader({
+  wallets,
+  pnlMap,
+  onSelectWallet,
+  cryptoValueUsd,
+  bell,
+  liveConnected,
+  session,
+  isAdmin,
+  showAdmin,
+  onToggleAdmin,
+  onLogout,
+}: Props) {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const identity = session
+    ? (session.user.username ? `@${session.user.username}` : `${session.user.wallet.slice(0, 6)}…${session.user.wallet.slice(-4)}`)
+    : null;
 
   // Global "/" focuses search (DESIGN.md §7.2).
   useEffect(() => {
@@ -40,6 +64,7 @@ export function FomoHeader({ wallets, pnlMap, onSelectWallet, cryptoValueUsd, be
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setFocused(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
@@ -159,12 +184,54 @@ export function FomoHeader({ wallets, pnlMap, onSelectWallet, cryptoValueUsd, be
           <div className="text-xs font-mono font-bold text-[#E9E9ED]">{cryptoValueUsd === null ? '—' : formatUsd(cryptoValueUsd)}</div>
           <div className="text-[10px] font-mono text-[#75798C]">tracked</div>
         </div>
-        <img
-          src="/brand/edgepool-avatar.svg"
-          alt="Demo account"
-          title="Demo account"
-          className="w-8 h-8 rounded-full cursor-pointer"
-        />
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            title={identity ?? 'Account'}
+            className="flex items-center gap-1.5 rounded-full hover:opacity-80 transition-opacity"
+          >
+            <img
+              src="/brand/edgepool-avatar.svg"
+              alt="Account"
+              className="w-8 h-8 rounded-full cursor-pointer"
+            />
+            {session && (
+              <span className="hidden md:block text-[10px] font-bold tracking-widest text-[#49E6D7]">
+                {session.user.role}
+              </span>
+            )}
+          </button>
+          {menuOpen && session && (
+            <div className="absolute right-0 top-10 w-56 rounded-lg bg-[#232532] border border-[#3F424D] shadow-2xl shadow-black/60 p-2 z-50 space-y-1">
+              <div className="px-2.5 py-2 border-b border-[#3F424D]">
+                <div className="text-xs font-mono font-bold text-[#E9E9ED] truncate" title={session.user.wallet}>
+                  {identity}
+                </div>
+                <div className="text-[10px] font-bold tracking-widest text-[#49E6D7]">{session.user.role}</div>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    onToggleAdmin();
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-[#A7AABF] hover:text-[#E9E9ED] hover:bg-[#161826] transition-colors text-left"
+                >
+                  <SlidersHorizontal size={14} /> {showAdmin ? 'Hide admin console' : 'Admin console'}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-[#A7AABF] hover:text-[#E9E9ED] hover:bg-[#161826] transition-colors text-left"
+              >
+                <SignOut size={14} /> Log out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

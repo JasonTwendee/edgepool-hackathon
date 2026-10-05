@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import type { OnChainTransactionEvent, TrackedWallet } from '../types/onchain';
 import {
   addWallet,
+  clearSession,
   getAuthMe,
   getHoldings,
   getPnlOverview,
   getStoredToken,
   getWalletPnl,
   listWallets,
+  logout as logoutRequest,
   removeWallet,
   updateWalletCopy,
   type SwapAction,
@@ -18,7 +20,6 @@ import {
 } from '../lib/api';
 import type { FundSession } from '../types/fund';
 import { AdminPanel } from '../components/AdminPanel';
-import { AuthPanel } from '../components/AuthPanel';
 import { LoginModal } from '../components/LoginModal';
 import { DemoBanner } from '../components/DemoBanner';
 import { useOnchainStream } from '../hooks/useOnchainStream';
@@ -57,9 +58,8 @@ export default function HomePage() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [showRight, setShowRight] = useState(true);
   const [showTicker, setShowTicker] = useState(true);
-  // Fund login/admin visible by default so login-logout-session is discoverable;
-  // user can collapse via the toggle button.
-  const [showFund, setShowFund] = useState(true);
+  // Admin console (ADMIN only) toggled from the header avatar menu.
+  const [showFund, setShowFund] = useState(false);
   const [session, setSession] = useState<FundSession | null>(null);
   // Gate is strict: no session = no app. Checked flag avoids flashing the
   // modal while a stored token is being validated against BE.
@@ -77,6 +77,17 @@ export default function HomePage() {
       .catch(() => setSession(null))
       .finally(() => setSessionChecked(true));
   }, []);
+
+  async function handleLogout() {
+    try {
+      await logoutRequest(session?.token);
+    } catch {
+      // BE logout is best-effort; always clear the local copy.
+    }
+    clearSession();
+    setSession(null);
+    setShowFund(false);
+  }
 
   const days = rangeDays(range);
   const action = tabToAction(swapsTab);
@@ -360,6 +371,11 @@ export default function HomePage() {
         onSelectWallet={setSelectedAddress}
         cryptoValueUsd={holdings?.totalValueUsd ?? null}
         liveConnected={liveConnected}
+        session={session}
+        isAdmin={isAdmin}
+        showAdmin={showFund}
+        onToggleAdmin={() => setShowFund((v) => !v)}
+        onLogout={() => void handleLogout()}
         bell={
           <NotificationsBell
             notifications={notifications}
@@ -389,21 +405,7 @@ export default function HomePage() {
 
         <main className="flex-1 min-w-0 lg:h-full lg:overflow-y-auto scrollbar-thin">
           <div className="p-5 space-y-4 max-w-7xl w-full mx-auto">
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowFund((v) => !v)}
-                className="text-[11px] font-bold text-[#A7AABF] hover:text-[#E9E9ED] border border-[#3F424D] rounded-lg px-2.5 py-1.5"
-              >
-                {showFund ? 'Hide fund admin' : 'Fund login / admin'}
-                {session ? ` · ${session.user.role}` : ''}
-              </button>
-            </div>
-            {showFund && (
-              <div className="grid gap-4 lg:grid-cols-2">
-                <AuthPanel session={session} onSession={setSession} />
-                <AdminPanel session={session} />
-              </div>
-            )}
+            {isAdmin && showFund && <AdminPanel session={session} />}
             {walletsError && (
               <div className="text-xs text-[#F28881] bg-[rgba(242,136,129,0.08)] border border-[#F28881]/30 rounded-lg px-3 py-2">
                 {walletsError}
