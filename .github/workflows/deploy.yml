@@ -5,7 +5,9 @@ name: deploy
 # Setup (one time, on the server): see scripts/setup-server.sh + docs below.
 
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -15,6 +17,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Only auto-deploy green CI; manual runs always allowed.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, edgepool]
     defaults:
       run:
