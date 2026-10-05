@@ -1,5 +1,4 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
-import { PublicKey } from '@solana/web3.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
   DEFAULT_TRACKED_WALLETS,
@@ -10,7 +9,6 @@ import {
   toTrackedWallet,
   type TrackedWallet,
 } from './entities/tracked-wallet.entity.js';
-import type { CreateWalletDto } from './dto/create-wallet.dto.js';
 import type { UpdateWalletDto } from './dto/update-wallet.dto.js';
 import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 
@@ -58,56 +56,6 @@ export class WalletsService implements OnModuleInit {
   async findByAddress(address: string): Promise<TrackedWallet | null> {
     const e = await this.prisma.trackedWallet.findUnique({ where: { address } });
     return e ? toTrackedWallet(e) : null;
-  }
-
-  async create(dto: CreateWalletDto): Promise<TrackedWallet> {
-    if (!dto.address || typeof dto.address !== 'string') {
-      throw new BadRequestException({
-        success: false,
-        message: 'A Solana wallet address is required.',
-      });
-    }
-    const address = dto.address.trim();
-    try {
-      new PublicKey(address);
-    } catch {
-      throw new BadRequestException({
-        success: false,
-        message: `Invalid Solana wallet address: ${address}`,
-      });
-    }
-    // upsert keeps the old Map.set semantics (overwrite on duplicate address)
-    const saved = await this.prisma.trackedWallet.upsert({
-      where: { address },
-      update: {
-        label: dto.label || 'Custom Trader',
-        handle: dto.handle || address.slice(0, 6),
-        allocationWeight: dto.allocationWeight ?? 1.0,
-        isActive: true,
-      },
-      create: {
-        address,
-        label: dto.label || 'Custom Trader',
-        handle: dto.handle || address.slice(0, 6),
-        allocationWeight: dto.allocationWeight ?? 1.0,
-        isActive: true,
-        totalTradesCount: 0,
-        // No fake defaults: PnL/winRate stay null until real pairs are computed.
-        cumulativePnlUsd: null,
-        winRate: null,
-      },
-    });
-    const result = toTrackedWallet(saved);
-    this.solana.addTrackedWallet(result);
-    await this.stream.watch(address);
-    return result;
-  }
-
-  async remove(address: string): Promise<boolean> {
-    const result = await this.prisma.trackedWallet.deleteMany({ where: { address } });
-    this.solana.removeTrackedWallet(address);
-    await this.stream.unwatch(address);
-    return result.count > 0;
   }
 
   async updateCopyConfig(address: string, dto: UpdateWalletDto): Promise<boolean> {

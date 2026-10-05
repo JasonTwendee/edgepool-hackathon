@@ -1,0 +1,151 @@
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service.js';
+import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
+
+/**
+ * Leaderboard rotation (fomoscan topic): tracked wallets follow the verified
+ * FomoScan leaderboard instead of manual add/remove.
+ * - Top N (LEADERBOARD_TOP_N=20) → ACTIVE (create/reactivate, best-effort enrich).
+ * - Active wallets outside top N → isActive=false. History + orders are KEPT.
+ * - Total rows past LEADERBOARD_CAP=50 → oldest INACTIVE pruned (cascade tx).
+ * - Cash-out rule: no forced exit. Dropped wallets stop syncing (no fresh
+ *   signals); open positions stay managed to natural close via manage tick.
+ * Manual tick() doubles as the ADMIN test hook; the interval loop is the
+ * production path (LEADERBOARD_SYNC_INTERVAL_MS, default 24h, `0` = manual only).
+ */
+export const DEFAULT_TOP_N = 20;
+export const DEFAULT_CAP = 50;
+export const DEFAULT_PERIOD = 'weekly';
+export const DEFAULT_INTERVAL_MS = 86400000;
+
+export interface RotationSummary {
+  period: string;
+  topN: number;
+  cap: number;
+  added: number;
+  reactivated: number;
+  deactivated: number;
+  pruned: number;
+  total: number;
+  active: number;
+  at: string;
+}
+
+function intEnv(name: string, fallback: number): number {
+  const v = Number(process.env[name]);
+  return Number.isInteger(v) && v >= 0 ? v : fallback;
+}
+
+@Injectable()
+export class LeaderboardService implements OnModuleInit {
+  private timer?: NodeJS.Timeout;
+
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(FomoscanService) private readonly fomoscan: FomoscanService,
+  ) {}
+
+  onModuleInit(): void {
+    const ms = Number(process.env.LEADERBOARD_SYNC_INTERVAL_MS ?? DEFAULT_INTERVAL_MS);
+    if (!Number.isFinite(ms) || ms <= 0) return;
+    this.timer = setInterval(() => {
+      void this.tick().catch((e: unknown) => {
+        console.warn('[leaderboard] loop tick failed:', (e as Error).message);
+      });
+    }, ms);
+    this.timer.unref?.();
+  }
+
+  async status(): Promise<{ period: string; topN: number; cap: number; total: number; active: number }> {
+    const [total, active] = await Promise.all([
+      this.prisma.trackedWallet.count(),
+      this.prisma.trackedWallet.count({ where: { isActive: true } }),
+    ]);
+    return {
+      period: process.env.LEADERBOARD_PERIOD || DEFAULT_PERIOD,
+      topN: intEnv('LEADERBOARD_TOP_N', DEFAULT_TOP_N),
+      cap: intEnv('LEADERBOARD_CAP', DEFAULT_CAP),
+      total,
+      active,
+    };
+  }
+
+  async tick(): Promise<RotationSummary> {
+    const period = process.env.LEADERBOARD_PERIOD || DEFAULT_PERIOD;
+    const topN = Math.max(intEnv('LEADERBOARD_TOP_N', DEFAULT_TOP_N), 1);
+    const cap = Math.max(intEnv('LEADERBOARD_CAP', DEFAULT_CAP), topN);
+    const lb = await this.fomoscan.leaderboard(cap, period as 'daily' | 'weekly' | 'monthly');
+    const top = lb.entries.slice(0, topN);
+    const topSet = new Set(top.map((e) => e.wallet));
+
+    let added = 0;
+    let reactivated = 0;
+    for (const e of top) {
+      const existing = await this.prisma.trackedWallet.findUnique({ where: { address: e.wallet } });
+      if (!existing) {
+        await this.prisma.trackedWallet.create({
+          data: {
+            address: e.wallet,
+            label: e.username,
+            handle: e.username,
+            allocationWeight: 1.0,
+            isActive: true,
+            totalTradesCount: 0,
+          },
+        });
+        added++;
+      } else if (!existing.isActive) {
+        await this.prisma.trackedWallet.update({
+          where: { address: e.wallet },
+          data: { isActive: true, label: e.username, handle: e.username },
+        });
+        reactivated++;
+      }
+      // Best-effort enrich (unknown wallets simply stay unenriched).
+      try {
+        const idn = await this.fomoscan.lookupWallet(e.wallet);
+        await this.prisma.trackedWallet.update({
+          where: { address: e.wallet },
+          data: {
+            avatarUrl: idn.profilePicture ?? undefined,
+            bio: idn.bio ?? undefined,
+            evmAddress: idn.evmAddress ?? undefined,
+          },
+        });
+      } catch {
+        // enrich is cosmetic — rotation must not fail on it.
+      }
+    }
+
+    let deactivated = 0;
+    const actives = await this.prisma.trackedWallet.findMany({ where: { isActive: true } });
+    for (const w of actives) {
+      if (!topSet.has(w.address)) {
+        await this.prisma.trackedWallet.update({ where: { address: w.address }, data: { isActive: false } });
+        deactivated++;
+      }
+    }
+
+    let pruned = 0;
+    const total = await this.prisma.trackedWallet.count();
+    if (total > cap) {
+      const victims = await this.prisma.trackedWallet.findMany({
+        where: { isActive: false },
+        orderBy: { id: 'asc' },
+        take: total - cap,
+      });
+      if (victims.length > 0) {
+        const gone = await this.prisma.trackedWallet.deleteMany({
+          where: { id: { in: victims.map((v) => v.id) } },
+        });
+        pruned = gone.count;
+      }
+    }
+
+    const [finalTotal, finalActive] = await Promise.all([
+      this.prisma.trackedWallet.count(),
+      this.prisma.trackedWallet.count({ where: { isActive: true } }),
+    ]);
+    return { period, topN, cap, added, reactivated, deactivated, pruned, total: finalTotal, active: finalActive, at: new Date().toISOString() };
+  }
+}
