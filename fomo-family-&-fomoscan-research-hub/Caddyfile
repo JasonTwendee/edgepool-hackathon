@@ -1,0 +1,11 @@
+# Caddy reverse proxy (prod). Single public entry → FE :3001.
+# /api/* is proxied server-side by Next rewrites to BE :3000 — BE is never public.
+#
+# LAN/Tailscale only (default): plain HTTP :80.
+#   SITE env not set → serves :80.
+# Public domain (auto HTTPS): export SITE=demo.edgepool.xyz before `up -d`
+#   (needs DNS A → server IP + ports 80/443 reachable).
+
+{$SITE::80} {
+	reverse_proxy frontend:3001
+}

@@ -1,0 +1,36 @@
+name: deploy
+
+# CD for main: runs ON the company Ubuntu box via a self-hosted runner
+# (works behind company NAT — runner dials OUT to GitHub, no inbound SSH needed).
+# Setup (one time, on the server): see scripts/setup-server.sh + docs below.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, edgepool]
+    defaults:
+      run:
+        working-directory: /opt/edgepool/hackathon-solana/fomo-family-&-fomoscan-research-hub
+    steps:
+      - name: Update code
+        working-directory: /opt/edgepool/hackathon-solana
+        run: git pull --ff-only origin main
+
+      - name: Rebuild + restart (prod overlay)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml build backend frontend
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+      - name: Smoke (fail deploy on red)
+        run: |
+          sleep 10
+          curl -sf http://localhost:3000/api/health | head -c 120; echo
+          curl -sf -o /dev/null -w 'FE :3001 %{http_code}\n' http://localhost:3001/
