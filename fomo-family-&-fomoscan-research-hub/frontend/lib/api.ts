@@ -199,11 +199,26 @@ export interface PoolSummary {
   maxTraders: number;
   traders: { wallet: string; handle: string; rank: number | null }[];
   pnl: Record<'day' | 'week' | 'month' | 'all', { sol: number; pct: number }>;
-  myHolding?: { shares: number; valueSol: number; returnsSol: number };
+  myHolding?: { shares: number; valueSol: number; returnsSol: number } | null;
 }
 
 export function listPools(): Promise<{ success: boolean; total: number; data: PoolSummary[] }> {
   return fetchJson('/api/vaults/pools');
+}
+
+export interface PoolDetail extends PoolSummary {
+  navSeries: { t: number; v: number }[];
+  openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null }[];
+  openCount: number;
+  signals: { token: string; trader: string; ageSec: number; note: string; steps: { label: string; state: string }[] }[];
+  log: { at: string; token: string; trader: string; event: string; detail: string; kind: string }[];
+  exposure: { trader: string; pctNav: number; pnlSol: number }[];
+  myHolding: VaultMine | null;
+  masked: boolean;
+}
+
+export function getPoolDetail(id: number): Promise<{ success: boolean; data: PoolDetail }> {
+  return fetchJson(`/api/vaults/${id}/pool`);
 }
 
 export function queueVaultDeposit(input: {
