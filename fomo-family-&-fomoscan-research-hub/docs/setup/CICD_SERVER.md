@@ -123,6 +123,9 @@ curl -s --max-time 30 "https://edgepool-dev.tailec308e.ts.net/api/vaults/pools" 
 2. CẤM `docker compose down -v` trên server (xóa volume `fomo-postgres-data`
    = mất DB). `down` thường thì giữ data.
 3. Rsync từng im lặng drop file (2 lần) → luôn grep-verify sau rsync.
+   Runner auto-deploy có thể chạy đè SAU rsync tay (queue `deploy-main`
+   không cancel) → sau rsync luôn check mtime/content trên server
+   (đã gặp 1 lần 2026-10-06: file server cũ hơn local sau RSYNC_OK).
 4. Boot sync: mỗi restart BE chạy lại boot sync — gom fix thành 1 deploy duy nhất.
 5. Funnel URL cố định (`edgepool-dev…`); trycloudflare ephemeral đã bỏ.
 6. FomoScan sponsor plan: batch PnL POST 403 với >1 handle → dùng single GETs
