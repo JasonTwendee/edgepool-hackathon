@@ -42,6 +42,7 @@ export type UserMinAggregateOutputType = {
   passwordHash: string | null
   role: string | null
   payoutWallet: string | null
+  payoutWalletVerifiedAt: Date | null
   createdAt: Date | null
 }
 
@@ -53,6 +54,7 @@ export type UserMaxAggregateOutputType = {
   passwordHash: string | null
   role: string | null
   payoutWallet: string | null
+  payoutWalletVerifiedAt: Date | null
   createdAt: Date | null
 }
 
@@ -64,6 +66,7 @@ export type UserCountAggregateOutputType = {
   passwordHash: number
   role: number
   payoutWallet: number
+  payoutWalletVerifiedAt: number
   createdAt: number
   _all: number
 }
@@ -85,6 +88,7 @@ export type UserMinAggregateInputType = {
   passwordHash?: true
   role?: true
   payoutWallet?: true
+  payoutWalletVerifiedAt?: true
   createdAt?: true
 }
 
@@ -96,6 +100,7 @@ export type UserMaxAggregateInputType = {
   passwordHash?: true
   role?: true
   payoutWallet?: true
+  payoutWalletVerifiedAt?: true
   createdAt?: true
 }
 
@@ -107,6 +112,7 @@ export type UserCountAggregateInputType = {
   passwordHash?: true
   role?: true
   payoutWallet?: true
+  payoutWalletVerifiedAt?: true
   createdAt?: true
   _all?: true
 }
@@ -205,6 +211,7 @@ export type UserGroupByOutputType = {
   passwordHash: string | null
   role: string
   payoutWallet: string | null
+  payoutWalletVerifiedAt: Date | null
   createdAt: Date
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
@@ -239,11 +246,13 @@ export type UserWhereInput = {
   passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
   payoutWallet?: Prisma.StringNullableFilter<"User"> | string | null
+  payoutWalletVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   sessions?: Prisma.SessionListRelationFilter
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   ownedVaults?: Prisma.VaultListRelationFilter
+  payoutChallenges?: Prisma.PayoutWalletChallengeListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -254,11 +263,13 @@ export type UserOrderByWithRelationInput = {
   passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   payoutWallet?: Prisma.SortOrderInput | Prisma.SortOrder
+  payoutWalletVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   deposits?: Prisma.DepositOrderByRelationAggregateInput
   withdrawals?: Prisma.WithdrawalOrderByRelationAggregateInput
   ownedVaults?: Prisma.VaultOrderByRelationAggregateInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -272,11 +283,13 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.StringFilter<"User"> | string
   payoutWallet?: Prisma.StringNullableFilter<"User"> | string | null
+  payoutWalletVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   sessions?: Prisma.SessionListRelationFilter
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   ownedVaults?: Prisma.VaultListRelationFilter
+  payoutChallenges?: Prisma.PayoutWalletChallengeListRelationFilter
 }, "id" | "wallet" | "username" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -287,6 +300,7 @@ export type UserOrderByWithAggregationInput = {
   passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   payoutWallet?: Prisma.SortOrderInput | Prisma.SortOrder
+  payoutWalletVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
@@ -306,6 +320,7 @@ export type UserScalarWhereWithAggregatesInput = {
   passwordHash?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
   payoutWallet?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  payoutWalletVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
@@ -316,11 +331,13 @@ export type UserCreateInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -331,11 +348,13 @@ export type UserUncheckedCreateInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -345,11 +364,13 @@ export type UserUpdateInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -360,11 +381,13 @@ export type UserUncheckedUpdateInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -375,6 +398,7 @@ export type UserCreateManyInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
 }
 
@@ -385,6 +409,7 @@ export type UserUpdateManyMutationInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -396,6 +421,7 @@ export type UserUncheckedUpdateManyInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -412,6 +438,7 @@ export type UserCountOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   payoutWallet?: Prisma.SortOrder
+  payoutWalletVerifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -427,6 +454,7 @@ export type UserMaxOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   payoutWallet?: Prisma.SortOrder
+  payoutWalletVerifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -438,6 +466,7 @@ export type UserMinOrderByAggregateInput = {
   passwordHash?: Prisma.SortOrder
   role?: Prisma.SortOrder
   payoutWallet?: Prisma.SortOrder
+  payoutWalletVerifiedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -498,6 +527,20 @@ export type UserUpdateOneWithoutWithdrawalsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutWithdrawalsInput, Prisma.UserUpdateWithoutWithdrawalsInput>, Prisma.UserUncheckedUpdateWithoutWithdrawalsInput>
 }
 
+export type UserCreateNestedOneWithoutPayoutChallengesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPayoutChallengesInput, Prisma.UserUncheckedCreateWithoutPayoutChallengesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPayoutChallengesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutPayoutChallengesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPayoutChallengesInput, Prisma.UserUncheckedCreateWithoutPayoutChallengesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPayoutChallengesInput
+  upsert?: Prisma.UserUpsertWithoutPayoutChallengesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPayoutChallengesInput, Prisma.UserUpdateWithoutPayoutChallengesInput>, Prisma.UserUncheckedUpdateWithoutPayoutChallengesInput>
+}
+
 export type UserCreateNestedOneWithoutSessionsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutSessionsInput, Prisma.UserUncheckedCreateWithoutSessionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutSessionsInput
@@ -519,10 +562,12 @@ export type UserCreateWithoutOwnedVaultsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOwnedVaultsInput = {
@@ -533,10 +578,12 @@ export type UserUncheckedCreateWithoutOwnedVaultsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOwnedVaultsInput = {
@@ -562,10 +609,12 @@ export type UserUpdateWithoutOwnedVaultsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOwnedVaultsInput = {
@@ -576,10 +625,12 @@ export type UserUncheckedUpdateWithoutOwnedVaultsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDepositsInput = {
@@ -589,10 +640,12 @@ export type UserCreateWithoutDepositsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDepositsInput = {
@@ -603,10 +656,12 @@ export type UserUncheckedCreateWithoutDepositsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDepositsInput = {
@@ -632,10 +687,12 @@ export type UserUpdateWithoutDepositsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDepositsInput = {
@@ -646,10 +703,12 @@ export type UserUncheckedUpdateWithoutDepositsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutWithdrawalsInput = {
@@ -659,10 +718,12 @@ export type UserCreateWithoutWithdrawalsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutWithdrawalsInput = {
@@ -673,10 +734,12 @@ export type UserUncheckedCreateWithoutWithdrawalsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutWithdrawalsInput = {
@@ -702,10 +765,12 @@ export type UserUpdateWithoutWithdrawalsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWithdrawalsInput = {
@@ -716,9 +781,89 @@ export type UserUncheckedUpdateWithoutWithdrawalsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
+  ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutPayoutChallengesInput = {
+  wallet: string
+  username?: string | null
+  email?: string | null
+  passwordHash?: string | null
+  role?: string
+  payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
+  createdAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
+  withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
+  ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+}
+
+export type UserUncheckedCreateWithoutPayoutChallengesInput = {
+  id?: number
+  wallet: string
+  username?: string | null
+  email?: string | null
+  passwordHash?: string | null
+  role?: string
+  payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
+  createdAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
+  withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
+  ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+}
+
+export type UserCreateOrConnectWithoutPayoutChallengesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPayoutChallengesInput, Prisma.UserUncheckedCreateWithoutPayoutChallengesInput>
+}
+
+export type UserUpsertWithoutPayoutChallengesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPayoutChallengesInput, Prisma.UserUncheckedUpdateWithoutPayoutChallengesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPayoutChallengesInput, Prisma.UserUncheckedCreateWithoutPayoutChallengesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPayoutChallengesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPayoutChallengesInput, Prisma.UserUncheckedUpdateWithoutPayoutChallengesInput>
+}
+
+export type UserUpdateWithoutPayoutChallengesInput = {
+  wallet?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
+  withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
+  ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPayoutChallengesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  wallet?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
+  withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
 }
 
@@ -729,10 +874,12 @@ export type UserCreateWithoutSessionsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -743,10 +890,12 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   passwordHash?: string | null
   role?: string
   payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
   createdAt?: Date | string
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -772,10 +921,12 @@ export type UserUpdateWithoutSessionsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -786,10 +937,12 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -802,6 +955,7 @@ export type UserCountOutputType = {
   deposits: number
   withdrawals: number
   ownedVaults: number
+  payoutChallenges: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -809,6 +963,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   deposits?: boolean | UserCountOutputTypeCountDepositsArgs
   withdrawals?: boolean | UserCountOutputTypeCountWithdrawalsArgs
   ownedVaults?: boolean | UserCountOutputTypeCountOwnedVaultsArgs
+  payoutChallenges?: boolean | UserCountOutputTypeCountPayoutChallengesArgs
 }
 
 /**
@@ -849,6 +1004,13 @@ export type UserCountOutputTypeCountOwnedVaultsArgs<ExtArgs extends runtime.Type
   where?: Prisma.VaultWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPayoutChallengesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PayoutWalletChallengeWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -858,11 +1020,13 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   passwordHash?: boolean
   role?: boolean
   payoutWallet?: boolean
+  payoutWalletVerifiedAt?: boolean
   createdAt?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   deposits?: boolean | Prisma.User$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.User$withdrawalsArgs<ExtArgs>
   ownedVaults?: boolean | Prisma.User$ownedVaultsArgs<ExtArgs>
+  payoutChallenges?: boolean | Prisma.User$payoutChallengesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -874,6 +1038,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   role?: boolean
   payoutWallet?: boolean
+  payoutWalletVerifiedAt?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
 
@@ -885,6 +1050,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   passwordHash?: boolean
   role?: boolean
   payoutWallet?: boolean
+  payoutWalletVerifiedAt?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
 
@@ -896,15 +1062,17 @@ export type UserSelectScalar = {
   passwordHash?: boolean
   role?: boolean
   payoutWallet?: boolean
+  payoutWalletVerifiedAt?: boolean
   createdAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "wallet" | "username" | "email" | "passwordHash" | "role" | "payoutWallet" | "createdAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "wallet" | "username" | "email" | "passwordHash" | "role" | "payoutWallet" | "payoutWalletVerifiedAt" | "createdAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   deposits?: boolean | Prisma.User$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.User$withdrawalsArgs<ExtArgs>
   ownedVaults?: boolean | Prisma.User$ownedVaultsArgs<ExtArgs>
+  payoutChallenges?: boolean | Prisma.User$payoutChallengesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -917,6 +1085,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     deposits: Prisma.$DepositPayload<ExtArgs>[]
     withdrawals: Prisma.$WithdrawalPayload<ExtArgs>[]
     ownedVaults: Prisma.$VaultPayload<ExtArgs>[]
+    payoutChallenges: Prisma.$PayoutWalletChallengePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -926,6 +1095,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     passwordHash: string | null
     role: string
     payoutWallet: string | null
+    payoutWalletVerifiedAt: Date | null
     createdAt: Date
   }, ExtArgs["result"]["user"]>
   composites: {}
@@ -1325,6 +1495,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   deposits<T extends Prisma.User$depositsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$depositsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DepositPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   withdrawals<T extends Prisma.User$withdrawalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$withdrawalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WithdrawalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ownedVaults<T extends Prisma.User$ownedVaultsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedVaultsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VaultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  payoutChallenges<T extends Prisma.User$payoutChallengesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$payoutChallengesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PayoutWalletChallengePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1361,6 +1532,7 @@ export interface UserFieldRefs {
   readonly passwordHash: Prisma.FieldRef<"User", 'String'>
   readonly role: Prisma.FieldRef<"User", 'String'>
   readonly payoutWallet: Prisma.FieldRef<"User", 'String'>
+  readonly payoutWalletVerifiedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
@@ -1848,6 +2020,30 @@ export type User$ownedVaultsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.VaultScalarFieldEnum | Prisma.VaultScalarFieldEnum[]
+}
+
+/**
+ * User.payoutChallenges
+ */
+export type User$payoutChallengesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PayoutWalletChallenge
+   */
+  select?: Prisma.PayoutWalletChallengeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PayoutWalletChallenge
+   */
+  omit?: Prisma.PayoutWalletChallengeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PayoutWalletChallengeInclude<ExtArgs> | null
+  where?: Prisma.PayoutWalletChallengeWhereInput
+  orderBy?: Prisma.PayoutWalletChallengeOrderByWithRelationInput | Prisma.PayoutWalletChallengeOrderByWithRelationInput[]
+  cursor?: Prisma.PayoutWalletChallengeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PayoutWalletChallengeScalarFieldEnum | Prisma.PayoutWalletChallengeScalarFieldEnum[]
 }
 
 /**

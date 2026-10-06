@@ -64,6 +64,9 @@ export const MAX_VAULT_TRADERS = 5;
  */
 export const PARTNER_FEE_SHARE = 0.75;
 
+/** Basket pools split the 20% fee 10/10 → partner share of the FEE is 50%. */
+export const BASKET_FEE_SHARE = 0.5;
+
 const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
 const f9 = (v: number): number => Math.floor(v * 1e9) / 1e9;
 
@@ -142,10 +145,26 @@ export class VaultService {
 
   async deposit(
     vaultId: number,
-    depositor: string,
+    userOrDepositor: { id: number; wallet: string } | string,
     amountSol: number,
-    userId?: number,
+    userIdOrDisplay?: number | string,
   ): Promise<{ id: number; status: string }> {
+    // Fix #4: session identity is authoritative. Controllers pass the authed
+    // user object; the client `depositor` string is display-only and ignored.
+    // String overload stays for asserts/legacy tests only (never exposed via
+    // the guarded controller path).
+    let depositor: string;
+    let userId: number | undefined;
+    if (typeof userOrDepositor === 'string') {
+      depositor = userOrDepositor;
+      userId = typeof userIdOrDisplay === 'number' ? userIdOrDisplay : undefined;
+    } else {
+      if (!userOrDepositor || !Number.isFinite(userOrDepositor.id) || !userOrDepositor.wallet?.trim()) {
+        fail('Authentication required.');
+      }
+      depositor = userOrDepositor.wallet.trim();
+      userId = userOrDepositor.id;
+    }
     if (!depositor?.trim()) fail('Depositor is required.');
     if (!Number.isFinite(amountSol) || amountSol <= 0) fail('amountSol must be positive.');
     // Pool app P2 (pool-math.ts): minimum 0.5 SOL per deposit.
@@ -154,12 +173,15 @@ export class VaultService {
     const vault = await this.prisma.vault.findUnique({ where: { id } });
     if (!vault) fail(`Vault ${id} not found.`);
     // Slots: a full pool blocks NEW depositors; existing holders add freely.
+    // Identity-aware: holder = same userId OR same depositor string (legacy).
     const maxSlots = (vault.maxSlots as number | null) ?? 100;
-    const holders = await this.prisma.deposit.findMany({
+    const holders = (await this.prisma.deposit.findMany({
       where: { vaultId: id, status: 'SETTLED' },
-      select: { depositor: true },
-    });
-    const isHolder = holders.some((h) => h.depositor === depositor.trim());
+      select: { depositor: true, userId: true } as never,
+    }) as unknown as { depositor: string; userId: number | null }[]);
+    const isHolder = holders.some(
+      (h) => h.depositor === depositor.trim() || (userId !== undefined && h.userId === userId),
+    );
     const used = new Set(holders.map((h) => h.depositor)).size;
     if (!isHolder && used >= maxSlots) {
       fail(`Pool is full (${used}/${maxSlots} slots). Existing holders can still add.`);
@@ -186,16 +208,43 @@ export class VaultService {
     return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
   }
 
+  /** Session-scoped balance: userId OR legacy depositor==wallet rows. */
+  async depositorSharesByUser(vaultId: number, user: { id: number; wallet: string }): Promise<number> {
+    const where = { vaultId, status: 'SETTLED', OR: [{ userId: user.id }, { depositor: user.wallet }] };
+    const [ins, outs] = await Promise.all([
+      this.prisma.deposit.findMany({ where }),
+      this.prisma.withdrawal.findMany({ where }),
+    ]);
+    const minted = ins.reduce((s, r) => s + num(r.sharesMinted), 0);
+    const burned = outs.reduce((s, r) => s + num(r.sharesRequested), 0);
+    return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
+  }
+
   async requestWithdraw(
     vaultId: number,
-    depositor: string,
+    userOrDepositor: { id: number; wallet: string } | string,
     shares: number,
-    userId?: number,
+    userIdOrDisplay?: number | string,
   ): Promise<{ id: number; status: string }> {
+    let depositor: string;
+    let userId: number | undefined;
+    if (typeof userOrDepositor === 'string') {
+      depositor = userOrDepositor;
+      userId = typeof userIdOrDisplay === 'number' ? userIdOrDisplay : undefined;
+    } else {
+      if (!userOrDepositor || !Number.isFinite(userOrDepositor.id) || !userOrDepositor.wallet?.trim()) {
+        fail('Authentication required.');
+      }
+      depositor = userOrDepositor.wallet.trim();
+      userId = userOrDepositor.id;
+    }
     if (!depositor?.trim()) fail('Depositor is required.');
     if (!Number.isFinite(shares) || shares <= 0) fail('shares must be positive.');
     const { id: resolvedId } = await this.resolveVault(vaultId);
-    const balance = await this.depositorShares(resolvedId, depositor.trim());
+    const balance =
+      typeof userOrDepositor === 'string'
+        ? await this.depositorShares(resolvedId, depositor.trim())
+        : await this.depositorSharesByUser(resolvedId, userOrDepositor);
     if (shares - balance > 1e-9) {
       fail(`Insufficient shares: requested ${shares}, balance ${balance}.`);
     }
@@ -257,139 +306,182 @@ export class VaultService {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
     // P1 NAV engine: omitted navSol = mark-to-market from open positions +
-    // realized since last epoch. Explicit navSol keeps legacy/manual behavior.
+    // realized since last epoch. Explicit navSol keeps legacy/manual behavior
+    // (ADMIN-only + audited at the controller layer).
+    // NOTE: pricing inputs are resolved OUTSIDE the DB transaction so the
+    // advisory lock is never held across network (price) calls.
     if (navSol === undefined || navSol === null) {
       navSol = await this.computeNav(vaultId);
     }
     if (!Number.isFinite(navSol) || (navSol as number) < 0) fail('navSol must be non-negative.');
-    navSol = navSol as number;
-    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
-    if (!vault) fail(`Vault ${vaultId} not found.`);
-    // W gate: settle runs only inside an open window (requests still queue anytime).
-    const win = windowState(
-      new Date(vault.createdAt as unknown as string),
-      (vault.settlePeriodHours as number | null) ?? 0,
-      (vault.settleLengthMin as number | null) ?? 0,
-    );
-    if (win && !win.open) {
-      fail(`Settlement window closed — next opens at ${win.nextOpensAt}. Requests stay queued.`);
-    }
-    const totalShares = num(vault.totalShares);
-    const hwm = num(vault.hwmSharePrice);
-    const [deposits, withdrawals] = await Promise.all([
-      this.prisma.deposit.findMany({ where: { vaultId, status: 'QUEUED' }, orderBy: { id: 'asc' } }),
-      this.prisma.withdrawal.findMany({ where: { vaultId, status: 'QUEUED' }, orderBy: { id: 'asc' } }),
-    ]);
-    // Price on NAV excluding pending deposits (their cash hasn't entered yet —
-    // otherwise newcomers would inflate their own mint price).
-    const pendingIn = deposits.reduce((s, d) => s + num(d.amountSol), 0);
-    if (totalShares > 0 && navSol - pendingIn <= 0) {
-      fail('NAV below pending deposits — cannot price this epoch.');
-    }
-    let nav = navSol;
-    let price = totalShares > 0 ? Math.round(((nav - pendingIn) / totalShares) * 1e9) / 1e9 : 1;
-    let feeSol = 0;
-    if (vault.feeBps > 0 && totalShares > 0 && price > hwm) {
-      feeSol = Math.round((price - hwm) * totalShares * (vault.feeBps / 10000) * 1e9) / 1e9;
-      nav = Math.round((nav - feeSol) * 1e9) / 1e9;
-      price = Math.round(((nav - pendingIn) / totalShares) * 1e9) / 1e9;
-    }
-    const newHwm = Math.max(hwm, price);
-    let shares = totalShares;
-    const settledDeposits: { id: number; shares: number }[] = [];
-    for (const d of deposits) {
-      // Re-check balance at settle time (deposits after a withdrawal request).
-      const minted = Math.round((num(d.amountSol) / price) * 1e9) / 1e9;
-      await this.prisma.deposit.update({
-        where: { id: d.id },
-        data: { status: 'SETTLED', sharesMinted: dec(minted), sharePrice: dec(price), settledAt: new Date() },
-      });
-      shares = Math.round((shares + minted) * 1e9) / 1e9;
-      settledDeposits.push({ id: d.id, shares: minted });
-    }
-    const settledWithdrawals: { id: number; payoutSol: number }[] = [];
-    const feeBps = vault.withdrawFeeBps ?? 0;
-    let treasuryFee = 0;
-    for (const w of withdrawals) {
-      const want = num(w.sharesRequested);
-      const held = await this.depositorShares(vaultId, w.depositor);
-      const payoutShares = Math.min(want, held);
-      const gross = Math.round(payoutShares * price * 1e9) / 1e9;
-      const fee = feeBps > 0 ? Math.round(((gross * feeBps) / 10000) * 1e9) / 1e9 : 0;
-      const payout = Math.round((gross - fee) * 1e9) / 1e9;
-      treasuryFee = Math.round((treasuryFee + fee) * 1e9) / 1e9;
-      await this.prisma.withdrawal.update({
-        where: { id: w.id },
-        data: { status: 'SETTLED', sharePrice: dec(price), payoutSol: dec(payout), settledAt: new Date() },
-      });
-      shares = Math.round((shares - payoutShares) * 1e9) / 1e9;
-      settledWithdrawals.push({ id: w.id, payoutSol: payout });
-    }
-    await this.prisma.vault.update({
-      where: { id: vaultId },
-      data: {
-        totalShares: dec(shares),
-        hwmSharePrice: dec(newHwm),
-        treasurySol: dec(Math.round((num(vault.treasurySol) + treasuryFee) * 1e9) / 1e9),
-      },
-    });
-    const epoch = await this.prisma.epochCheckpoint.create({
-      data: {
-        vaultId,
-        navSol: dec(nav),
-        sharePrice: dec(price),
-        sharesOutstanding: dec(shares),
-        feeSol: dec(feeSol),
-      },
-    });
-    // Report §4 split: book partner/edgepool shares AFTER the epoch exists so
-    // payouts link to it. Runs only when a performance fee was taken.
-    const split = feeSol > 0 ? await this.bookFeeSplit(vaultId, epoch.id, feeSol) : { payouts: [], edgepoolSol: 0 };
-    if (split.edgepoolSol > 0) {
-      const cur = await this.prisma.vault.findUnique({ where: { id: vaultId } });
-      await this.prisma.vault.update({
+    const inputNav = navSol as number;
+    // Atomic settlement (fix #2+#3): every ledger write runs inside a single
+    // interactive transaction guarded by a per-vault pg advisory xact lock.
+    // Crash mid-settle → rollback → retry safe; concurrent settles serialize
+    // on the lock (no double-mint/double-burn); retry on the same NAV takes
+    // fee 0 via the HWM ratchet (idempotent retry without extra columns).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = this.prisma as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const run = async (tx: Record<string, any>): Promise<SettleResult> => {
+      if (typeof tx.$queryRaw === 'function') {
+        try {
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'vault-settle-' + vaultId}))`;
+        } catch {
+          // Mock clients in asserts have no pg — lock is a no-op there.
+        }
+      }
+      const vault = await tx.vault.findUnique({ where: { id: vaultId } });
+      if (!vault) fail(`Vault ${vaultId} not found.`);
+      // W gate: settle runs only inside an open window (requests still queue anytime).
+      const win = windowState(
+        new Date(vault.createdAt as unknown as string),
+        (vault.settlePeriodHours as number | null) ?? 0,
+        (vault.settleLengthMin as number | null) ?? 0,
+      );
+      if (win && !win.open) {
+        fail(`Settlement window closed — next opens at ${win.nextOpensAt}. Requests stay queued.`);
+      }
+      const totalShares = num(vault.totalShares);
+      const hwm = num(vault.hwmSharePrice);
+      const [deposits, withdrawals] = await Promise.all([
+        tx.deposit.findMany({ where: { vaultId, status: 'QUEUED' }, orderBy: { id: 'asc' } }),
+        tx.withdrawal.findMany({ where: { vaultId, status: 'QUEUED' }, orderBy: { id: 'asc' } }),
+      ]);
+      // Price on NAV excluding pending deposits (their cash hasn't entered yet —
+      // otherwise newcomers would inflate their own mint price).
+      const pendingIn = deposits.reduce((s: number, d: { amountSol: unknown }) => s + num(d.amountSol as never), 0);
+      if (totalShares > 0 && inputNav - pendingIn <= 0) {
+        fail('NAV below pending deposits — cannot price this epoch.');
+      }
+      let nav = inputNav;
+      let price = totalShares > 0 ? Math.round(((nav - pendingIn) / totalShares) * 1e9) / 1e9 : 1;
+      let feeSol = 0;
+      if (vault.feeBps > 0 && totalShares > 0 && price > hwm) {
+        feeSol = Math.round((price - hwm) * totalShares * (vault.feeBps / 10000) * 1e9) / 1e9;
+        nav = Math.round((nav - feeSol) * 1e9) / 1e9;
+        price = Math.round(((nav - pendingIn) / totalShares) * 1e9) / 1e9;
+      }
+      const newHwm = Math.max(hwm, price);
+      let shares = totalShares;
+      const settledDeposits: { id: number; shares: number }[] = [];
+      for (const d of deposits) {
+        // Re-check balance at settle time (deposits after a withdrawal request).
+        const minted = Math.round((num(d.amountSol) / price) * 1e9) / 1e9;
+        await tx.deposit.update({
+          where: { id: d.id },
+          data: { status: 'SETTLED', sharesMinted: dec(minted), sharePrice: dec(price), settledAt: new Date() },
+        });
+        shares = Math.round((shares + minted) * 1e9) / 1e9;
+        settledDeposits.push({ id: d.id, shares: minted });
+      }
+      const settledWithdrawals: { id: number; payoutSol: number }[] = [];
+      const feeBps = vault.withdrawFeeBps ?? 0;
+      let treasuryFee = 0;
+      for (const w of withdrawals) {
+        const want = num(w.sharesRequested);
+        // Balance inside the tx (same snapshot as the mint loop above).
+        const [ins, outs] = await Promise.all([
+          tx.deposit.findMany({ where: { vaultId, depositor: w.depositor, status: 'SETTLED' } }),
+          tx.withdrawal.findMany({ where: { vaultId, depositor: w.depositor, status: 'SETTLED' } }),
+        ]);
+        const mintedIn = ins.reduce((s: number, r: { sharesMinted: unknown }) => s + num(r.sharesMinted as never), 0);
+        const burnedOut = outs.reduce((s: number, r: { sharesRequested: unknown }) => s + num(r.sharesRequested as never), 0);
+        const held = Math.max(0, Math.round((mintedIn - burnedOut) * 1e9) / 1e9);
+        const payoutShares = Math.min(want, held);
+        const gross = Math.round(payoutShares * price * 1e9) / 1e9;
+        const fee = feeBps > 0 ? Math.round(((gross * feeBps) / 10000) * 1e9) / 1e9 : 0;
+        const payout = Math.round((gross - fee) * 1e9) / 1e9;
+        treasuryFee = Math.round((treasuryFee + fee) * 1e9) / 1e9;
+        await tx.withdrawal.update({
+          where: { id: w.id },
+          data: { status: 'SETTLED', sharePrice: dec(price), payoutSol: dec(payout), settledAt: new Date() },
+        });
+        shares = Math.round((shares - payoutShares) * 1e9) / 1e9;
+        settledWithdrawals.push({ id: w.id, payoutSol: payout });
+      }
+      await tx.vault.update({
         where: { id: vaultId },
-        data: { treasurySol: dec(r9(num(cur?.treasurySol) + split.edgepoolSol)) },
+        data: {
+          totalShares: dec(shares),
+          hwmSharePrice: dec(newHwm),
+          treasurySol: dec(Math.round((num(vault.treasurySol) + treasuryFee) * 1e9) / 1e9),
+        },
       });
-    }
-    return {
-      epochId: epoch.id,
-      navSol: nav,
-      sharePrice: price,
-      sharesOutstanding: shares,
-      feeSol,
-      partnerPayouts: split.payouts,
-      edgepoolSol: split.edgepoolSol,
-      settledDeposits,
-      settledWithdrawals,
+      const epoch = await tx.epochCheckpoint.create({
+        data: {
+          vaultId,
+          navSol: dec(nav),
+          sharePrice: dec(price),
+          sharesOutstanding: dec(shares),
+          feeSol: dec(feeSol),
+        },
+      });
+      // Report §4 split: book partner/edgepool shares AFTER the epoch exists so
+      // payouts link to it. Runs only when a performance fee was taken.
+      const split = feeSol > 0 ? await this.bookFeeSplit(vaultId, epoch.id, feeSol, tx) : { payouts: [], edgepoolSol: 0 };
+      if (split.edgepoolSol > 0) {
+        const cur = await tx.vault.findUnique({ where: { id: vaultId } });
+        await tx.vault.update({
+          where: { id: vaultId },
+          data: { treasurySol: dec(r9(num(cur?.treasurySol) + split.edgepoolSol)) },
+        });
+      }
+      return {
+        epochId: epoch.id,
+        navSol: nav,
+        sharePrice: price,
+        sharesOutstanding: shares,
+        feeSol,
+        partnerPayouts: split.payouts,
+        edgepoolSol: split.edgepoolSol,
+        settledDeposits,
+        settledWithdrawals,
+      };
     };
+    if (typeof db.$transaction === 'function') return db.$transaction(run);
+    // Test mocks without $transaction (assert-*.ts): run directly, no atomicity.
+    return run({ ...db, $queryRaw: async () => [] });
   }
 
   /**
-   * Split a performance fee per report §4: 75% pro-rata to ACTIVE partner
-   * traders (by weightBps) as ACCRUED PartnerPayout rows, 25% + rounding dust
-   * to Edgepool (returned for treasury booking). No active/weighted traders →
-   * the whole fee accrues to treasury. Conservation: payouts + edgepool == fee.
+   * Split a performance fee by pool kind (fix #5):
+   * - partner pools: 75% pro-rata to ACTIVE traders, 25% + dust to Edgepool
+   *   (15% trader / 5% Edgepool of profit).
+   * - basket (flagship) pools: 50/50 (10% trader / 10% Edgepool of profit).
+   * No active/weighted traders → whole fee accrues to treasury.
+   * Conservation: payouts + edgepool == fee.
    */
   private async bookFeeSplit(
     vaultId: number,
     epochId: number,
     feeSol: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tx?: Record<string, any>,
   ): Promise<{ payouts: { trader: string; amountSol: number }[]; edgepoolSol: number }> {
-    const traders = await this.prisma.vaultTrader.findMany({ where: { vaultId, isActive: true } });
-    const weighted = traders.filter((t) => ((t.weightBps as number | null) ?? 0) > 0);
-    const totalWeight = weighted.reduce((s, t) => s + ((t.weightBps as number | null) ?? 0), 0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = (tx ?? this.prisma) as any;
+    const vaultRow = (await db.vault.findUnique({ where: { id: vaultId } })) as { kind?: unknown } | null;
+    const kind = (((vaultRow?.kind as string | undefined) ?? 'basket') as string).toLowerCase();
+    if (kind !== 'basket' && kind !== 'partner') fail(`Unknown vault kind '${kind}'.`);
+    const share = kind === 'partner' ? PARTNER_FEE_SHARE : BASKET_FEE_SHARE;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const traders = (await db.vaultTrader.findMany({ where: { vaultId, isActive: true } })) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const weighted = traders.filter((t: any) => ((t.weightBps as number | null) ?? 0) > 0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const totalWeight = weighted.reduce((s: number, t: any) => s + ((t.weightBps as number | null) ?? 0), 0);
     if (weighted.length === 0 || totalWeight <= 0) {
       return { payouts: [], edgepoolSol: r9(feeSol) };
     }
-    const partnerPool = f9(feeSol * PARTNER_FEE_SHARE);
+    const partnerPool = f9(feeSol * share);
     const payouts: { trader: string; amountSol: number }[] = [];
     let assigned = 0;
     for (const t of weighted) {
       const amt = f9((partnerPool * (((t.weightBps as number | null) ?? 0))) / totalWeight);
       if (amt <= 0) continue;
       assigned = r9(assigned + amt);
-      const row = await this.prisma.partnerPayout.create({
+      const row = await db.partnerPayout.create({
         data: {
           vaultId,
           epochId,

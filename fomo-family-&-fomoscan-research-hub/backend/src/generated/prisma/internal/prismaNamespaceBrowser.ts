@@ -61,6 +61,7 @@ export const ModelName = {
   Withdrawal: 'Withdrawal',
   EpochCheckpoint: 'EpochCheckpoint',
   User: 'User',
+  PayoutWalletChallenge: 'PayoutWalletChallenge',
   AuthNonce: 'AuthNonce',
   Session: 'Session',
   AuditLog: 'AuditLog',
@@ -277,10 +278,24 @@ export const UserScalarFieldEnum = {
   passwordHash: 'passwordHash',
   role: 'role',
   payoutWallet: 'payoutWallet',
+  payoutWalletVerifiedAt: 'payoutWalletVerifiedAt',
   createdAt: 'createdAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const PayoutWalletChallengeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  wallet: 'wallet',
+  nonce: 'nonce',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PayoutWalletChallengeScalarFieldEnum = (typeof PayoutWalletChallengeScalarFieldEnum)[keyof typeof PayoutWalletChallengeScalarFieldEnum]
 
 
 export const AuthNonceScalarFieldEnum = {

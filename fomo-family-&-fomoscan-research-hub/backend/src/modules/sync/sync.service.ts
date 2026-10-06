@@ -1,9 +1,13 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaService } from '../../database/prisma.service.js';
 import { SYNC_INTERVAL_MS } from '../../config/solana.config.js';
 import { WalletsService } from '../wallets/wallets.service.js';
 import { PnlService } from '../portfolio/pnl.service.js';
 import { HistorySyncService } from './history-sync.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 const HISTORY_MAX_TX = 1000;
 
@@ -32,7 +36,11 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
     @Inject(HistorySyncService) private readonly history: HistorySyncService,
     @Inject(PnlService) private readonly pnl: PnlService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
+
+  /** Archive dir seam (tests override with a tmpdir). Mount as a volume for durability. */
+  public archiveDir: string = process.env.PRUNE_ARCHIVE_DIR ?? 'data/archive';
 
   onModuleInit(): void {
     // eslint-disable-next-line no-console
@@ -83,29 +91,81 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Rolling window cleanup (max once/day): drop ledger rows older than the
-   * history window so the DB never grows stale. Audit/sessions/orders/vaults
-   * are NEVER pruned — only raw chain data (re-fetchable from archive).
+   * Rolling window cleanup (max once/day). Fix 10: pruned rows are archived
+   * to JSONL + an audit row BEFORE any delete (fail-safe: archive/audit
+   * failure → zero deletes). Scope is raw chain data ONLY (transactions +
+   * realtime_events, re-fetchable from archive) — money ledger
+   * (deposits/withdrawals/epochs/payouts) and audit/sessions/orders/vaults
+   * are NEVER in prune scope. Deletes target exactly the archived row IDs
+   * (never a re-evaluated cutoff) so no unarchived row can slip through.
    */
-  private async pruneOnce(): Promise<number> {
+  async pruneOnce(): Promise<number> {
     if (Date.now() - this.lastPruneAt < 86400000) return 0;
     this.lastPruneAt = Date.now();
     const cutoff = new Date(Date.now() - HISTORY_DAYS * 86400000);
     try {
+      const [oldTx, oldEv] = await Promise.all([
+        this.prisma.transaction.findMany({ where: { blockTime: { lt: BigInt(Math.floor(cutoff.getTime() / 1000)) } } }),
+        this.prisma.realtimeEvent.findMany({ where: { broadcastedAt: { lt: cutoff } } }),
+      ]);
+      if (oldTx.length + oldEv.length === 0) return 0;
+      const day = cutoff.toISOString().slice(0, 10);
+      const txFile = await writeArchiveFile(this.archiveDir, `prune-${day}-transactions.jsonl`, oldTx);
+      const evFile = await writeArchiveFile(this.archiveDir, `prune-${day}-events.jsonl`, oldEv);
+      await this.audit.record({
+        actor: 'system:sync',
+        action: 'sync.prune_archive',
+        target: `${txFile.file},${evFile.file}`,
+        reason: `cutoff ${cutoff.toISOString()} (${HISTORY_DAYS}d): ${oldTx.length} tx + ${oldEv.length} events`,
+        metaJson: {
+          cutoff: cutoff.toISOString(),
+          historyDays: HISTORY_DAYS,
+          txCount: oldTx.length,
+          txFile: txFile.file,
+          txSha256: txFile.sha256,
+          eventCount: oldEv.length,
+          eventFile: evFile.file,
+          eventSha256: evFile.sha256,
+        },
+      });
       const [tx, ev] = await Promise.all([
-        this.prisma.transaction.deleteMany({ where: { blockTime: { lt: BigInt(Math.floor(cutoff.getTime() / 1000)) } } }),
-        this.prisma.realtimeEvent.deleteMany({ where: { broadcastedAt: { lt: cutoff } } }),
+        this.prisma.transaction.deleteMany({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          where: { signature: { in: oldTx.map((t) => (t as any).signature) } } as any,
+        }),
+        this.prisma.realtimeEvent.deleteMany({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          where: { id: { in: oldEv.map((e) => (e as any).id) } } as any,
+        }),
       ]);
       const n = tx.count + ev.count;
       if (n > 0) {
         // eslint-disable-next-line no-console
-        console.log(`[SyncScheduler] pruned ${tx.count} tx + ${ev.count} events older than ${HISTORY_DAYS}d`);
+        console.log(`[SyncScheduler] pruned ${tx.count} tx + ${ev.count} events older than ${HISTORY_DAYS}d (archived)`);
       }
       return n;
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error('[SyncScheduler] prune failed:', (err as Error).message);
+      console.error('[SyncScheduler] prune failed (no rows deleted):', (err as Error).message);
       return 0;
     }
   }
+}
+
+/** JSON-safe stringify (BigInt → string; Prisma Decimal serializes via toJSON). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const jsonLine = (row: any): string => JSON.stringify(row, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));
+
+/** Append rows as JSONL, return file + sha256 of the appended bytes. */
+export async function writeArchiveFile(
+  dir: string,
+  filename: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rows: any[],
+): Promise<{ file: string; sha256: string; count: number }> {
+  await fs.mkdir(dir, { recursive: true });
+  const body = rows.map((r) => jsonLine(r)).join('\n') + '\n';
+  await fs.appendFile(join(dir, filename), body, 'utf8');
+  const sha256 = createHash('sha256').update(body, 'utf8').digest('hex');
+  return { file: filename, sha256, count: rows.length };
 }

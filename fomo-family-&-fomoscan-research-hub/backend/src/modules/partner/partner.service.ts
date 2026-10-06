@@ -1,11 +1,17 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service.js';
-import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
+import { decodeWalletAddress, verifyEd25519Signature } from '../../common/auth/solana-verify.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { VaultService } from '../vaults/vault.service.js';
+import { AuditService } from '../audit/audit.service.js';
 
 function fail(message: string): never {
   throw new BadRequestException({ success: false, message });
+}
+
+function denied(message: string): never {
+  throw new UnauthorizedException({ success: false, message });
 }
 
 function missing(message: string): never {
@@ -33,6 +39,18 @@ export interface PartnerUser {
   role: string;
 }
 
+/** Challenge TTL for payout-wallet ownership proof (matches auth nonce TTL). */
+export const PAYOUT_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Purpose-bound payout-wallet challenge message (fix 7). Binds the payout
+ * key, the owner's login wallet, and freshness — pure, exported for asserts
+ * and FE display. Verified with the PAYOUT key over this exact message.
+ */
+export function payoutChallengeMessage(payoutWallet: string, ownerLoginWallet: string, nonce: string, expiresAt: Date): string {
+  return `Link payout wallet to Edgepool partner account\nwallet: ${payoutWallet}\nowner: ${ownerLoginWallet}\nnonce: ${nonce}\nexpires: ${expiresAt.toISOString()}`;
+}
+
 /**
  * Trader portal backend (pool app P4). Partners are KOL users whose pools are
  * assigned by ADMIN (Vault.ownerUserId). Claim is record-only in sandbox
@@ -44,6 +62,7 @@ export class PartnerService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(VaultService) private readonly vaults: VaultService,
     @Inject(DataStreamService) private readonly prices: DataStreamService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   private assertWallet(wallet: string): string {
@@ -107,6 +126,7 @@ export class PartnerService {
     return {
       handle: (row.username as string | null) ?? (row.wallet as string).slice(0, 8),
       payoutWallet: (row.payoutWallet as string | null) ?? null,
+      payoutWalletVerified: !!(row.payoutWalletVerifiedAt as unknown as Date | null),
       pools: pools.map((p) => ({ id: p.id, name: p.name, kind: p.kind, status: p.status, listing: p.listing, navSol: p.navSol })),
       fees,
       basket,
@@ -190,10 +210,46 @@ export class PartnerService {
     return { pendingSol: pending, claimableSol: r9(claimable), paidSol: r9(paid), nextCheckpointAt: next, byPool };
   }
 
-  async setPayoutWallet(user: PartnerUser, wallet: string): Promise<{ payoutWallet: string }> {
+  async setPayoutWallet(user: PartnerUser, wallet: string, signature: string): Promise<{ payoutWallet: string }> {
     const clean = this.assertWallet(wallet);
-    await this.prisma.user.update({ where: { id: user.id }, data: { payoutWallet: clean } });
+    if (!(signature ?? '').trim()) denied('Signature required. Get a challenge via POST /api/partner/payout-wallet/challenge, sign it with the payout wallet, then submit.');
+    const challenge = await this.prisma.payoutWalletChallenge.findFirst({
+      where: { userId: user.id, wallet: clean, consumedAt: null },
+      orderBy: { id: 'desc' },
+    });
+    if (!challenge || (challenge.expiresAt as unknown as Date).getTime() <= Date.now()) {
+      await this.audit
+        .record({ actor: user.wallet, action: 'partner.verify_failed', target: clean.slice(0, 44), reason: 'expired-or-missing-challenge' })
+        .catch(() => undefined);
+      denied('Challenge expired or missing. Get a new challenge first.');
+    }
+    const message = payoutChallengeMessage(clean, user.wallet, challenge.nonce as string, challenge.expiresAt as unknown as Date);
+    const ok = verifyEd25519Signature(Buffer.from(message, 'utf8'), (signature ?? '').trim(), clean);
+    if (!ok) {
+      await this.audit
+        .record({ actor: user.wallet, action: 'partner.verify_failed', target: clean.slice(0, 44), reason: 'bad-signature' })
+        .catch(() => undefined);
+      denied('Invalid signature for this payout wallet.');
+    }
+    await this.prisma.payoutWalletChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date() } });
+    // Setting a (new) wallet always re-verifies from this challenge.
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { payoutWallet: clean, payoutWalletVerifiedAt: new Date() },
+    });
+    await this.audit
+      .record({ actor: user.wallet, action: 'partner.payout_wallet_verified', target: clean.slice(0, 44) })
+      .catch(() => undefined);
     return { payoutWallet: clean };
+  }
+
+  /** Issue an ownership challenge for a payout wallet (5min TTL, single-use). */
+  async issuePayoutChallenge(user: PartnerUser, wallet: string): Promise<{ wallet: string; nonce: string; message: string; expiresAt: string }> {
+    const clean = this.assertWallet(wallet);
+    const nonce = randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + PAYOUT_CHALLENGE_TTL_MS);
+    await this.prisma.payoutWalletChallenge.create({ data: { userId: user.id, wallet: clean, nonce, expiresAt } });
+    return { wallet: clean, nonce, message: payoutChallengeMessage(clean, user.wallet, nonce, expiresAt), expiresAt: expiresAt.toISOString() };
   }
 
   /** Claim all ACCRUED rows of owned pools → PAID (record-only in sandbox). */
@@ -201,6 +257,9 @@ export class PartnerService {
     const me = await this.prisma.user.findUnique({ where: { id: user.id } });
     if (!me) missing(`User ${user.id} not found.`);
     if (!(me.payoutWallet as string | null)) fail('Connect a payout wallet first.');
+    // Fix 7 fail-closed: a wallet on file proves nothing until the ownership
+    // challenge is verified (prevents funds flowing to an attacker's wallet).
+    if (!(me.payoutWalletVerifiedAt as unknown as Date | null)) fail('Verify your payout wallet first.');
     const owned = await this.ownedVaults(user);
     const ids = owned.map((v) => v.id);
     if (ids.length === 0) return { claimedSol: 0, rows: 0 };

@@ -133,7 +133,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!session) return;
     void refreshPnlOverview();
-    const timer = setInterval(() => void refreshPnlOverview(), 60000);
+    const timer = setInterval(() => void refreshPnlOverview(), 180000);
     return () => clearInterval(timer);
   }, [refreshPnlOverview, session]);
 
@@ -157,7 +157,7 @@ export default function HomePage() {
     pageSize: 1000,
     action,
     days,
-    pollMs: 60000,
+    pollMs: 180000,
     enabled: !!session && needFlow,
     hideZero: !showZero,
   });

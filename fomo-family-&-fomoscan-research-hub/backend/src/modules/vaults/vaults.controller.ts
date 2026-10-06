@@ -123,30 +123,34 @@ export class VaultsController {
   }
 
   @Post('deposit')
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(AuthGuard)
   async deposit(
     @Body() body: Record<string, unknown>,
     @Req() req: { user?: AuthedUser },
   ): Promise<{ success: boolean; data: unknown }> {
     const dto = await validateDto(VaultDepositDto, body);
-    // Identity is opportunistic on legacy public routes: link userId when a
-    // session is present, keep depositor-string behavior otherwise (P5 decides gating).
-    const row = await this.vaults.deposit(dto.vaultId ?? 1, dto.depositor, dto.amountSol, req.user?.id);
+    // Fix #4: session identity is authoritative — client `depositor` is
+    // display-only and ignored. Anonymous deposits are rejected (401).
+    const row = await this.vaults.deposit(dto.vaultId ?? 1, req.user as AuthedUser, dto.amountSol);
     return { success: true, data: row };
   }
 
   @Post('withdraw')
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(AuthGuard)
   async withdraw(
     @Body() body: Record<string, unknown>,
     @Req() req: { user?: AuthedUser },
   ) {
     const dto = await validateDto(VaultWithdrawDto, body);
-    const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, dto.depositor, dto.shares, req.user?.id);
+    const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, req.user as AuthedUser, dto.shares);
     return { success: true, data: row };
   }
 
   @Post('settle')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('vault.settle')
   async settle(@Body() body: Record<string, unknown>) {
     const dto = await validateDto(VaultSettleDto, body);
     const result = await this.vaults.settleEpoch(dto.vaultId ?? 1, dto.navSol);

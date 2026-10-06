@@ -78,8 +78,9 @@ export class VaultDepositDto {
   @Min(1)
   vaultId?: number;
 
+  @IsOptional()
   @IsString()
-  depositor!: string;
+  depositor?: string;
 
   @IsNumber()
   @Min(0.000000001)
@@ -93,8 +94,9 @@ export class VaultWithdrawDto {
   @Min(1)
   vaultId?: number;
 
+  @IsOptional()
   @IsString()
-  depositor!: string;
+  depositor?: string;
 
   @IsNumber()
   @Min(0.000000001)
@@ -112,4 +114,9 @@ export class VaultSettleDto {
   @IsNumber()
   @Min(0)
   navSol?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  reason?: string;
 }

@@ -92,6 +92,11 @@ export type EpochCheckpoint = Prisma.EpochCheckpointModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model PayoutWalletChallenge
+ * 
+ */
+export type PayoutWalletChallenge = Prisma.PayoutWalletChallengeModel
+/**
  * Model AuthNonce
  * 
  */

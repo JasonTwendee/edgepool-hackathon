@@ -29,7 +29,7 @@ const snapshotCache = new Map<string, Snapshot>();
 
 /** Server-paginated ledger hook — 25 tx/page, filterable by action + day window. */
 export function usePortfolio(params: PortfolioParams) {
-  const { walletAddress, page, pageSize, action, days, pollMs = 30000, enabled = true, hideZero = true } = params;
+  const { walletAddress, page, pageSize, action, days, pollMs = 180000, enabled = true, hideZero = true } = params;
   const [data, setData] = useState<OnChainTransactionEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);

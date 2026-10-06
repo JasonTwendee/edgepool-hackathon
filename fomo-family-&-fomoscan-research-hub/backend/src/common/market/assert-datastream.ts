@@ -82,6 +82,87 @@ async function main(): Promise<void> {
   assert.equal(DataStreamService.suggestRegime([]), null);
   assert.equal(DataStreamService.suggestRegime(flat.slice(0, 5)), null);
 
+  // G1 cache: default-fetcher path caches per mint-set until TTL.
+  {
+    const svc2 = new DataStreamService().configure('https://x.test', '');
+    let calls = 0;
+    const prices: Record<string, number> = { M1: 2 };
+    svc2.defaultFetch = (async (url: string) => {
+      calls += 1;
+      const ids = new URL(url).searchParams.get('ids')?.split(',') ?? [];
+      const data: Record<string, number> = {};
+      for (const id of ids) if (prices[id] !== undefined) data[id] = prices[id];
+      return json({ data });
+    }) as unknown as FetchLike;
+    assert.deepEqual(await svc2.bulkPrices(['M1']), { M1: 2 });
+    assert.deepEqual(await svc2.bulkPrices(['M1']), { M1: 2 });
+    assert.equal(calls, 1);
+    assert.deepEqual(await svc2.bulkPrices(['M2']), {});
+    assert.equal(calls, 2); // different set → 2nd fetch
+    svc2.clearCache();
+    assert.deepEqual(await svc2.bulkPrices(['M1']), { M1: 2 });
+    assert.equal(calls, 3);
+  }
+
+  // G1 single-flight: concurrent identical calls share one fetch.
+  {
+    const svc2 = new DataStreamService().configure('https://x.test', '');
+    let calls = 0;
+    svc2.defaultFetch = (async () => {
+      calls += 1;
+      await new Promise((r) => setTimeout(r, 20));
+      return json({ data: { M9: 9 } });
+    }) as unknown as FetchLike;
+    const [a, b] = await Promise.all([svc2.bulkPrices(['M9']), svc2.bulkPrices(['M9'])]);
+    assert.deepEqual(a, { M9: 9 });
+    assert.deepEqual(b, { M9: 9 });
+    assert.equal(calls, 1);
+  }
+
+  // G1: explicit fetchers bypass the cache (test seam) — always run.
+  {
+    const svc2 = new DataStreamService().configure('https://x.test', '');
+    let calls = 0;
+    const slow: FetchLike = (async () => {
+      calls += 1;
+      return json({ data: { M9: 9 } });
+    }) as unknown as FetchLike;
+    await svc2.bulkPrices(['M9'], slow);
+    await svc2.bulkPrices(['M9'], slow);
+    assert.equal(calls, 2);
+  }
+
+  // G1: failures are never cached — next call retries.
+  {
+    const svc2 = new DataStreamService().configure('https://x.test', '');
+    let calls = 0;
+    svc2.defaultFetch = (async () => {
+      calls += 1;
+      if (calls === 1) return json({}, 503);
+      return json({ data: { M1: 1 } });
+    }) as unknown as FetchLike;
+    await assert.rejects(() => svc2.bulkPrices(['M1']), /DataStream 503/);
+    assert.deepEqual(await svc2.bulkPrices(['M1']), { M1: 1 });
+    assert.equal(calls, 2);
+  }
+
+  // G1 candles: coarse queries cache, windowed (from/to) queries don't.
+  {
+    const svc2 = new DataStreamService().configure('https://x.test', '');
+    let calls = 0;
+    const row = { open: 1, high: 1.1, low: 0.9, close: 1.05, volume: 10, timestamp: 1 };
+    svc2.defaultFetch = (async () => {
+      calls += 1;
+      return json([row]);
+    }) as unknown as FetchLike;
+    await svc2.candles('MINT', { interval: '1H', count: 5 });
+    await svc2.candles('MINT', { interval: '1H', count: 5 });
+    assert.equal(calls, 1);
+    await svc2.candles('MINT', { interval: '1H', count: 5, from: 1, to: 2 });
+    await svc2.candles('MINT', { interval: '1H', count: 5, from: 1, to: 2 });
+    assert.equal(calls, 3);
+  }
+
   console.log('datastream asserts: ALL GREEN');
 }
 

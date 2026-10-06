@@ -18,6 +18,8 @@ function makeWorld(cfg: {
   wallets: Row[];
   liveCounts?: { trader: number; mint: number };
   existingOrders?: Row[];
+  vaults?: Row[];
+  epochs?: Row[];
 }) {
   const orders: Row[] = [...(cfg.existingOrders ?? [])];
   let seq = 100;
@@ -54,6 +56,28 @@ function makeWorld(cfg: {
       cfg.traders.filter((t) => where.vaultId.in.includes(t.vaultId as number) && t.isActive === where.isActive),
     },
     trackedWallet: { findMany: async () => [...cfg.wallets] },
+    vault: {
+      findMany: async ({ where }: { where?: Row }) => {
+        const ids = ((where as Row)?.id as { in?: number[] } | undefined)?.in;
+        const rows = cfg.vaults ?? [{ id: 1, status: 'live', rulesJson: null }];
+        return ids ? rows.filter((v) => ids.includes(v.id as number)) : [...rows];
+      },
+      update: async ({ where, data }: { where: Row; data: Row }) => {
+        const rows = cfg.vaults ?? [];
+        const r = rows.find((v) => v.id === where.id);
+        if (r) Object.assign(r, data);
+        return r ?? { id: where.id, ...data };
+      },
+    },
+    epochCheckpoint: {
+      findMany: async ({ where }: { where?: Row }) => {
+        const ids = ((where as Row)?.vaultId as { in?: number[] } | undefined)?.in;
+        const rows = cfg.epochs ?? [];
+        const out = ids ? rows.filter((e) => ids.includes(e.vaultId as number)) : [...rows];
+        out.sort((a, b) => (a.id as number) - (b.id as number));
+        return out;
+      },
+    },
     copyOrder,
     auditLog: {
       create: async ({ data }: { data: Row }) => {
@@ -164,6 +188,41 @@ async function main(): Promise<void> {
     assert.equal((w.engine as unknown as Row).timer, undefined);
     if (prev === undefined) delete process.env.COPY_AUTO_INTERVAL_MS;
     else process.env.COPY_AUTO_INTERVAL_MS = prev;
+  }
+  // 8. Fix #6: day −6% halts vault — 0 fired, paused, audited.
+  {
+    const now = Date.now();
+    const w = makeWorld({
+      bots: [BOT],
+      signals: [SIG],
+      traders: [TRADER],
+      wallets: [],
+      vaults: [{ id: 1, status: 'live', rulesJson: null }],
+      epochs: [
+        { id: 1, vaultId: 1, navSol: 100, createdAt: new Date(now - 2 * 86400000) },
+        { id: 2, vaultId: 1, navSol: 94, createdAt: new Date(now - 3600000) },
+      ],
+    });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 0);
+    assert.deepEqual(s.haltedVaults, [1]);
+    assert.equal((w as unknown as { audits: Row[] }).audits.some((a) => a.action === 'copy.kill_switch_halt'), true);
+    assert.equal(w.creates(), 0);
+  }
+  // 9. Paused vault never fires (no new audit row needed).
+  {
+    const w = makeWorld({
+      bots: [BOT],
+      signals: [SIG],
+      traders: [TRADER],
+      wallets: [],
+      vaults: [{ id: 1, status: 'paused', rulesJson: null }],
+      epochs: [],
+    });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 0);
+    assert.deepEqual(s.haltedVaults, [1]);
+    assert.equal(w.creates(), 0);
   }
 
   console.log('autofire asserts: ALL GREEN');

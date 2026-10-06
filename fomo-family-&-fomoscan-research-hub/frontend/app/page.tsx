@@ -40,13 +40,11 @@ function PoolCard({ pool, period }: { pool: PoolSummary; period: Period }) {
   const pts = [pool.pnl.day.sol, pool.pnl.week.sol, pool.pnl.month.sol, pool.pnl.all.sol];
   return (
     <article
+      className="pool-card"
       style={{
         borderRadius: 18,
         padding: 22,
         background: 'var(--ep-surface, #1D1F2C)',
-        boxShadow: featured
-          ? '0 0 0 1px var(--ep-aqua, #49E6D7), inset 0 0 60px rgba(3,45,42,0.75)'
-          : '0 0 0 1px var(--ep-border, #2E313F)',
       }}
     >
       <div className="flex items-center justify-between">

@@ -9,6 +9,7 @@ import {
   partnerClaim,
   partnerMe,
   partnerPauseTrader,
+  partnerPayoutChallenge,
   partnerPayouts,
   partnerPoolTraders,
   partnerRequestTrader,
@@ -18,6 +19,7 @@ import {
   storeSession,
   type PartnerMe,
 } from '../../lib/api';
+import { signWithBrowserWallet } from '../../lib/solana';
 
 const inputCls =
   'w-full text-sm bg-[#0D0F18] border border-[#3F424D] rounded-lg px-3 py-2.5 text-[#E9E9ED] placeholder:text-[#4A4D5E] outline-none focus:border-[#E9E9ED]';
@@ -39,6 +41,7 @@ export default function TraderPage() {
   const [signals, setSignals] = useState<{ id: number; token: string; trader: string; status: string; profitUsd: number | null }[]>([]);
   const [payouts, setPayouts] = useState<{ id: number; trader: string; amountSol: number; status: string; createdAt: string }[]>([]);
   const [payoutInput, setPayoutInput] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const [poolName, setPoolName] = useState('');
   const [maxSlots, setMaxSlots] = useState('');
   const [reqFomo, setReqFomo] = useState('');
@@ -170,32 +173,47 @@ export default function TraderPage() {
         <div>
           <span className="font-mono text-sm font-bold">@{me.handle}</span>
           <span className="text-[11px] font-mono ml-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-            {me.payoutWallet ? `payout → ${me.payoutWallet.slice(0, 6)}…${me.payoutWallet.slice(-4)}` : 'no payout wallet'}
+            {me.payoutWallet
+              ? `payout → ${me.payoutWallet.slice(0, 6)}…${me.payoutWallet.slice(-4)}${me.payoutWalletVerified ? ' ✓ verified' : ' · UNVERIFIED'}`
+              : 'no payout wallet'}
           </span>
         </div>
         <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
       </div>
       {msg && <p className="text-[11px]" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
 
-      {!me.payoutWallet && (
+      {(!me.payoutWallet || !me.payoutWalletVerified) && (
         <div className="rounded-2xl p-4 flex flex-wrap items-center gap-2" style={{ background: 'rgba(145,132,217,0.12)', boxShadow: '0 0 0 1px var(--ep-violet, #9184D9)' }}>
-          <span className="text-xs font-bold" style={{ color: 'var(--ep-violet-100, #D2CEFD)' }}>Connect a payout wallet to claim fees.</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--ep-violet-100, #D2CEFD)' }}>
+            {me.payoutWallet ? 'Verify you own this payout wallet to claim fees.' : 'Connect a payout wallet to claim fees.'}
+          </span>
           <input value={payoutInput} onChange={(e) => setPayoutInput(e.target.value)} placeholder="Payout wallet (Base58)"
             className="flex-1 min-w-[200px] text-xs font-mono px-2.5 py-2 rounded-lg outline-none"
             style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }} />
           <button
+            disabled={verifying}
             onClick={() => {
-              if (!token || !payoutInput.trim()) return;
-              void partnerSetPayoutWallet(token, payoutInput.trim())
-                .then(() => {
-                  setPayoutInput('');
-                  return load(token);
-                })
-                .then(() => setMsg('Payout wallet connected.'))
-                .catch((e) => setMsg((e as Error).message));
+              if (!token || !payoutInput.trim() || verifying) return;
+              setVerifying(true);
+              setMsg(null);
+              const wallet = payoutInput.trim();
+              void (async () => {
+                // 1. Challenge bound to (session user, wallet).
+                const ch = await partnerPayoutChallenge(token, wallet);
+                // 2. Sign with the payout wallet itself (browser wallet must hold that key).
+                const signed = await signWithBrowserWallet(ch.data.message);
+                if (signed.wallet !== wallet) throw new Error(`Signed with ${signed.wallet.slice(0, 6)}…, but the payout wallet is ${wallet.slice(0, 6)}…. Sign with the payout wallet.`);
+                // 3. Submit proof → wallet saved as verified.
+                await partnerSetPayoutWallet(token, wallet, signed.signature);
+                setPayoutInput('');
+                await load(token);
+                setMsg('Payout wallet verified.');
+              })()
+                .catch((e) => setMsg((e as Error).message))
+                .finally(() => setVerifying(false));
             }}
-            className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'var(--ep-violet, #9184D9)', color: '#0D0F18' }}>
-            Connect
+            className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50" style={{ background: 'var(--ep-violet, #9184D9)', color: '#0D0F18' }}>
+            {verifying ? 'Verifying…' : me.payoutWallet ? 'Verify' : 'Connect'}
           </button>
         </div>
       )}
@@ -216,7 +234,7 @@ export default function TraderPage() {
         </div>
         <div className="flex items-center gap-2 mt-3 flex-wrap">
           <button
-            disabled={!token || !me.payoutWallet || me.fees.claimableSol <= 0}
+            disabled={!token || !me.payoutWallet || !me.payoutWalletVerified || me.fees.claimableSol <= 0}
             onClick={() => {
               if (!token) return;
               void partnerClaim(token).then((r) => {

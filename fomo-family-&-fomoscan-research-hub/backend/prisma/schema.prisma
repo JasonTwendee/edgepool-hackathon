@@ -267,14 +267,35 @@ model User {
   role      String   @db.VarChar(10) @default("USER")
   // Pool app P4: partner payout wallet (set by the partner after first login).
   payoutWallet String? @map("payout_wallet") @db.VarChar(64)
+  // Fix 7: ownership proof for the payout wallet (signature challenge).
+  // NULL = unverified (fail-closed: claim refuses). Setting a new wallet
+  // clears this until the challenge is verified.
+  payoutWalletVerifiedAt DateTime? @map("payout_wallet_verified_at") @db.Timestamptz()
   createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
 
   sessions    Session[]
   deposits    Deposit[]
   withdrawals Withdrawal[]
   ownedVaults Vault[]    @relation("VaultOwner")
+  payoutChallenges PayoutWalletChallenge[]
 
   @@map("users")
+}
+
+// Fix 7: purpose-bound payout-wallet challenges. Bound to (userId, wallet)
+// so one user's nonce can never verify another user's wallet binding.
+model PayoutWalletChallenge {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet    String   @db.VarChar(64)
+  nonce     String   @unique @db.VarChar(64)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz()
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz()
+  createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("payout_wallet_challenges")
+  @@index([userId])
 }
 
 model AuthNonce {
