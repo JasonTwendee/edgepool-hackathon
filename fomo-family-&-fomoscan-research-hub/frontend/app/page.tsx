@@ -372,6 +372,7 @@ export default function HomePage() {
           selectedAddress={selectedAddress}
           onSelect={setSelectedAddress}
           loading={walletsLoading}
+          isAdmin={isAdmin}
           showRight={showRight}
           showTicker={showTicker}
           onToggleRight={() => setShowRight((v) => !v)}
@@ -433,7 +434,7 @@ export default function HomePage() {
         </main>
 
         {showRight && (
-          <FomoRightPanel wallet={selectedWallet} holdings={holdings} lastSwap={swaps[0] ?? null} isAdmin={isAdmin} />
+          <FomoRightPanel wallet={selectedWallet} holdings={holdings} lastSwap={swaps[0] ?? null} isAdmin={isAdmin} session={session} />
         )}
       </div>
 

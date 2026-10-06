@@ -8,7 +8,9 @@ import { formatUsd } from '../lib/format';
 import { WalletAvatar } from './WalletAvatar';
 import { CopyConfirmModal } from './CopyConfirmModal';
 import { CopyHistory } from './CopyHistory';
+import { MyVault } from './MyVault';
 import { VaultCard } from './VaultCard';
+import type { FundSession } from '../types/fund';
 
 interface Props {
   wallet: TrackedWallet | null;
@@ -16,9 +18,10 @@ interface Props {
   lastSwap: OnChainTransactionEvent | null;
   /** Non-ADMIN hides fund-movement + copy-trade UI (PnL-first user view). */
   isAdmin: boolean;
+  session: FundSession | null;
 }
 
-export function FomoRightPanel({ wallet, holdings, lastSwap, isAdmin }: Props) {
+export function FomoRightPanel({ wallet, holdings, lastSwap, isAdmin, session }: Props) {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [sendMsg, setSendMsg] = useState<string | null>(null);
@@ -116,10 +119,14 @@ export function FomoRightPanel({ wallet, holdings, lastSwap, isAdmin }: Props) {
         </section>
         )}
 
-        {/* Your positions */}
+        {/* Investor positions: MY vault shares (not the trader's holdings). */}
+        {!isAdmin && <MyVault session={session} />}
+
+        {/* Trader holdings stay visible to ADMIN (operator terminal). */}
+        {isAdmin && (
         <section className="rounded-lg bg-[#232532] border border-[#3F424D] p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-sm font-medium text-[#E9E9ED]">Your positions</h3>
+            <h3 className="font-display text-sm font-medium text-[#E9E9ED]">Trader positions</h3>
             <div className="flex gap-1 bg-[#161826] border border-[#3F424D] rounded-lg p-0.5">
               {(['open', 'closed'] as const).map((t) => (
                 <button
@@ -151,15 +158,16 @@ export function FomoRightPanel({ wallet, holdings, lastSwap, isAdmin }: Props) {
               <p className="text-xs text-[#75798C] max-w-[220px] leading-relaxed">
                 {positionsTab === 'closed'
                   ? 'No closed positions yet.'
-                  : 'No open positions. Trades you execute or copy will appear here in real-time.'}
+                  : 'No open positions on this trader right now.'}
               </p>
             </div>
           )}
         </section>
+        )}
 
         {isAdmin && <CopyHistory walletAddress={wallet?.address ?? null} refreshKey={historyKey} />}
 
-        <VaultCard isAdmin={isAdmin} />
+        <VaultCard showPartner={isAdmin || session?.user.role === 'KOL'} />
       </div>
 
       {isAdmin && confirmOpen && wallet && (

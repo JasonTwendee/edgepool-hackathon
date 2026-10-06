@@ -142,4 +142,16 @@ export class VaultsController {
     const data = await this.vaults.status(Number.isFinite(parsed) ? parsed : 1);
     return { success: true, data };
   }
+
+  @Get('mine')
+  @UseGuards(AuthGuard)
+  async mine(
+    @Query() query: Record<string, string | string[] | undefined>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const raw = query.vaultId;
+    const parsed = typeof raw === 'string' ? parseInt(raw, 10) : NaN;
+    const data = await this.vaults.mine(Number.isFinite(parsed) ? parsed : 1, req.user as AuthedUser);
+    return { success: true, data };
+  }
 }

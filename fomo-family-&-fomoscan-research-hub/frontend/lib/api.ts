@@ -167,20 +167,40 @@ export function getVaultEarnings(vaultId = 1, trader?: string): Promise<VaultEar
   return fetchJson(`/api/vaults/${vaultId}/earnings${qs}`);
 }
 
+export interface VaultMine {
+  vaultId: number;
+  vaultName: string;
+  sharePrice: number;
+  shares: number;
+  valueSol: number;
+  depositedSol: number;
+  withdrawnSol: number;
+  returnsSol: number;
+  queuedDeposits: { id: number; amountSol: number; createdAt: string }[];
+  queuedWithdrawals: { id: number; shares: number; createdAt: string }[];
+}
+
+export function getVaultMine(vaultId = 1, token?: string): Promise<{ success: boolean; data: VaultMine }> {
+  const path = `/api/vaults/mine?vaultId=${vaultId}`;
+  return token ? fetchJsonAuth(path, token) : fetchJson(path);
+}
+
 export function queueVaultDeposit(input: {
   depositor: string;
   amountSol: number;
   vaultId?: number;
-}): Promise<{ success: boolean; data: { id: number; status: string } }> {
-  return fetchJson('/api/vaults/deposit', { method: 'POST', body: JSON.stringify(input) });
+}, token?: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  const init = { method: 'POST', body: JSON.stringify(input) };
+  return token ? fetchJsonAuth('/api/vaults/deposit', token, init) : fetchJson('/api/vaults/deposit', init);
 }
 
 export function requestVaultWithdraw(input: {
   depositor: string;
   shares: number;
   vaultId?: number;
-}): Promise<{ success: boolean; data: { id: number; status: string } }> {
-  return fetchJson('/api/vaults/withdraw', { method: 'POST', body: JSON.stringify(input) });
+}, token?: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  const init = { method: 'POST', body: JSON.stringify(input) };
+  return token ? fetchJsonAuth('/api/vaults/withdraw', token, init) : fetchJson('/api/vaults/withdraw', init);
 }
 
 export interface WalletPnl {

@@ -13,6 +13,8 @@ interface Props {
   selectedAddress: string | null;
   onSelect: (address: string) => void;
   loading: boolean;
+  /** Non-ADMIN hides the trader-style "Your rank" card (investors aren't traders). */
+  isAdmin: boolean;
   showRight: boolean;
   showTicker: boolean;
   onToggleRight: () => void;
@@ -51,6 +53,7 @@ export function FomoLeftSidebar({
   selectedAddress,
   onSelect,
   loading,
+  isAdmin,
   showRight,
   showTicker,
   onToggleRight,
@@ -110,7 +113,8 @@ export function FomoLeftSidebar({
 
         {!compact && (
           <>
-            {/* Your rank (real) */}
+            {/* Trader rank card — operator lens only, hidden from investors. */}
+            {isAdmin && (
             <div className="p-2.5 rounded-lg bg-[#232532] border border-[#3F424D] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img
@@ -132,6 +136,7 @@ export function FomoLeftSidebar({
                 </div>
               </div>
             </div>
+            )}
           </>
         )}
 
