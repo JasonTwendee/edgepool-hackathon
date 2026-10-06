@@ -4,11 +4,17 @@
  */
 import assert from 'node:assert/strict';
 import { LeaderboardService } from './leaderboard.service.js';
+import { base58Encode } from '../../common/auth/solana-verify.js';
 
 type Row = Record<string, unknown>;
 
-function entry(wallet: string, username: string): Row {
-  return { rank: 1, wallet, username, isVerified: true, pnlSol: 1, pnlUsd: 2, pnlPercent: 3, realizedPnlUsd: 4, unrealizedPnlUsd: 5 };
+/** Deterministic valid Solana wallets for rotation fixtures. */
+function walletOf(n: number): string {
+  return base58Encode(Buffer.alloc(32, n & 0xff));
+}
+
+function entry(wallet: string, username: string, verified = true): Row {
+  return { rank: 1, wallet, username, isVerified: verified, pnlSol: 1, pnlUsd: 2, pnlPercent: 3, realizedPnlUsd: 4, unrealizedPnlUsd: 5 };
 }
 
 function makeFake() {
@@ -102,7 +108,7 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '3', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma } = makeFake();
-    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b'), entry('C', 'c')]));
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b'), entry(walletOf(3), 'c')]));
     const s = await svc.tick();
     assert.equal(s.added, 3);
     assert.equal(s.active, 3);
@@ -118,13 +124,13 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma, db } = makeFake();
-    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]));
     await svc.tick();
-    const svc2 = svcWith(prisma, stub([entry('A', 'a'), entry('D', 'd')]));
+    const svc2 = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(4), 'd')]));
     const s = await svc2.tick();
     assert.equal(s.added, 1);
     assert.equal(s.deactivated, 1);
-    const b = db.wallet.find((r) => r.address === 'B');
+    const b = db.wallet.find((r) => r.address === walletOf(2));
     assert.ok(b && b.isActive === false); // row + history kept, just inactive
     restore();
   }
@@ -139,12 +145,12 @@ async function main(): Promise<void> {
       winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
     });
     db.wallet.push(oldRow(101, 'OLD1'), oldRow(102, 'OLD2'), oldRow(103, 'OLD3'));
-    const svc = svcWith(prisma, stub([entry('A', 'a'), entry('B', 'b')]));
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]));
     const s = await svc.tick();
     assert.equal(s.total, 4);
     assert.equal(s.pruned, 1);
     assert.ok(!db.wallet.some((r) => r.address === 'OLD1')); // oldest pruned
-    assert.ok(db.wallet.some((r) => r.address === 'A' && r.isActive === true));
+    assert.ok(db.wallet.some((r) => r.address === walletOf(1) && r.isActive === true));
     restore();
   }
 
@@ -152,10 +158,10 @@ async function main(): Promise<void> {
   {
     const restore = env({ LEADERBOARD_TOP_N: '1', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma, db } = makeFake();
-    const svc = svcWith(prisma, stub([entry('Z', 'z')], false));
+    const svc = svcWith(prisma, stub([entry(walletOf(26), 'z')], false));
     const s = await svc.tick();
     assert.equal(s.added, 1);
-    assert.ok(db.wallet.some((r) => r.address === 'Z' && r.isActive === true));
+    assert.ok(db.wallet.some((r) => r.address === walletOf(26) && r.isActive === true));
     restore();
   }
 
@@ -168,6 +174,17 @@ async function main(): Promise<void> {
     assert.equal(st.topN, 20);
     assert.equal(st.cap, 50);
     assert.equal(st.total, 0);
+    restore();
+  }
+
+  // 7. Non-Solana / unverified entries never enter tracking.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '5', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const { prisma } = makeFake();
+    const svc = svcWith(prisma, stub([entry(walletOf(40), 'ok'), entry('not-a-wallet', 'bad'), entry(walletOf(41), 'nover', false)]));
+    const s = await svc.tick();
+    assert.equal(s.added, 1);
+    assert.equal(s.active, 1);
     restore();
   }
 
