@@ -412,7 +412,9 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   VaultTrader: 'VaultTrader',
   Bot: 'Bot',
-  PartnerPayout: 'PartnerPayout'
+  PartnerPayout: 'PartnerPayout',
+  PartnerApplication: 'PartnerApplication',
+  TraderRequest: 'TraderRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -428,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout"
+    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1616,6 +1618,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PartnerApplication: {
+      payload: Prisma.$PartnerApplicationPayload<ExtArgs>
+      fields: Prisma.PartnerApplicationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PartnerApplicationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PartnerApplicationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        findFirst: {
+          args: Prisma.PartnerApplicationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PartnerApplicationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        findMany: {
+          args: Prisma.PartnerApplicationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>[]
+        }
+        create: {
+          args: Prisma.PartnerApplicationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        createMany: {
+          args: Prisma.PartnerApplicationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PartnerApplicationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>[]
+        }
+        delete: {
+          args: Prisma.PartnerApplicationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        update: {
+          args: Prisma.PartnerApplicationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        deleteMany: {
+          args: Prisma.PartnerApplicationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PartnerApplicationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PartnerApplicationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>[]
+        }
+        upsert: {
+          args: Prisma.PartnerApplicationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PartnerApplicationPayload>
+        }
+        aggregate: {
+          args: Prisma.PartnerApplicationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePartnerApplication>
+        }
+        groupBy: {
+          args: Prisma.PartnerApplicationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PartnerApplicationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PartnerApplicationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PartnerApplicationCountAggregateOutputType> | number
+        }
+      }
+    }
+    TraderRequest: {
+      payload: Prisma.$TraderRequestPayload<ExtArgs>
+      fields: Prisma.TraderRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TraderRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TraderRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.TraderRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TraderRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        findMany: {
+          args: Prisma.TraderRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>[]
+        }
+        create: {
+          args: Prisma.TraderRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        createMany: {
+          args: Prisma.TraderRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TraderRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.TraderRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        update: {
+          args: Prisma.TraderRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.TraderRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TraderRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TraderRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.TraderRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TraderRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.TraderRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTraderRequest>
+        }
+        groupBy: {
+          args: Prisma.TraderRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TraderRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TraderRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TraderRequestCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1782,6 +1932,8 @@ export const VaultScalarFieldEnum = {
   listing: 'listing',
   maxSlots: 'maxSlots',
   maxTraders: 'maxTraders',
+  ownerUserId: 'ownerUserId',
+  rulesJson: 'rulesJson',
   environment: 'environment',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1842,6 +1994,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   passwordHash: 'passwordHash',
   role: 'role',
+  payoutWallet: 'payoutWallet',
   createdAt: 'createdAt'
 } as const
 
@@ -1921,6 +2074,31 @@ export const PartnerPayoutScalarFieldEnum = {
 } as const
 
 export type PartnerPayoutScalarFieldEnum = (typeof PartnerPayoutScalarFieldEnum)[keyof typeof PartnerPayoutScalarFieldEnum]
+
+
+export const PartnerApplicationScalarFieldEnum = {
+  id: 'id',
+  fomoHandle: 'fomoHandle',
+  xHandle: 'xHandle',
+  wallet: 'wallet',
+  contact: 'contact',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type PartnerApplicationScalarFieldEnum = (typeof PartnerApplicationScalarFieldEnum)[keyof typeof PartnerApplicationScalarFieldEnum]
+
+
+export const TraderRequestScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  fomoHandle: 'fomoHandle',
+  xHandle: 'xHandle',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type TraderRequestScalarFieldEnum = (typeof TraderRequestScalarFieldEnum)[keyof typeof TraderRequestScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2241,6 +2419,8 @@ export type GlobalOmitConfig = {
   vaultTrader?: Prisma.VaultTraderOmit
   bot?: Prisma.BotOmit
   partnerPayout?: Prisma.PartnerPayoutOmit
+  partnerApplication?: Prisma.PartnerApplicationOmit
+  traderRequest?: Prisma.TraderRequestOmit
 }
 
 /* Types for Logging */

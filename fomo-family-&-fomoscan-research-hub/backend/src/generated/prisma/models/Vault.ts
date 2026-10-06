@@ -39,6 +39,7 @@ export type VaultAvgAggregateOutputType = {
   settleLengthMin: number | null
   maxSlots: number | null
   maxTraders: number | null
+  ownerUserId: number | null
 }
 
 export type VaultSumAggregateOutputType = {
@@ -54,6 +55,7 @@ export type VaultSumAggregateOutputType = {
   settleLengthMin: number | null
   maxSlots: number | null
   maxTraders: number | null
+  ownerUserId: number | null
 }
 
 export type VaultMinAggregateOutputType = {
@@ -73,6 +75,7 @@ export type VaultMinAggregateOutputType = {
   listing: string | null
   maxSlots: number | null
   maxTraders: number | null
+  ownerUserId: number | null
   environment: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -95,6 +98,7 @@ export type VaultMaxAggregateOutputType = {
   listing: string | null
   maxSlots: number | null
   maxTraders: number | null
+  ownerUserId: number | null
   environment: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -117,6 +121,8 @@ export type VaultCountAggregateOutputType = {
   listing: number
   maxSlots: number
   maxTraders: number
+  ownerUserId: number
+  rulesJson: number
   environment: number
   createdAt: number
   updatedAt: number
@@ -137,6 +143,7 @@ export type VaultAvgAggregateInputType = {
   settleLengthMin?: true
   maxSlots?: true
   maxTraders?: true
+  ownerUserId?: true
 }
 
 export type VaultSumAggregateInputType = {
@@ -152,6 +159,7 @@ export type VaultSumAggregateInputType = {
   settleLengthMin?: true
   maxSlots?: true
   maxTraders?: true
+  ownerUserId?: true
 }
 
 export type VaultMinAggregateInputType = {
@@ -171,6 +179,7 @@ export type VaultMinAggregateInputType = {
   listing?: true
   maxSlots?: true
   maxTraders?: true
+  ownerUserId?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -193,6 +202,7 @@ export type VaultMaxAggregateInputType = {
   listing?: true
   maxSlots?: true
   maxTraders?: true
+  ownerUserId?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -215,6 +225,8 @@ export type VaultCountAggregateInputType = {
   listing?: true
   maxSlots?: true
   maxTraders?: true
+  ownerUserId?: true
+  rulesJson?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -324,6 +336,8 @@ export type VaultGroupByOutputType = {
   listing: string
   maxSlots: number
   maxTraders: number
+  ownerUserId: number | null
+  rulesJson: runtime.JsonValue | null
   environment: string
   createdAt: Date
   updatedAt: Date
@@ -369,15 +383,19 @@ export type VaultWhereInput = {
   listing?: Prisma.StringFilter<"Vault"> | string
   maxSlots?: Prisma.IntFilter<"Vault"> | number
   maxTraders?: Prisma.IntFilter<"Vault"> | number
+  ownerUserId?: Prisma.IntNullableFilter<"Vault"> | number | null
+  rulesJson?: Prisma.JsonNullableFilter<"Vault">
   environment?: Prisma.StringFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
+  owner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   epochs?: Prisma.EpochCheckpointListRelationFilter
   traders?: Prisma.VaultTraderListRelationFilter
   bots?: Prisma.BotListRelationFilter
   payouts?: Prisma.PartnerPayoutListRelationFilter
+  requests?: Prisma.TraderRequestListRelationFilter
 }
 
 export type VaultOrderByWithRelationInput = {
@@ -397,15 +415,19 @@ export type VaultOrderByWithRelationInput = {
   listing?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rulesJson?: Prisma.SortOrderInput | Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  owner?: Prisma.UserOrderByWithRelationInput
   deposits?: Prisma.DepositOrderByRelationAggregateInput
   withdrawals?: Prisma.WithdrawalOrderByRelationAggregateInput
   epochs?: Prisma.EpochCheckpointOrderByRelationAggregateInput
   traders?: Prisma.VaultTraderOrderByRelationAggregateInput
   bots?: Prisma.BotOrderByRelationAggregateInput
   payouts?: Prisma.PartnerPayoutOrderByRelationAggregateInput
+  requests?: Prisma.TraderRequestOrderByRelationAggregateInput
 }
 
 export type VaultWhereUniqueInput = Prisma.AtLeast<{
@@ -428,15 +450,19 @@ export type VaultWhereUniqueInput = Prisma.AtLeast<{
   listing?: Prisma.StringFilter<"Vault"> | string
   maxSlots?: Prisma.IntFilter<"Vault"> | number
   maxTraders?: Prisma.IntFilter<"Vault"> | number
+  ownerUserId?: Prisma.IntNullableFilter<"Vault"> | number | null
+  rulesJson?: Prisma.JsonNullableFilter<"Vault">
   environment?: Prisma.StringFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
+  owner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   epochs?: Prisma.EpochCheckpointListRelationFilter
   traders?: Prisma.VaultTraderListRelationFilter
   bots?: Prisma.BotListRelationFilter
   payouts?: Prisma.PartnerPayoutListRelationFilter
+  requests?: Prisma.TraderRequestListRelationFilter
 }, "id">
 
 export type VaultOrderByWithAggregationInput = {
@@ -456,6 +482,8 @@ export type VaultOrderByWithAggregationInput = {
   listing?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  rulesJson?: Prisma.SortOrderInput | Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -486,6 +514,8 @@ export type VaultScalarWhereWithAggregatesInput = {
   listing?: Prisma.StringWithAggregatesFilter<"Vault"> | string
   maxSlots?: Prisma.IntWithAggregatesFilter<"Vault"> | number
   maxTraders?: Prisma.IntWithAggregatesFilter<"Vault"> | number
+  ownerUserId?: Prisma.IntNullableWithAggregatesFilter<"Vault"> | number | null
+  rulesJson?: Prisma.JsonNullableWithAggregatesFilter<"Vault">
   environment?: Prisma.StringWithAggregatesFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Vault"> | Date | string
@@ -507,15 +537,18 @@ export type VaultCreateInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateInput = {
@@ -535,6 +568,8 @@ export type VaultUncheckedCreateInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -544,6 +579,7 @@ export type VaultUncheckedCreateInput = {
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUpdateInput = {
@@ -562,15 +598,18 @@ export type VaultUpdateInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateInput = {
@@ -590,6 +629,8 @@ export type VaultUncheckedUpdateInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -599,6 +640,7 @@ export type VaultUncheckedUpdateInput = {
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateManyInput = {
@@ -618,6 +660,8 @@ export type VaultCreateManyInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -639,6 +683,7 @@ export type VaultUpdateManyMutationInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -661,6 +706,8 @@ export type VaultUncheckedUpdateManyInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -683,6 +730,8 @@ export type VaultCountOrderByAggregateInput = {
   listing?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
+  rulesJson?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -701,6 +750,7 @@ export type VaultAvgOrderByAggregateInput = {
   settleLengthMin?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
 }
 
 export type VaultMaxOrderByAggregateInput = {
@@ -720,6 +770,7 @@ export type VaultMaxOrderByAggregateInput = {
   listing?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -742,6 +793,7 @@ export type VaultMinOrderByAggregateInput = {
   listing?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -760,11 +812,22 @@ export type VaultSumOrderByAggregateInput = {
   settleLengthMin?: Prisma.SortOrder
   maxSlots?: Prisma.SortOrder
   maxTraders?: Prisma.SortOrder
+  ownerUserId?: Prisma.SortOrder
 }
 
 export type VaultScalarRelationFilter = {
   is?: Prisma.VaultWhereInput
   isNot?: Prisma.VaultWhereInput
+}
+
+export type VaultListRelationFilter = {
+  every?: Prisma.VaultWhereInput
+  some?: Prisma.VaultWhereInput
+  none?: Prisma.VaultWhereInput
+}
+
+export type VaultOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type VaultNullableScalarRelationFilter = {
@@ -814,6 +877,48 @@ export type VaultUpdateOneRequiredWithoutEpochsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.VaultUpdateToOneWithWhereWithoutEpochsInput, Prisma.VaultUpdateWithoutEpochsInput>, Prisma.VaultUncheckedUpdateWithoutEpochsInput>
 }
 
+export type VaultCreateNestedManyWithoutOwnerInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput> | Prisma.VaultCreateWithoutOwnerInput[] | Prisma.VaultUncheckedCreateWithoutOwnerInput[]
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutOwnerInput | Prisma.VaultCreateOrConnectWithoutOwnerInput[]
+  createMany?: Prisma.VaultCreateManyOwnerInputEnvelope
+  connect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+}
+
+export type VaultUncheckedCreateNestedManyWithoutOwnerInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput> | Prisma.VaultCreateWithoutOwnerInput[] | Prisma.VaultUncheckedCreateWithoutOwnerInput[]
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutOwnerInput | Prisma.VaultCreateOrConnectWithoutOwnerInput[]
+  createMany?: Prisma.VaultCreateManyOwnerInputEnvelope
+  connect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+}
+
+export type VaultUpdateManyWithoutOwnerNestedInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput> | Prisma.VaultCreateWithoutOwnerInput[] | Prisma.VaultUncheckedCreateWithoutOwnerInput[]
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutOwnerInput | Prisma.VaultCreateOrConnectWithoutOwnerInput[]
+  upsert?: Prisma.VaultUpsertWithWhereUniqueWithoutOwnerInput | Prisma.VaultUpsertWithWhereUniqueWithoutOwnerInput[]
+  createMany?: Prisma.VaultCreateManyOwnerInputEnvelope
+  set?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  disconnect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  delete?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  connect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  update?: Prisma.VaultUpdateWithWhereUniqueWithoutOwnerInput | Prisma.VaultUpdateWithWhereUniqueWithoutOwnerInput[]
+  updateMany?: Prisma.VaultUpdateManyWithWhereWithoutOwnerInput | Prisma.VaultUpdateManyWithWhereWithoutOwnerInput[]
+  deleteMany?: Prisma.VaultScalarWhereInput | Prisma.VaultScalarWhereInput[]
+}
+
+export type VaultUncheckedUpdateManyWithoutOwnerNestedInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput> | Prisma.VaultCreateWithoutOwnerInput[] | Prisma.VaultUncheckedCreateWithoutOwnerInput[]
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutOwnerInput | Prisma.VaultCreateOrConnectWithoutOwnerInput[]
+  upsert?: Prisma.VaultUpsertWithWhereUniqueWithoutOwnerInput | Prisma.VaultUpsertWithWhereUniqueWithoutOwnerInput[]
+  createMany?: Prisma.VaultCreateManyOwnerInputEnvelope
+  set?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  disconnect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  delete?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  connect?: Prisma.VaultWhereUniqueInput | Prisma.VaultWhereUniqueInput[]
+  update?: Prisma.VaultUpdateWithWhereUniqueWithoutOwnerInput | Prisma.VaultUpdateWithWhereUniqueWithoutOwnerInput[]
+  updateMany?: Prisma.VaultUpdateManyWithWhereWithoutOwnerInput | Prisma.VaultUpdateManyWithWhereWithoutOwnerInput[]
+  deleteMany?: Prisma.VaultScalarWhereInput | Prisma.VaultScalarWhereInput[]
+}
+
 export type VaultCreateNestedOneWithoutTradersInput = {
   create?: Prisma.XOR<Prisma.VaultCreateWithoutTradersInput, Prisma.VaultUncheckedCreateWithoutTradersInput>
   connectOrCreate?: Prisma.VaultCreateOrConnectWithoutTradersInput
@@ -858,6 +963,20 @@ export type VaultUpdateOneRequiredWithoutPayoutsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.VaultUpdateToOneWithWhereWithoutPayoutsInput, Prisma.VaultUpdateWithoutPayoutsInput>, Prisma.VaultUncheckedUpdateWithoutPayoutsInput>
 }
 
+export type VaultCreateNestedOneWithoutRequestsInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutRequestsInput, Prisma.VaultUncheckedCreateWithoutRequestsInput>
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutRequestsInput
+  connect?: Prisma.VaultWhereUniqueInput
+}
+
+export type VaultUpdateOneRequiredWithoutRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.VaultCreateWithoutRequestsInput, Prisma.VaultUncheckedCreateWithoutRequestsInput>
+  connectOrCreate?: Prisma.VaultCreateOrConnectWithoutRequestsInput
+  upsert?: Prisma.VaultUpsertWithoutRequestsInput
+  connect?: Prisma.VaultWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.VaultUpdateToOneWithWhereWithoutRequestsInput, Prisma.VaultUpdateWithoutRequestsInput>, Prisma.VaultUncheckedUpdateWithoutRequestsInput>
+}
+
 export type VaultCreateWithoutDepositsInput = {
   name: string
   feeBps?: number
@@ -874,14 +993,17 @@ export type VaultCreateWithoutDepositsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutDepositsInput = {
@@ -901,6 +1023,8 @@ export type VaultUncheckedCreateWithoutDepositsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -909,6 +1033,7 @@ export type VaultUncheckedCreateWithoutDepositsInput = {
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutDepositsInput = {
@@ -943,14 +1068,17 @@ export type VaultUpdateWithoutDepositsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutDepositsInput = {
@@ -970,6 +1098,8 @@ export type VaultUncheckedUpdateWithoutDepositsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -978,6 +1108,7 @@ export type VaultUncheckedUpdateWithoutDepositsInput = {
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutWithdrawalsInput = {
@@ -996,14 +1127,17 @@ export type VaultCreateWithoutWithdrawalsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutWithdrawalsInput = {
@@ -1023,6 +1157,8 @@ export type VaultUncheckedCreateWithoutWithdrawalsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1031,6 +1167,7 @@ export type VaultUncheckedCreateWithoutWithdrawalsInput = {
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutWithdrawalsInput = {
@@ -1065,14 +1202,17 @@ export type VaultUpdateWithoutWithdrawalsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
@@ -1092,6 +1232,8 @@ export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1100,6 +1242,7 @@ export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutEpochsInput = {
@@ -1118,14 +1261,17 @@ export type VaultCreateWithoutEpochsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutEpochsInput = {
@@ -1145,6 +1291,8 @@ export type VaultUncheckedCreateWithoutEpochsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1153,6 +1301,7 @@ export type VaultUncheckedCreateWithoutEpochsInput = {
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutEpochsInput = {
@@ -1187,14 +1336,17 @@ export type VaultUpdateWithoutEpochsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutEpochsInput = {
@@ -1214,6 +1366,8 @@ export type VaultUncheckedUpdateWithoutEpochsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1222,6 +1376,119 @@ export type VaultUncheckedUpdateWithoutEpochsInput = {
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultCreateWithoutOwnerInput = {
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
+}
+
+export type VaultUncheckedCreateWithoutOwnerInput = {
+  id?: number
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
+}
+
+export type VaultCreateOrConnectWithoutOwnerInput = {
+  where: Prisma.VaultWhereUniqueInput
+  create: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput>
+}
+
+export type VaultCreateManyOwnerInputEnvelope = {
+  data: Prisma.VaultCreateManyOwnerInput | Prisma.VaultCreateManyOwnerInput[]
+  skipDuplicates?: boolean
+}
+
+export type VaultUpsertWithWhereUniqueWithoutOwnerInput = {
+  where: Prisma.VaultWhereUniqueInput
+  update: Prisma.XOR<Prisma.VaultUpdateWithoutOwnerInput, Prisma.VaultUncheckedUpdateWithoutOwnerInput>
+  create: Prisma.XOR<Prisma.VaultCreateWithoutOwnerInput, Prisma.VaultUncheckedCreateWithoutOwnerInput>
+}
+
+export type VaultUpdateWithWhereUniqueWithoutOwnerInput = {
+  where: Prisma.VaultWhereUniqueInput
+  data: Prisma.XOR<Prisma.VaultUpdateWithoutOwnerInput, Prisma.VaultUncheckedUpdateWithoutOwnerInput>
+}
+
+export type VaultUpdateManyWithWhereWithoutOwnerInput = {
+  where: Prisma.VaultScalarWhereInput
+  data: Prisma.XOR<Prisma.VaultUpdateManyMutationInput, Prisma.VaultUncheckedUpdateManyWithoutOwnerInput>
+}
+
+export type VaultScalarWhereInput = {
+  AND?: Prisma.VaultScalarWhereInput | Prisma.VaultScalarWhereInput[]
+  OR?: Prisma.VaultScalarWhereInput[]
+  NOT?: Prisma.VaultScalarWhereInput | Prisma.VaultScalarWhereInput[]
+  id?: Prisma.IntFilter<"Vault"> | number
+  name?: Prisma.StringFilter<"Vault"> | string
+  feeBps?: Prisma.IntFilter<"Vault"> | number
+  hwmSharePrice?: Prisma.DecimalFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFilter<"Vault"> | number
+  withdrawFeeBps?: Prisma.IntFilter<"Vault"> | number
+  lockHours?: Prisma.IntFilter<"Vault"> | number
+  treasurySol?: Prisma.DecimalFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFilter<"Vault"> | number
+  settleLengthMin?: Prisma.IntFilter<"Vault"> | number
+  kind?: Prisma.StringFilter<"Vault"> | string
+  status?: Prisma.StringFilter<"Vault"> | string
+  listing?: Prisma.StringFilter<"Vault"> | string
+  maxSlots?: Prisma.IntFilter<"Vault"> | number
+  maxTraders?: Prisma.IntFilter<"Vault"> | number
+  ownerUserId?: Prisma.IntNullableFilter<"Vault"> | number | null
+  rulesJson?: Prisma.JsonNullableFilter<"Vault">
+  environment?: Prisma.StringFilter<"Vault"> | string
+  createdAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
 }
 
 export type VaultCreateWithoutTradersInput = {
@@ -1240,14 +1507,17 @@ export type VaultCreateWithoutTradersInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutTradersInput = {
@@ -1267,6 +1537,8 @@ export type VaultUncheckedCreateWithoutTradersInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1275,6 +1547,7 @@ export type VaultUncheckedCreateWithoutTradersInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutTradersInput = {
@@ -1309,14 +1582,17 @@ export type VaultUpdateWithoutTradersInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutTradersInput = {
@@ -1336,6 +1612,8 @@ export type VaultUncheckedUpdateWithoutTradersInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1344,6 +1622,7 @@ export type VaultUncheckedUpdateWithoutTradersInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutBotsInput = {
@@ -1362,14 +1641,17 @@ export type VaultCreateWithoutBotsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutBotsInput = {
@@ -1389,6 +1671,8 @@ export type VaultUncheckedCreateWithoutBotsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1397,6 +1681,7 @@ export type VaultUncheckedCreateWithoutBotsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutBotsInput = {
@@ -1431,14 +1716,17 @@ export type VaultUpdateWithoutBotsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutBotsInput = {
@@ -1458,6 +1746,8 @@ export type VaultUncheckedUpdateWithoutBotsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1466,6 +1756,7 @@ export type VaultUncheckedUpdateWithoutBotsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultCreateWithoutPayoutsInput = {
@@ -1484,14 +1775,17 @@ export type VaultCreateWithoutPayoutsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
   deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
   epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestCreateNestedManyWithoutVaultInput
 }
 
 export type VaultUncheckedCreateWithoutPayoutsInput = {
@@ -1511,6 +1805,8 @@ export type VaultUncheckedCreateWithoutPayoutsInput = {
   listing?: string
   maxSlots?: number
   maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1519,6 +1815,7 @@ export type VaultUncheckedCreateWithoutPayoutsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
   traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
   bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  requests?: Prisma.TraderRequestUncheckedCreateNestedManyWithoutVaultInput
 }
 
 export type VaultCreateOrConnectWithoutPayoutsInput = {
@@ -1553,14 +1850,17 @@ export type VaultUpdateWithoutPayoutsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
   epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
 }
 
 export type VaultUncheckedUpdateWithoutPayoutsInput = {
@@ -1580,6 +1880,8 @@ export type VaultUncheckedUpdateWithoutPayoutsInput = {
   listing?: Prisma.StringFieldUpdateOperationsInput | string
   maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
   maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1588,6 +1890,246 @@ export type VaultUncheckedUpdateWithoutPayoutsInput = {
   epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
   traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
   bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultCreateWithoutRequestsInput = {
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  owner?: Prisma.UserCreateNestedOneWithoutOwnedVaultsInput
+  deposits?: Prisma.DepositCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutVaultInput
+}
+
+export type VaultUncheckedCreateWithoutRequestsInput = {
+  id?: number
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
+  ownerUserId?: number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutVaultInput
+  withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutVaultInput
+  epochs?: Prisma.EpochCheckpointUncheckedCreateNestedManyWithoutVaultInput
+  traders?: Prisma.VaultTraderUncheckedCreateNestedManyWithoutVaultInput
+  bots?: Prisma.BotUncheckedCreateNestedManyWithoutVaultInput
+  payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutVaultInput
+}
+
+export type VaultCreateOrConnectWithoutRequestsInput = {
+  where: Prisma.VaultWhereUniqueInput
+  create: Prisma.XOR<Prisma.VaultCreateWithoutRequestsInput, Prisma.VaultUncheckedCreateWithoutRequestsInput>
+}
+
+export type VaultUpsertWithoutRequestsInput = {
+  update: Prisma.XOR<Prisma.VaultUpdateWithoutRequestsInput, Prisma.VaultUncheckedUpdateWithoutRequestsInput>
+  create: Prisma.XOR<Prisma.VaultCreateWithoutRequestsInput, Prisma.VaultUncheckedCreateWithoutRequestsInput>
+  where?: Prisma.VaultWhereInput
+}
+
+export type VaultUpdateToOneWithWhereWithoutRequestsInput = {
+  where?: Prisma.VaultWhereInput
+  data: Prisma.XOR<Prisma.VaultUpdateWithoutRequestsInput, Prisma.VaultUncheckedUpdateWithoutRequestsInput>
+}
+
+export type VaultUpdateWithoutRequestsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  owner?: Prisma.UserUpdateOneWithoutOwnedVaultsNestedInput
+  deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultUncheckedUpdateWithoutRequestsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  ownerUserId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deposits?: Prisma.DepositUncheckedUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultCreateManyOwnerInput = {
+  id?: number
+  name: string
+  feeBps?: number
+  hwmSharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: number
+  withdrawFeeBps?: number
+  lockHours?: number
+  treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: number
+  settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type VaultUpdateWithoutOwnerInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deposits?: Prisma.DepositUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultUncheckedUpdateWithoutOwnerInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deposits?: Prisma.DepositUncheckedUpdateManyWithoutVaultNestedInput
+  withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutVaultNestedInput
+  epochs?: Prisma.EpochCheckpointUncheckedUpdateManyWithoutVaultNestedInput
+  traders?: Prisma.VaultTraderUncheckedUpdateManyWithoutVaultNestedInput
+  bots?: Prisma.BotUncheckedUpdateManyWithoutVaultNestedInput
+  payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutVaultNestedInput
+  requests?: Prisma.TraderRequestUncheckedUpdateManyWithoutVaultNestedInput
+}
+
+export type VaultUncheckedUpdateManyWithoutOwnerInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  feeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  hwmSharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  totalShares?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  reserveBps?: Prisma.IntFieldUpdateOperationsInput | number
+  withdrawFeeBps?: Prisma.IntFieldUpdateOperationsInput | number
+  lockHours?: Prisma.IntFieldUpdateOperationsInput | number
+  treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
+  settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
+  rulesJson?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  environment?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -1602,6 +2144,7 @@ export type VaultCountOutputType = {
   traders: number
   bots: number
   payouts: number
+  requests: number
 }
 
 export type VaultCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1611,6 +2154,7 @@ export type VaultCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.
   traders?: boolean | VaultCountOutputTypeCountTradersArgs
   bots?: boolean | VaultCountOutputTypeCountBotsArgs
   payouts?: boolean | VaultCountOutputTypeCountPayoutsArgs
+  requests?: boolean | VaultCountOutputTypeCountRequestsArgs
 }
 
 /**
@@ -1665,6 +2209,13 @@ export type VaultCountOutputTypeCountPayoutsArgs<ExtArgs extends runtime.Types.E
   where?: Prisma.PartnerPayoutWhereInput
 }
 
+/**
+ * VaultCountOutputType without action
+ */
+export type VaultCountOutputTypeCountRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TraderRequestWhereInput
+}
+
 
 export type VaultSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1683,15 +2234,19 @@ export type VaultSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   listing?: boolean
   maxSlots?: boolean
   maxTraders?: boolean
+  ownerUserId?: boolean
+  rulesJson?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
   deposits?: boolean | Prisma.Vault$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.Vault$withdrawalsArgs<ExtArgs>
   epochs?: boolean | Prisma.Vault$epochsArgs<ExtArgs>
   traders?: boolean | Prisma.Vault$tradersArgs<ExtArgs>
   bots?: boolean | Prisma.Vault$botsArgs<ExtArgs>
   payouts?: boolean | Prisma.Vault$payoutsArgs<ExtArgs>
+  requests?: boolean | Prisma.Vault$requestsArgs<ExtArgs>
   _count?: boolean | Prisma.VaultCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vault"]>
 
@@ -1712,9 +2267,12 @@ export type VaultSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   listing?: boolean
   maxSlots?: boolean
   maxTraders?: boolean
+  ownerUserId?: boolean
+  rulesJson?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
 }, ExtArgs["result"]["vault"]>
 
 export type VaultSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1734,9 +2292,12 @@ export type VaultSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   listing?: boolean
   maxSlots?: boolean
   maxTraders?: boolean
+  ownerUserId?: boolean
+  rulesJson?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
 }, ExtArgs["result"]["vault"]>
 
 export type VaultSelectScalar = {
@@ -1756,33 +2317,43 @@ export type VaultSelectScalar = {
   listing?: boolean
   maxSlots?: boolean
   maxTraders?: boolean
+  ownerUserId?: boolean
+  rulesJson?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type VaultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "feeBps" | "hwmSharePrice" | "totalShares" | "reserveBps" | "withdrawFeeBps" | "lockHours" | "treasurySol" | "settlePeriodHours" | "settleLengthMin" | "kind" | "status" | "listing" | "maxSlots" | "maxTraders" | "environment" | "createdAt" | "updatedAt", ExtArgs["result"]["vault"]>
+export type VaultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "feeBps" | "hwmSharePrice" | "totalShares" | "reserveBps" | "withdrawFeeBps" | "lockHours" | "treasurySol" | "settlePeriodHours" | "settleLengthMin" | "kind" | "status" | "listing" | "maxSlots" | "maxTraders" | "ownerUserId" | "rulesJson" | "environment" | "createdAt" | "updatedAt", ExtArgs["result"]["vault"]>
 export type VaultInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
   deposits?: boolean | Prisma.Vault$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.Vault$withdrawalsArgs<ExtArgs>
   epochs?: boolean | Prisma.Vault$epochsArgs<ExtArgs>
   traders?: boolean | Prisma.Vault$tradersArgs<ExtArgs>
   bots?: boolean | Prisma.Vault$botsArgs<ExtArgs>
   payouts?: boolean | Prisma.Vault$payoutsArgs<ExtArgs>
+  requests?: boolean | Prisma.Vault$requestsArgs<ExtArgs>
   _count?: boolean | Prisma.VaultCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type VaultIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type VaultIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type VaultIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
+}
+export type VaultIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  owner?: boolean | Prisma.Vault$ownerArgs<ExtArgs>
+}
 
 export type $VaultPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Vault"
   objects: {
+    owner: Prisma.$UserPayload<ExtArgs> | null
     deposits: Prisma.$DepositPayload<ExtArgs>[]
     withdrawals: Prisma.$WithdrawalPayload<ExtArgs>[]
     epochs: Prisma.$EpochCheckpointPayload<ExtArgs>[]
     traders: Prisma.$VaultTraderPayload<ExtArgs>[]
     bots: Prisma.$BotPayload<ExtArgs>[]
     payouts: Prisma.$PartnerPayoutPayload<ExtArgs>[]
+    requests: Prisma.$TraderRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -1801,6 +2372,8 @@ export type $VaultPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     listing: string
     maxSlots: number
     maxTraders: number
+    ownerUserId: number | null
+    rulesJson: runtime.JsonValue | null
     environment: string
     createdAt: Date
     updatedAt: Date
@@ -2198,12 +2771,14 @@ readonly fields: VaultFieldRefs;
  */
 export interface Prisma__VaultClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  owner<T extends Prisma.Vault$ownerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$ownerArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   deposits<T extends Prisma.Vault$depositsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$depositsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DepositPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   withdrawals<T extends Prisma.Vault$withdrawalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$withdrawalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WithdrawalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   epochs<T extends Prisma.Vault$epochsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$epochsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EpochCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   traders<T extends Prisma.Vault$tradersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$tradersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VaultTraderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   bots<T extends Prisma.Vault$botsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$botsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   payouts<T extends Prisma.Vault$payoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$payoutsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PartnerPayoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  requests<T extends Prisma.Vault$requestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Vault$requestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TraderRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2249,6 +2824,8 @@ export interface VaultFieldRefs {
   readonly listing: Prisma.FieldRef<"Vault", 'String'>
   readonly maxSlots: Prisma.FieldRef<"Vault", 'Int'>
   readonly maxTraders: Prisma.FieldRef<"Vault", 'Int'>
+  readonly ownerUserId: Prisma.FieldRef<"Vault", 'Int'>
+  readonly rulesJson: Prisma.FieldRef<"Vault", 'Json'>
   readonly environment: Prisma.FieldRef<"Vault", 'String'>
   readonly createdAt: Prisma.FieldRef<"Vault", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Vault", 'DateTime'>
@@ -2506,6 +3083,10 @@ export type VaultCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    */
   data: Prisma.VaultCreateManyInput | Prisma.VaultCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.VaultIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2576,6 +3157,10 @@ export type VaultUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * Limit how many Vaults to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.VaultIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2642,6 +3227,25 @@ export type VaultDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Limit how many Vaults to delete.
    */
   limit?: number
+}
+
+/**
+ * Vault.owner
+ */
+export type Vault$ownerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**
@@ -2786,6 +3390,30 @@ export type Vault$payoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.PartnerPayoutScalarFieldEnum | Prisma.PartnerPayoutScalarFieldEnum[]
+}
+
+/**
+ * Vault.requests
+ */
+export type Vault$requestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TraderRequest
+   */
+  select?: Prisma.TraderRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TraderRequest
+   */
+  omit?: Prisma.TraderRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TraderRequestInclude<ExtArgs> | null
+  where?: Prisma.TraderRequestWhereInput
+  orderBy?: Prisma.TraderRequestOrderByWithRelationInput | Prisma.TraderRequestOrderByWithRelationInput[]
+  cursor?: Prisma.TraderRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TraderRequestScalarFieldEnum | Prisma.TraderRequestScalarFieldEnum[]
 }
 
 /**

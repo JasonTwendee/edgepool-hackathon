@@ -174,6 +174,11 @@ model Vault {
   listing         String   @db.VarChar(16) @default("public")
   maxSlots        Int      @map("max_slots") @default(100)
   maxTraders      Int      @map("max_traders") @default(5)
+  // Pool app P4: owning partner (set by ADMIN when approving an application).
+  ownerUserId     Int?     @map("owner_user_id")
+  owner           User?    @relation("VaultOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  // Pool app P4: per-pool strategy overrides (JSON, validated keys in service).
+  rulesJson       Json?    @map("rules_json") @db.JsonB
   // Environment isolation (fund-roles-auth D7): SANDBOX default; PRODUCTION
   // execution paths are not implemented and must refuse explicitly.
   environment     String   @db.VarChar(10) @default("SANDBOX")
@@ -186,6 +191,7 @@ model Vault {
   traders     VaultTrader[]
   bots        Bot[]
   payouts     PartnerPayout[]
+  requests    TraderRequest[]
 
   @@map("vaults")
 }
@@ -259,11 +265,14 @@ model User {
   passwordHash String?  @map("password_hash") @db.Text
   // USER | KOL | ADMIN. Self-register always creates USER; only ADMIN changes role.
   role      String   @db.VarChar(10) @default("USER")
+  // Pool app P4: partner payout wallet (set by the partner after first login).
+  payoutWallet String? @map("payout_wallet") @db.VarChar(64)
   createdAt DateTime @map("created_at") @default(now()) @db.Timestamptz()
 
   sessions    Session[]
   deposits    Deposit[]
   withdrawals Withdrawal[]
+  ownedVaults Vault[]    @relation("VaultOwner")
 
   @@map("users")
 }
@@ -358,4 +367,32 @@ model PartnerPayout {
 
   @@map("partner_payouts")
   @@index([vaultId, trader])
+}
+
+// Pool app P4: partner applications (public intake, ADMIN reviews).
+model PartnerApplication {
+  id         Int      @id @default(autoincrement())
+  fomoHandle String   @map("fomo_handle") @db.VarChar(100)
+  xHandle    String?  @map("x_handle") @db.VarChar(100)
+  wallet     String   @db.VarChar(64)
+  contact    String   @db.VarChar(200)
+  status     String   @db.VarChar(16) @default("pending")
+  createdAt  DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("partner_applications")
+  @@index([status])
+}
+
+// Pool app P4: partner requests a trader for their pool (Edgepool creates the account).
+model TraderRequest {
+  id         Int      @id @default(autoincrement())
+  vaultId    Int      @map("vault_id")
+  vault      Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  fomoHandle String   @map("fomo_handle") @db.VarChar(100)
+  xHandle    String?  @map("x_handle") @db.VarChar(100)
+  status     String   @db.VarChar(16) @default("pending")
+  createdAt  DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("trader_requests")
+  @@index([vaultId, status])
 }

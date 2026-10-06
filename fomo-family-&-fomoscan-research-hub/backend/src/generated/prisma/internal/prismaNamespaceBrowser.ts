@@ -66,7 +66,9 @@ export const ModelName = {
   AuditLog: 'AuditLog',
   VaultTrader: 'VaultTrader',
   Bot: 'Bot',
-  PartnerPayout: 'PartnerPayout'
+  PartnerPayout: 'PartnerPayout',
+  PartnerApplication: 'PartnerApplication',
+  TraderRequest: 'TraderRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -212,6 +214,8 @@ export const VaultScalarFieldEnum = {
   listing: 'listing',
   maxSlots: 'maxSlots',
   maxTraders: 'maxTraders',
+  ownerUserId: 'ownerUserId',
+  rulesJson: 'rulesJson',
   environment: 'environment',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -272,6 +276,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   passwordHash: 'passwordHash',
   role: 'role',
+  payoutWallet: 'payoutWallet',
   createdAt: 'createdAt'
 } as const
 
@@ -351,6 +356,31 @@ export const PartnerPayoutScalarFieldEnum = {
 } as const
 
 export type PartnerPayoutScalarFieldEnum = (typeof PartnerPayoutScalarFieldEnum)[keyof typeof PartnerPayoutScalarFieldEnum]
+
+
+export const PartnerApplicationScalarFieldEnum = {
+  id: 'id',
+  fomoHandle: 'fomoHandle',
+  xHandle: 'xHandle',
+  wallet: 'wallet',
+  contact: 'contact',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type PartnerApplicationScalarFieldEnum = (typeof PartnerApplicationScalarFieldEnum)[keyof typeof PartnerApplicationScalarFieldEnum]
+
+
+export const TraderRequestScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  fomoHandle: 'fomoHandle',
+  xHandle: 'xHandle',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type TraderRequestScalarFieldEnum = (typeof TraderRequestScalarFieldEnum)[keyof typeof TraderRequestScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -13,6 +13,7 @@ import { BotsModule } from './modules/bots/bots.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
 import { MarketModule } from './modules/market/market.module.js';
 import { VaultsModule } from './modules/vaults/vaults.module.js';
+import { PartnerModule } from './modules/partner/partner.module.js';
 import { SolanaModule } from './server/solana.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module.js';
@@ -34,6 +35,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module.js';
     DemoModule,
     MarketModule,
     VaultsModule,
+    PartnerModule,
     SyncModule,
     LeaderboardModule,
   ],

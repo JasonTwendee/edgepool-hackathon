@@ -121,3 +121,13 @@ export type Bot = Prisma.BotModel
  * 
  */
 export type PartnerPayout = Prisma.PartnerPayoutModel
+/**
+ * Model PartnerApplication
+ * 
+ */
+export type PartnerApplication = Prisma.PartnerApplicationModel
+/**
+ * Model TraderRequest
+ * 
+ */
+export type TraderRequest = Prisma.TraderRequestModel
