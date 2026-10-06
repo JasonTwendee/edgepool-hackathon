@@ -213,6 +213,10 @@ async function main(): Promise<void> {
     assert.deepEqual(s.traders, ['WA', 'WB', 'WC']);
     assert.equal(s.sharePrice, 1);
     assert.equal(w.audits[0].action, 'demo.seed');
+    // Demo pools: single demo- prefix, unlisted (off the public index).
+    const row = w.db.vaults.find((v) => v.id === s.vaultId) as Row;
+    assert.match(String(row.name), /^demo-fund-[0-9a-z]+$/);
+    assert.equal(row.listing, 'unlisted');
   }
   // 2. Seed needs tracked wallets.
   {

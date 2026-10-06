@@ -63,7 +63,7 @@ export class DemoService {
   ) {}
 
   private demoTag(): string {
-    return `${DEMO_PREFIX}${Date.now().toString(36)}`;
+    return Date.now().toString(36);
   }
 
   async seed(opts: { name?: string; depositSol?: number; traderCount?: number }, actor: string) {
@@ -79,6 +79,8 @@ export class DemoService {
     if (wallets.length === 0) fail('No active tracked wallets to build the demo set.');
     const tag = this.demoTag();
     const vault = (await this.vaults.createVault(`${name}-${tag}`)) as { id: number };
+    // Demo pools stay off the public index (unlisted) + never pose as flagship.
+    await this.prisma.vault.update({ where: { id: vault.id }, data: { listing: 'unlisted' } });
     const even = Math.floor(10000 / wallets.length);
     for (let i = 0; i < wallets.length; i++) {
       await this.vaults.assignTrader(vault.id, wallets[i].address, i === 0 ? 10000 - even * (wallets.length - 1) : even);
