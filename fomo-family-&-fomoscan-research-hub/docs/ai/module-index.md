@@ -20,7 +20,7 @@
 | Users | `backend/src/modules/users/` | `users.controller.ts` | `users.service.ts` | `dto/users.dto.ts` | ADMIN list + setRole by username |
 | Audit | `backend/src/modules/audit/` | `audit.controller.ts` | `audit.service.ts` | — | Append-only incl. `auth.login_failed`; `@Audit()` interceptor |
 | Bots | `backend/src/modules/bots/` | `bots.controller.ts` | `bots.service.ts` | `dto/bots.dto.ts` | 1 pool = 1 vault + 1 AUTO bot; mode AUTO/PAUSED |
-| Demo | `backend/src/modules/demo/` | `demo.controller.ts` | `demo.service.ts` | `dto/demo.dto.ts` | seed/replay/reset + bot performance (ADMIN) |
+| Demo | `backend/src/modules/demo/` | `demo.controller.ts` | `demo.service.ts` | `dto/demo.dto.ts` | seed/replay/reset/scenario(×3 parallel) + bot performance (ADMIN); replay emits bus SKIP/ENTER |
 | App registry | `backend/src/app.module.ts` | — | — | — | Module wiring (controllers with `@Audit()` must import `AuditModule`) |
 | Bootstrap | `backend/src/main.ts` | — | — | — | NestFactory Express core, ValidationPipe, CORS |
 | Chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global) | — | `SolanaOnChainListenerService` | — | Canonical listener singleton; poll tracked actives |
