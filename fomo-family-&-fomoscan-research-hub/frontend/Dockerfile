@@ -18,6 +18,7 @@ COPY frontend/components ./components
 COPY frontend/hooks ./hooks
 COPY frontend/lib ./lib
 COPY frontend/types ./types
+COPY frontend/styles ./styles
 COPY frontend/public ./public
 ARG BACKEND_URL=http://backend:3000
 ENV BACKEND_URL=${BACKEND_URL}
