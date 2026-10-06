@@ -10,6 +10,7 @@ import { WalletAvatar } from './WalletAvatar';
 
 export const RANGES = [
   { key: '24h', label: '24H', days: 1 },
+  { key: '3d', label: '3D', days: 3 },
   { key: '7d', label: '7D', days: 7 },
   { key: '30d', label: '30D', days: 30 },
   { key: 'all', label: 'ALL', days: 120 },
@@ -312,9 +313,11 @@ export function TraderProfile({
               ◎ {holdings.solBalance.toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL
             </span>
           )}
-          <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#161826] border border-[#3F424D] text-[#E9E9ED]">
-            ⚖ {wallet.allocationWeight.toFixed(1)}x weight
+          {isAdmin && (
+          <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#161826] border border-[#3F424D] text-[#E9E9ED]" title="Copy-engine allocation weight for this trader">
+            ⚖ {wallet.allocationWeight.toFixed(1)}x copy weight
           </span>
+          )}
           {trackedSince && (
             <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#161826] border border-[#3F424D] text-[#E9E9ED]">
               📅 Since {trackedSince}

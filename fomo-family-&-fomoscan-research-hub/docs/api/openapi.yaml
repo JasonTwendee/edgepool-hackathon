@@ -408,6 +408,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CopyHistoryResponse'
+  /api/vaults/mine:
+    get:
+      summary: My vault position (shares, value, returns, queues) for the session identity
+      operationId: getMyVaultPosition
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: vaultId
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Personal vault position
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    required: [vaultId, vaultName, sharePrice, shares, valueSol, depositedSol, withdrawnSol, returnsSol]
+                    properties:
+                      vaultId: { type: integer }
+                      vaultName: { type: string }
+                      sharePrice: { type: number }
+                      shares: { type: number }
+                      valueSol: { type: number }
+                      depositedSol: { type: number }
+                      withdrawnSol: { type: number }
+                      returnsSol: { type: number }
+                      queuedDeposits:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: integer }
+                            amountSol: { type: number }
+                            createdAt: { type: string, format: date-time }
+                      queuedWithdrawals:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id: { type: integer }
+                            shares: { type: number }
+                            createdAt: { type: string, format: date-time }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/deposit:
     post:
       summary: Queue a vault deposit (settled at epoch price)

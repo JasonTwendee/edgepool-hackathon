@@ -16,6 +16,7 @@ function makeFake() {
   };
   const match = (r: Row, w: Row): boolean =>
     Object.entries(w).every(([k, v]) => {
+      if (k === 'OR' && Array.isArray(v)) return (v as Row[]).some((o) => match(r, o));
       if (v !== null && typeof v === 'object' && ('gte' in (v as object) || 'not' in (v as object))) return true;
       return r[k] === v;
     });
@@ -124,6 +125,21 @@ async function main(): Promise<void> {
   // Second settle at post-fee NAV (12.56) → no new profit → no fee.
   const f2 = await svc2.settleEpoch(v2.id, 12.56);
   assert.equal(f2.feeSol, 0);
+
+  // 6. mine(): investor view matched by userId (alice row carries userId 7).
+  const svc3 = new VaultService(makeFake());
+  const v3 = await svc3.getOrCreateVault('mine');
+  await svc3.deposit(v3.id, 'alice', 10, 7);
+  await svc3.deposit(v3.id, 'bob', 4);
+  await svc3.settleEpoch(v3.id, 14);
+  const m = await svc3.mine(v3.id, { id: 7, wallet: 'cred:alice' });
+  assert.equal(m.shares, 10);
+  assert.equal(m.depositedSol, 10);
+  assert.equal(m.queuedDeposits.length, 0);
+  // Stranger sees zero.
+  const stranger = await svc3.mine(v3.id, { id: 99, wallet: 'cred:ghost' });
+  assert.equal(stranger.shares, 0);
+  assert.equal(stranger.depositedSol, 0);
 
   console.log('vault asserts: ALL GREEN');
 }

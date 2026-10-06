@@ -456,6 +456,73 @@ export class VaultService {
     };
   }
 
+  /**
+   * Investor view (Investor Mode): *my* position in a vault — shares held,
+   * current value, settled totals and queued requests — matched by session
+   * identity (userId, plus depositor string equal to the session wallet for
+   * legacy rows created before auth existed). Read-only.
+   */
+  async mine(vaultId: number, user: { id: number; wallet: string }): Promise<{
+    vaultId: number;
+    vaultName: string;
+    sharePrice: number;
+    shares: number;
+    valueSol: number;
+    depositedSol: number;
+    withdrawnSol: number;
+    returnsSol: number;
+    queuedDeposits: { id: number; amountSol: number; createdAt: string }[];
+    queuedWithdrawals: { id: number; shares: number; createdAt: string }[];
+  }> {
+    const { id } = await this.resolveVault(vaultId);
+    vaultId = id;
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    if (!vault) fail(`Vault ${vaultId} not found.`);
+    const mine = { vaultId, OR: [{ userId: user.id }, { depositor: user.wallet }] };
+    const [deposits, withdrawals, last] = await Promise.all([
+      this.prisma.deposit.findMany({ where: mine, orderBy: { id: 'asc' } }),
+      this.prisma.withdrawal.findMany({ where: mine, orderBy: { id: 'asc' } }),
+      this.prisma.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } }),
+    ]);
+    const price = last ? num(last.sharePrice) : 1;
+    let minted = 0;
+    let deposited = 0;
+    const qd: { id: number; amountSol: number; createdAt: string }[] = [];
+    for (const d of deposits) {
+      if (d.status === 'SETTLED') {
+        minted = r9(minted + num(d.sharesMinted));
+        deposited = r9(deposited + num(d.amountSol));
+      } else if (d.status === 'QUEUED') {
+        qd.push({ id: d.id, amountSol: num(d.amountSol), createdAt: (d.createdAt as Date).toISOString() });
+      }
+    }
+    let burned = 0;
+    let withdrawn = 0;
+    const qw: { id: number; shares: number; createdAt: string }[] = [];
+    for (const w of withdrawals) {
+      if (w.status === 'SETTLED') {
+        burned = r9(burned + num(w.sharesRequested));
+        withdrawn = r9(withdrawn + num(w.payoutSol));
+      } else if (w.status === 'QUEUED') {
+        qw.push({ id: w.id, shares: num(w.sharesRequested), createdAt: (w.createdAt as Date).toISOString() });
+      }
+    }
+    const shares = Math.max(0, r9(minted - burned));
+    const value = r9(shares * price);
+    return {
+      vaultId,
+      vaultName: vault.name,
+      sharePrice: price,
+      shares,
+      valueSol: value,
+      depositedSol: deposited,
+      withdrawnSol: withdrawn,
+      returnsSol: r9(value + withdrawn - deposited),
+      queuedDeposits: qd,
+      queuedWithdrawals: qw,
+    };
+  }
+
   // ---- Multi-vault + trader sets (fund-roles-auth P3, ADMIN-gated in controller) ----
 
   async listVaults(): Promise<unknown[]> {
