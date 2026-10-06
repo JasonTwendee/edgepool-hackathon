@@ -194,9 +194,9 @@ export class PnlService {
       wallets.map(async (w) => {
         const entry = byHandle.get((w.handle ?? '').toLowerCase());
         const win = entry ? this.pickWindow(entry.windows ?? {}, days) : null;
-        const wdata = win ? entry.windows?.[win] : undefined;
+        const wdata = win ? entry?.windows?.[win] : undefined;
         // No handle, no suitable window, or not ready → local FIFO for this wallet.
-        if (!wdata || entry.status !== 'ready') return this.getWalletPnl(w.address, days);
+        if (!wdata || entry?.status !== 'ready') return this.getWalletPnl(w.address, days);
         return {
           wallet: w.address,
           days,
