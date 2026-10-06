@@ -151,7 +151,7 @@ export default function PoolDetailPage() {
       </div>
 
       {advanced && pool.advanced ? (
-        <AdvancedView pool={pool} />
+        <AdvancedView pool={pool} periodPnl={pnl} />
       ) : (
       <div className="grid gap-4 mt-5" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
         <div className="space-y-4 min-w-0">
@@ -305,7 +305,7 @@ export default function PoolDetailPage() {
   );
 }
 
-function AdvancedView({ pool }: { pool: PoolDetail }) {
+function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol: number; pct: number } }) {
   const adv = pool.advanced;
   if (!adv) return null;
   const card: React.CSSProperties = { background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' };
@@ -341,6 +341,7 @@ function AdvancedView({ pool }: { pool: PoolDetail }) {
         {[
           ['Pool NAV', `${k.navSol.toFixed(2)} SOL`],
           ['NAV/share', k.sharePrice.toFixed(4)],
+          ['PnL · period', `${periodPnl.sol >= 0 ? '+' : ''}${periodPnl.sol.toFixed(2)} (${periodPnl.pct >= 0 ? '+' : ''}${periodPnl.pct.toFixed(1)}%)`],
           ['Unrealized', `${k.unrealizedSol >= 0 ? '+' : ''}${k.unrealizedSol.toFixed(4)}`],
           ['Deployed % NAV', `${k.deployedPctNav.toFixed(1)}%`],
           ['From HWM', `${k.fromHwmPct >= 0 ? '+' : ''}${k.fromHwmPct.toFixed(1)}%`],
