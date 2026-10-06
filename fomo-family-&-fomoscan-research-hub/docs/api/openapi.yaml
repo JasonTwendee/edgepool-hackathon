@@ -1502,6 +1502,24 @@ paths:
                   data: { $ref: '#/components/schemas/DemoReset' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/scenario:
+    post:
+      summary: One-click stage demo — reset, then 3 cases in parallel (seed+replay each) (ADMIN, audited)
+      operationId: runDemoScenario
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Per-case results (vaultId, signals, fired, NAV, queued withdrawal)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/demo/bot/{id}/performance:
     get:
       summary: Bot performance from orders (auto + demo, ADMIN)

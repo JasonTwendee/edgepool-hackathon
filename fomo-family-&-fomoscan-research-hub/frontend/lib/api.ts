@@ -591,3 +591,32 @@ export function runAutoFireTick(
     body: JSON.stringify({ minutes, limit }),
   });
 }
+
+export interface DemoScenarioCase {
+  ok: boolean;
+  name: string;
+  vaultId?: number;
+  botId?: number;
+  signals?: number;
+  fired?: number;
+  failed?: number;
+  settleNavSol?: number;
+  withdrawal?: { id: number; status: string; pending: boolean; message: string } | null;
+  error?: string;
+}
+
+export interface DemoScenarioResult {
+  cleaned: { vaults: number; bots: number; orders: number };
+  cases: DemoScenarioCase[];
+  environment: 'sandbox';
+}
+
+/** One-click stage demo: reset + 3 parallel cases (ADMIN). */
+export function runDemoScenario(token: string): Promise<{ success: boolean; data: DemoScenarioResult }> {
+  return fetchJsonAuth('/api/demo/scenario', token, { method: 'POST' });
+}
+
+/** Delete demo pools + orders, keep audit (ADMIN). */
+export function resetDemo(token: string): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth('/api/demo/reset', token, { method: 'POST' });
+}

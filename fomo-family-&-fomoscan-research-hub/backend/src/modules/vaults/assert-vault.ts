@@ -147,7 +147,10 @@ async function main(): Promise<void> {
   const svc4 = new VaultService(makeFake());
   await assert.rejects(() => svc4.createVault('edgepool-smoke-1'), /test-like pool name/);
   await assert.rejects(() => svc4.createVault('fee-e2e'), /test-like pool name/);
-  await assert.rejects(() => svc4.createVault('demo-fund-x'), /test-like pool name/);
+  await assert.rejects(() => svc4.createVault('prod-x'), /test-like pool name/);
+  // demo- stays allowed in prod: explicit ADMIN tool, cleaned by demo reset.
+  const demo = (await svc4.createVault('demo-fund-x')) as Row;
+  assert.equal(demo.name, 'demo-fund-x');
   const legit = (await svc4.createVault('Kestrel Collective 2')) as Row;
   assert.equal(legit.name, 'Kestrel Collective 2');
   process.env.NODE_ENV = prevEnv;

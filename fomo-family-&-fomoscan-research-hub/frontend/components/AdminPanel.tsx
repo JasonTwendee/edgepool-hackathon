@@ -11,7 +11,9 @@ import {
   listUsers,
   listVaults,
   removeVaultTrader,
+  resetDemo,
   runAutoFireTick,
+  runDemoScenario,
   setBotMode,
   setUserRole,
   setVaultPolicy,
@@ -24,8 +26,9 @@ import type {
   FundUser,
   VaultWithTraders,
 } from '../types/fund';
+import type { DemoScenarioResult } from '../lib/api';
 
-type Tab = 'users' | 'audit' | 'vaults' | 'bots' | 'engine';
+type Tab = 'users' | 'audit' | 'vaults' | 'bots' | 'engine' | 'demo';
 
 const inputCls =
   'text-xs bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5 text-[#E9E9ED] placeholder:text-[#4A4D5E]';
@@ -64,6 +67,7 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
   const [tickMin, setTickMin] = useState('15');
   const [tickLimit, setTickLimit] = useState('10');
   const [tickResult, setTickResult] = useState<AutoFireTickResult | null>(null);
+  const [demoResult, setDemoResult] = useState<DemoScenarioResult | null>(null);
 
   const token: string = session?.token ?? '';
   // UI guard only — real authorization stays in BE guards (D-F3).
@@ -158,7 +162,7 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
       )}
 
       <div className="flex gap-1.5 flex-wrap">
-        {(['users', 'audit', 'vaults', 'bots', 'engine'] as Tab[]).map((t) => (
+        {(['users', 'audit', 'vaults', 'bots', 'engine', 'demo'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -403,6 +407,78 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
             <pre className="text-[11px] font-mono text-[#A7AABF] bg-[#161826] border border-[#3F424D] rounded-lg p-2 whitespace-pre-wrap break-all">
               {JSON.stringify(tickResult, null, 1)}
             </pre>
+          )}
+        </div>
+      )}
+
+      {tab === 'demo' && (
+        <div className="space-y-2">
+          <p className="text-[11px] text-[#75798C]">
+            Stage demo 1-click: wipe old demo pools, then run 3 cases in parallel
+            (seed vault+bot+traders, replay real BUYs → terminal log, 2nd deposit +
+            settle moves NAV, withdrawal stays queued). Watch it live in the pool terminal log.
+          </p>
+          <div className="flex gap-1.5 flex-wrap">
+            {isAdmin && (
+              <>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      () => runDemoScenario(token),
+                      (r) => {
+                        setDemoResult(r.data);
+                        refreshVaults();
+                      },
+                      'Scenario complete',
+                    )
+                  }
+                  className={btnPrimary}
+                >
+                  Run scenario ×3
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      () => resetDemo(token),
+                      () => {
+                        setDemoResult(null);
+                        refreshVaults();
+                      },
+                      'Demo pools deleted',
+                    )
+                  }
+                  className={btnGhost}
+                >
+                  Reset demo
+                </button>
+              </>
+            )}
+          </div>
+          {demoResult && (
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-mono text-[#75798C]">
+                cleaned pools: {demoResult.cleaned.vaults} · bots: {demoResult.cleaned.bots} · orders: {demoResult.cleaned.orders}
+              </div>
+              {demoResult.cases.map((c) => (
+                <div key={c.name} className="text-[11px] font-mono bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5">
+                  <span className={c.ok ? 'text-[#73DEA4]' : 'text-[#F28881]'}>{c.ok ? '●' : '○'} {c.name}</span>{' '}
+                  {c.ok ? (
+                    <a href={`/pools/${c.vaultId}`} className="text-[#49E6D7] underline">
+                      pool #{c.vaultId}
+                    </a>
+                  ) : (
+                    <span className="text-[#A7AABF]">{c.error}</span>
+                  )}
+                  {c.ok && (
+                    <span className="text-[#A7AABF]">
+                      {' '}· signals {c.signals} · fired {c.fired} · failed {c.failed} · NAV {c.settleNavSol} · withdraw {c.withdrawal?.status}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

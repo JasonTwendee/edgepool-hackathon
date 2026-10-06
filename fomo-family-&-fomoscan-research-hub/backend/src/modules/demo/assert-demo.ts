@@ -165,7 +165,11 @@ function makeWorld(seed: {
   } as never;
   const manage = { tick: async () => ({ scanned: fired.length, closedIds: [] }) } as never;
   const vaults = {
-    createVault: async (name: string) => ({ id: nid(), name, traders: [] }),
+    createVault: async (name: string) => {
+      const r = { id: nid(), name, traders: [] };
+      db.vaults.push(r); // persist so resolveDemoPair finds it (mirrors real service)
+      return r;
+    },
     assignTrader: async () => ({}),
     deposit: async () => ({ id: nid(), status: 'QUEUED' }),
     settleEpoch: async () => ({ epochId: 1 }),
@@ -173,7 +177,13 @@ function makeWorld(seed: {
     status: async () => ({ lastEpoch: { navSol: 120 } }),
     depositorShares: async () => 100,
   } as never;
-  const bots = { create: async (name: string) => ({ id: nid(), name }) } as never;
+  const bots = {
+    create: async (name: string) => {
+      const r = { id: nid(), name };
+      db.bots.push(r); // persist so resolveDemoPair finds it (mirrors real service)
+      return r;
+    },
+  } as never;
   const audit = {
     record: async (input: Row) => {
       audits.push({ id: audits.length + 1, ...input });
@@ -288,6 +298,33 @@ async function main(): Promise<void> {
   {
     const w = makeWorld({ bots: [] });
     await assert.rejects(() => w.svc.performance(999), /not found/);
+  }
+  // 8. Scenario: reset first, then 3 cases in parallel, each seed+replay.
+  {
+    const signals = [
+      SIG('s1', 'WA'), SIG('s2', 'WA'), SIG('s3', 'WA'),
+      SIG('s4', 'WB'), SIG('s5', 'WB'), SIG('s6', 'WB'),
+    ];
+    const w = makeWorld({
+      wallets: [{ address: 'WA' }, { address: 'WB' }, { address: 'WC' }, { address: 'WD' }, { address: 'WE' }],
+      signals,
+      vaults: [{ id: 1, name: 'demo-fund-old' }],
+      bots: [{ id: 7, name: 'demo-bot-old', vaultId: 1 }],
+    });
+    const r = await w.svc.scenario('admin');
+    assert.equal(r.cleaned.vaults, 1); // stale demo pool wiped first
+    assert.equal(r.cases.length, 3);
+    const names = r.cases.map((c) => c.name).sort();
+    assert.deepEqual(names, ['case-broad', 'case-momentum', 'case-value']);
+    for (const c of r.cases) {
+      assert.equal(c.ok, true);
+      if (c.ok) {
+        assert.ok(c.vaultId > 0 && c.fired > 0);
+        assert.equal(c.withdrawal?.pending, true); // vault trừ tiền: rút QUEUED
+      }
+    }
+    assert.ok(w.audits.some((a) => a.action === 'demo.scenario'));
+    assert.equal(r.environment, 'sandbox');
   }
 
   console.log('demo asserts: ALL GREEN');

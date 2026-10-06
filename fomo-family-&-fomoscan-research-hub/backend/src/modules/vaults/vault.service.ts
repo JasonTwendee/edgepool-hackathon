@@ -1131,9 +1131,10 @@ export class VaultService {
   async createVault(name: string, environment = 'SANDBOX'): Promise<unknown> {
     const clean = (name ?? '').trim();
     if (clean.length < 2) fail('Vault name is required.');
-    // Prod DB guard: smoke/e2e/demo-named pools never land in production
-    // (smoke scripts hit POST /api/vaults + demo seed; both funnel through here).
-    if (process.env.NODE_ENV === 'production' && /(smoke|e2e|^demo-|[-_]demo$|prod-x|[-_]test([-_]|$)|^test[-_])/i.test(clean)) {
+    // Prod DB guard: external smoke/e2e/test scripts must never land pools in
+    // production (both POST /api/vaults and seeds funnel through here).
+    // `demo-` stays allowed: explicit ADMIN action, owned + cleaned by demo reset.
+    if (process.env.NODE_ENV === 'production' && /(smoke|e2e|prod-x|[-_]test([-_]|$)|^test[-_])/i.test(clean)) {
       fail(`Refusing test-like pool name in production: '${clean}'.`);
     }
     const env = (environment ?? 'SANDBOX').toUpperCase();
