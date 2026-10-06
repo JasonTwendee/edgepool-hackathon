@@ -233,6 +233,20 @@ export class LeaderboardService implements OnModuleInit {
       this.prisma.trackedWallet.count(),
       this.prisma.trackedWallet.count({ where: { isActive: true } }),
     ]);
+    // Reconcile live pipeline with DB truth: the listener registry is seeded
+    // with hardcoded defaults at construction and drifts (deactivations,
+    // prunes) — anything subscribed but not DB-active burns RPC for nothing.
+    const dbActives = await this.prisma.trackedWallet.findMany({
+      where: { isActive: true },
+      select: { address: true },
+    });
+    const dbActiveSet = new Set(dbActives.map((w) => w.address));
+    for (const w of this.listener.getTrackedWallets()) {
+      if (!dbActiveSet.has(w.address)) {
+        this.listener.removeTrackedWallet(w.address);
+        await this.stream.unwatch(w.address).catch(() => undefined);
+      }
+    }
     return { period, topN, cap, added, reactivated, deactivated, pruned, total: finalTotal, active: finalActive, at: new Date().toISOString() };
   }
 }
