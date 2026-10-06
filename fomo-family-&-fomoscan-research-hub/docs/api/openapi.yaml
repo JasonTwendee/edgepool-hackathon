@@ -175,6 +175,243 @@ paths:
                       status: { type: string }
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/apply:
+    post:
+      summary: Partner application intake (public, always pending)
+      operationId: applyPartner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fomoHandle, wallet, contact]
+              properties:
+                fomoHandle: { type: string }
+                xHandle: { type: string }
+                wallet: { type: string }
+                contact: { type: string }
+      responses:
+        '200':
+          description: Received
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/me:
+    get:
+      summary: Trader portal dashboard root (KOL/ADMIN)
+      operationId: getPartnerMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/payout-wallet:
+    post:
+      summary: Set partner payout wallet (KOL/ADMIN)
+      operationId: setPayoutWallet
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/claim:
+    post:
+      summary: Claim ACCRUED fees to PAID (KOL/ADMIN, record-only)
+      operationId: claimPartnerFees
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Claimed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/pools/{id}/settings:
+    patch:
+      summary: Update owned pool settings (owner/ADMIN)
+      operationId: updatePoolSettings
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/pools/{id}/traders:
+    get:
+      summary: Per-trader table for owned pool (owner/ADMIN)
+      operationId: getPoolTraders
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Traders
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/pools/{id}/request-trader:
+    post:
+      summary: Request a trader for owned pool (owner/ADMIN)
+      operationId: requestPoolTrader
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Requested
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/signals:
+    get:
+      summary: My signals in my pools (KOL/ADMIN)
+      operationId: getPartnerSignals
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Signals
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/payouts:
+    get:
+      summary: Payout history for owned pools (KOL/ADMIN)
+      operationId: getPartnerPayouts
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Payouts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/applications:
+    get:
+      summary: List partner applications (ADMIN)
+      operationId: listPartnerApplications
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/applications/{id}/review:
+    post:
+      summary: Review a partner application (ADMIN)
+      operationId: reviewPartnerApplication
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Reviewed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/wallets/{address}/enrich:
     post:
       summary: Backfill verified identity (avatar/bio/EVM) from FomoScan (ADMIN, audited)

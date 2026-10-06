@@ -240,6 +240,55 @@ export function cancelWithdrawal(id: number, token: string): Promise<{ success: 
   return fetchJsonAuth(`/api/vaults/withdraw/${id}`, token, { method: 'DELETE' });
 }
 
+export interface PartnerMe {
+  handle: string;
+  payoutWallet: string | null;
+  pools: { id: number; name: string; kind: string; status: string; listing: string; navSol: number }[];
+  fees: { pendingSol: number; claimableSol: number; paidSol: number; nextCheckpointAt: string | null; byPool: { vaultId: number; kind: string; claimableSol: number; paidSol: number }[] };
+  basket: { wallet: string; handle: string; rank: number | null; inBasket: boolean; note: string }[];
+  requests: { id: number; vaultId: number; fomoHandle: string; status: string }[];
+}
+
+export function partnerApply(input: { fomoHandle: string; xHandle?: string; wallet: string; contact: string }): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  return fetchJson('/api/partner/apply', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function partnerMe(token: string): Promise<{ success: boolean; data: PartnerMe }> {
+  return fetchJsonAuth('/api/partner/me', token);
+}
+
+export function partnerSetPayoutWallet(token: string, wallet: string): Promise<{ success: boolean; data: { payoutWallet: string } }> {
+  return fetchJsonAuth('/api/partner/payout-wallet', token, { method: 'POST', body: JSON.stringify({ wallet }) });
+}
+
+export function partnerClaim(token: string): Promise<{ success: boolean; data: { claimedSol: number; rows: number } }> {
+  return fetchJsonAuth('/api/partner/claim', token, { method: 'POST' });
+}
+
+export function partnerPoolTraders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: { wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[] }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/traders`, token);
+}
+
+export function partnerUpdateSettings(token: string, poolId: number, patch: Record<string, unknown>): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/settings`, token, { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export function partnerPauseTrader(token: string, poolId: number, wallet: string, active: boolean): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/traders/${encodeURIComponent(wallet)}/pause`, token, { method: 'POST', body: JSON.stringify({ active }) });
+}
+
+export function partnerRequestTrader(token: string, poolId: number, input: { fomoHandle: string; xHandle?: string }): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/request-trader`, token, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function partnerSignals(token: string, vaultId?: number): Promise<{ success: boolean; total: number; data: { id: number; vaultId: number; token: string; trader: string; status: string; profitUsd: number | null; createdAt: string }[] }> {
+  return fetchJsonAuth(`/api/partner/signals${vaultId ? `?vaultId=${vaultId}` : ''}`, token);
+}
+
+export function partnerPayouts(token: string): Promise<{ success: boolean; total: number; data: { id: number; vaultId: number; trader: string; amountSol: number; epochId: number | null; kind: string; status: string; createdAt: string }[] }> {
+  return fetchJsonAuth('/api/partner/payouts', token);
+}
+
 export function queueVaultDeposit(input: {
   depositor: string;
   amountSol: number;

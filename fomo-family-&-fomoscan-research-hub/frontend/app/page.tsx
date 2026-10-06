@@ -133,7 +133,7 @@ export default function PoolsPage() {
           <nav className="flex items-center gap-1">
             <span className="text-sm font-medium px-3 h-9 flex items-center" style={{ color: 'var(--ep-text, #E9E9ED)' }}>Pools</span>
             <span className="text-sm px-3 h-9 hidden sm:flex items-center" style={{ color: 'var(--ep-muted, #9397AB)' }} title="Coming in P3">Portfolio</span>
-            <span className="text-sm px-3 h-9 hidden sm:flex items-center" style={{ color: 'var(--ep-muted, #9397AB)' }} title="Coming in P4">Trader</span>
+            <Link href="/trader" className="text-sm px-3 h-9 hidden sm:flex items-center" style={{ color: 'var(--ep-muted, #9397AB)' }}>Trader</Link>
             <Link href="/terminal" className="text-sm px-3 h-9 hidden sm:flex items-center" style={{ color: 'var(--ep-muted, #9397AB)' }} title="Operator terminal (admin)">Terminal</Link>
           </nav>
         </div>
