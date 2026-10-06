@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { emitSignal } from './signal-bus.js';
 
 export type ManageAction = 'HOLD' | 'TP1_HIT' | 'TP2_HIT' | 'STOP_HIT' | 'TRAIL_HIT' | 'TIME_STOP' | 'UNKNOWN';
 
@@ -250,6 +251,24 @@ export class ManageService implements OnModuleInit {
       .catch((e: unknown) => {
         console.warn('[manage] audit record failed:', (e as Error).message);
       });
+    // Terminal stream: one line per filled leg (best-effort, never breaks the tick).
+    try {
+      const ctx = (await this.prisma.copyOrder.findUnique({
+        where: { id: orderId },
+        select: { vaultId: true, symbol: true, tokenMint: true, masterHandle: true, masterWallet: true },
+      })) as { vaultId: number | null; symbol: string | null; tokenMint: string | null; masterHandle: string | null; masterWallet: string | null } | null;
+      if (ctx?.vaultId) {
+        emitSignal({
+          vaultId: ctx.vaultId,
+          kind: 'EXIT',
+          token: ctx.symbol ?? (ctx.tokenMint ?? '').slice(0, 8),
+          trader: ctx.masterHandle ?? (ctx.masterWallet ?? '').slice(0, 8),
+          note: `${leg} ${(fraction * 100).toFixed(0)}% @${exitPrice} (${realized >= 0 ? '+' : ''}$${realized})`,
+        });
+      }
+    } catch {
+      // stream-only; persist already succeeded above
+    }
   }
 
   /** Safety: legs sum to 100% but the order row was never stamped closed. */

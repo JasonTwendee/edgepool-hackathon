@@ -888,6 +888,44 @@ export class VaultService {
     };
   }
 
+  /**
+   * Pool terminal log P6 — replay for the SSE stream: last orders of a vault
+   * mapped to signal events (newest last). Live legs arrive via the bus.
+   */
+  async recentSignalEvents(
+    vaultId: number,
+    limit = 30,
+  ): Promise<{ vaultId: number; kind: string; token: string; trader: string; note: string; at: number }[]> {
+    const { id } = await this.resolveVault(vaultId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = (await (this.prisma as any).copyOrder.findMany({
+      where: { vaultId: id },
+      orderBy: { id: 'desc' },
+      take: Math.max(1, Math.min(100, limit)),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as any[];
+    const at = (v: unknown): number => new Date(v as string).getTime() || Date.now();
+    const evs: { vaultId: number; kind: string; token: string; trader: string; note: string; at: number }[] = [];
+    for (const o of [...raw].reverse()) {
+      const token = (o.symbol ?? (o.tokenMint ?? '').slice(0, 8)) || '—';
+      const trader = (o.masterHandle ?? (o.masterWallet ?? '').slice(0, 8)) || '—';
+      if (o.status === 'FAILED') {
+        evs.push({ vaultId: id, kind: 'SKIP', token, trader, note: (o.error ?? 'failed').slice(0, 120), at: at(o.createdAt) });
+      } else {
+        evs.push({ vaultId: id, kind: 'ENTER', token, trader, note: `order #${o.id} entered`, at: at(o.createdAt) });
+        if (o.closedAt) {
+          const pnl = num(o.realizedPnlUsd);
+          evs.push({
+            vaultId: id, kind: 'EXIT', token, trader,
+            note: `${o.closeReason ?? 'CLOSED'} (${pnl >= 0 ? '+' : ''}$${pnl})`,
+            at: at(o.closedAt),
+          });
+        }
+      }
+    }
+    return evs;
+  }
+
   async status(vaultId: number): Promise<VaultStatus> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;

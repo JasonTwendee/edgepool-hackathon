@@ -1,4 +1,7 @@
-import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Query, Req, Sse, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Observable } from 'rxjs';
+import { SSE_HEARTBEAT_MS } from '../../config/solana.config.js';
+import { subscribeSignals } from '../copy-trade/signal-bus.js';
 import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, OptionalAuthGuard, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
@@ -120,6 +123,31 @@ export class VaultsController {
       typeof raw === 'string' ? raw : undefined,
     );
     return { success: true, data };
+  }
+
+  @Sse(':id/signals/stream')
+  signalStream(@Param('id') id: string): Observable<{ data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const vaultId = Number.isFinite(parsed) ? parsed : -1;
+    return new Observable<{ data: unknown }>((observer) => {
+      observer.next({ data: { type: 'CONNECTED', vaultId, timestamp: Date.now() } });
+      // Replay: persisted orders first (so the terminal never opens empty),
+      // then live bus events from auto-fire / manage ticks.
+      void this.vaults
+        .recentSignalEvents(vaultId, 30)
+        .then((events) => observer.next({ data: { type: 'REPLAY', vaultId, events } }))
+        .catch(() => undefined);
+      const unsubscribe = subscribeSignals(vaultId, (event) => {
+        observer.next({ data: { type: 'SIGNAL', event } });
+      });
+      const heartbeat = setInterval(() => {
+        observer.next({ data: { type: 'PING', timestamp: Date.now() } });
+      }, SSE_HEARTBEAT_MS);
+      return () => {
+        clearInterval(heartbeat);
+        unsubscribe();
+      };
+    });
   }
 
   @Post('deposit')
