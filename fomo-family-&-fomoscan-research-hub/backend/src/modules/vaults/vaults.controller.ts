@@ -172,4 +172,22 @@ export class VaultsController {
     const data = await this.vaults.mine(Number.isFinite(parsed) ? parsed : 1, req.user as AuthedUser);
     return { success: true, data };
   }
+
+  @Get('portfolio')
+  @UseGuards(AuthGuard)
+  async portfolio(@Req() req: { user?: AuthedUser }): Promise<{ success: boolean; data: unknown }> {
+    const data = await this.vaults.portfolioOverview(req.user as AuthedUser);
+    return { success: true, data };
+  }
+
+  @Delete('withdraw/:id')
+  @UseGuards(AuthGuard)
+  async cancelWithdraw(
+    @Param('id') id: string,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const data = await this.vaults.cancelWithdraw(Number.isFinite(parsed) ? parsed : -1, req.user as AuthedUser);
+    return { success: true, data };
+  }
 }

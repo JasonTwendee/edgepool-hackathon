@@ -489,11 +489,12 @@ export class VaultService {
    * positions (MTM) + signal pipeline + execution log + exposure + myHolding
    * + masked flag (<0.5 SOL hides tokens/traders/sizes per pool-math.ts).
    */
-  async poolDetail(vaultId: number, user?: { id: number; wallet: string }): Promise<Record<string, unknown>> {
-    const { id } = await this.resolveVault(vaultId);
-    vaultId = id;
-    const base = ((await this.pools(user)) as Record<string, unknown>[]).find((p) => p.id === vaultId);
-    if (!base) fail(`Vault ${vaultId} not found.`);
+  /**
+   * Open pool positions with MTM pricing (shared by poolDetail + overview).
+   * Returns positions (with USD notional) plus the price map used.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async poolPositions(vaultId: number): Promise<{ positions: any[]; nav: number }> {
     const [epochs, orders] = await Promise.all([
       this.prisma.epochCheckpoint.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
       this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100 }),
@@ -506,27 +507,38 @@ export class VaultService {
     } catch {
       px = {};
     }
-    const liveOf = (o: { tokenMint: unknown; entryPriceUsd: unknown }): number | null => {
-      const p = o.tokenMint ? px[o.tokenMint as string] : undefined;
-      return typeof p === 'number' && p > 0 ? p : null;
-    };
     const positions = orders
       .filter((o) => !o.closedAt && o.status === 'CONFIRMED')
       .map((o) => {
         const entry = num(o.entryPriceUsd);
-        const live = liveOf(o);
+        const live = o.tokenMint && typeof px[o.tokenMint as string] === 'number' ? (px[o.tokenMint as string] as number) : null;
         const qty = entry > 0 ? num(o.amountUsd) / entry : 0;
         const unreal = live !== null && entry > 0 ? r9(qty * live - num(o.amountUsd)) : null;
         return {
           token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
           trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
           sizeSol: null,
+          notionalUsd: num(o.amountUsd),
           unrealizedPct: unreal !== null && num(o.amountUsd) > 0 ? r9((unreal / num(o.amountUsd)) * 100) : null,
           stage: o.closeReason ?? 'OPEN',
           entryPriceUsd: entry > 0 ? entry : null,
           livePriceUsd: live,
         };
       });
+    return { positions, nav };
+  }
+
+  async poolDetail(vaultId: number, user?: { id: number; wallet: string }): Promise<Record<string, unknown>> {
+    const { id } = await this.resolveVault(vaultId);
+    vaultId = id;
+    const base = ((await this.pools(user)) as Record<string, unknown>[]).find((p) => p.id === vaultId);
+    if (!base) fail(`Vault ${vaultId} not found.`);
+    const [epochs, orders] = await Promise.all([
+      this.prisma.epochCheckpoint.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
+      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100 }),
+    ]);
+    const nav = lastNav(epochs);
+    const { positions } = await this.poolPositions(vaultId);
     const stepsOf = (o: { status: string; quoteJson: unknown; legs?: unknown }): { label: string; state: string }[] => {
       const q = (o.quoteJson ?? {}) as Record<string, unknown>;
       const has = (k: string): boolean => !!q[k];
@@ -587,7 +599,8 @@ export class VaultService {
     return {
       ...base,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
-      openPositions: positions,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      openPositions: positions.map(({ notionalUsd, ...p }) => p),
       openCount: positions.length,
       signals,
       log,
@@ -595,6 +608,98 @@ export class VaultService {
       myHolding: holding,
       masked,
     };
+  }
+
+  /**
+   * Pool app P3 — portfolio overview for the session identity: per-pool mine
+   * + openCount/flat + my exposure per open position (size × my share
+   * fraction) + pending withdrawals (with next checkpoint) + cross-pool history.
+   */
+  async portfolioOverview(user: { id: number; wallet: string }): Promise<Record<string, unknown>> {
+    const vaults = await this.prisma.vault.findMany({ orderBy: { id: 'asc' } });
+    let solPx = 0;
+    try {
+      const w = 'So11111111111111111111111111111111111111112';
+      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
+    } catch {
+      solPx = 0;
+    }
+    const poolsOut: Record<string, unknown>[] = [];
+    let totalValue = 0;
+    let totalDeposited = 0;
+    let totalWithdrawn = 0;
+    const exposures: Record<string, unknown>[] = [];
+    const pending: Record<string, unknown>[] = [];
+    const history: Record<string, unknown>[] = [];
+    for (const v of vaults) {
+      const [m, st, pos] = await Promise.all([
+        this.mine(v.id, user),
+        this.status(v.id),
+        this.poolPositions(v.id),
+      ]);
+      if (m.shares <= 0 && m.queuedDeposits.length === 0 && m.queuedWithdrawals.length === 0) continue;
+      const frac = st.totalShares > 0 ? m.shares / st.totalShares : 0;
+      for (const p of pos.positions) {
+        const sizeSol = solPx > 0 ? r9(((p as { notionalUsd: number }).notionalUsd / solPx) * frac) : 0;
+        exposures.push({ poolId: v.id, poolName: v.name, ...(p as object), mySizeSol: sizeSol });
+      }
+      for (const q of m.queuedWithdrawals) {
+        pending.push({
+          id: q.id, poolId: v.id, poolName: v.name, shares: q.shares,
+          createdAt: q.createdAt,
+          nextCheckpointAt: st.window?.nextOpensAt ?? null,
+        });
+      }
+      totalValue = r9(totalValue + m.valueSol);
+      totalDeposited = r9(totalDeposited + m.depositedSol);
+      totalWithdrawn = r9(totalWithdrawn + m.withdrawnSol);
+      poolsOut.push({
+        vaultId: v.id, poolName: v.name,
+        kind: (v.kind as string) ?? 'basket', status: (v.status as string) ?? 'live',
+        shares: m.shares, valueSol: m.valueSol, returnsSol: m.returnsSol,
+        depositedSol: m.depositedSol, withdrawnSol: m.withdrawnSol,
+        openCount: pos.positions.length,
+        flat: pos.positions.length === 0,
+        queued: m.queuedDeposits.length + m.queuedWithdrawals.length,
+      });
+      const [deps, wds] = await Promise.all([
+        this.prisma.deposit.findMany({ where: { vaultId: v.id, OR: [{ userId: user.id }, { depositor: user.wallet }] } }),
+        this.prisma.withdrawal.findMany({ where: { vaultId: v.id, OR: [{ userId: user.id }, { depositor: user.wallet }] } }),
+      ]);
+      for (const d of deps) {
+        history.push({ date: new Date(d.createdAt as unknown as string).toISOString(), type: 'deposit', poolId: v.id, poolName: v.name, tx: '—', amountSol: num(d.amountSol), sharesDelta: d.status === 'SETTLED' ? num(d.sharesMinted) : 0, status: d.status });
+      }
+      for (const w of wds) {
+        history.push({
+          date: new Date(w.createdAt as unknown as string).toISOString(),
+          type: w.status === 'SETTLED' ? 'withdrawal_settled' : w.status === 'CANCELLED' ? 'withdrawal_cancelled' : 'withdrawal_queued',
+          poolId: v.id, poolName: v.name, tx: '—',
+          amountSol: w.status === 'SETTLED' ? num(w.payoutSol) : 0,
+          sharesDelta: w.status === 'CANCELLED' ? 0 : -num(w.sharesRequested), status: w.status,
+        });
+      }
+    }
+    history.sort((a, b) => (b.date as string).localeCompare(a.date as string));
+    const returns = r9(totalValue + totalWithdrawn - totalDeposited);
+    return {
+      totalValueSol: totalValue, totalDepositedSol: totalDeposited,
+      totalWithdrawnSol: totalWithdrawn, returnsSol: returns,
+      pools: poolsOut, exposures, pending, history,
+    };
+  }
+
+  /**
+   * Cancel an own QUEUED withdrawal (P3). Settled/cancelled/foreign rows are
+   * refused. Cancellation never burns shares (settle only touches QUEUED).
+   */
+  async cancelWithdraw(id: number, user: { id: number; wallet: string }): Promise<{ id: number; status: string }> {
+    const row = await this.prisma.withdrawal.findUnique({ where: { id } });
+    if (!row) fail(`Withdrawal ${id} not found.`);
+    const owned = (row.userId as number | null) === user.id || ((row.userId as number | null) === null && row.depositor === user.wallet);
+    if (!owned) fail(`Withdrawal ${id} is not yours.`);
+    if (row.status !== 'QUEUED') fail(`Withdrawal ${id} is ${row.status}, only QUEUED can be cancelled.`);
+    await this.prisma.withdrawal.update({ where: { id }, data: { status: 'CANCELLED' } });
+    return { id, status: 'CANCELLED' };
   }
 
   async status(vaultId: number): Promise<VaultStatus> {

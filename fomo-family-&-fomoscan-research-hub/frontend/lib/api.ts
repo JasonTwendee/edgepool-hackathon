@@ -221,6 +221,25 @@ export function getPoolDetail(id: number): Promise<{ success: boolean; data: Poo
   return fetchJson(`/api/vaults/${id}/pool`);
 }
 
+export interface PortfolioOverview {
+  totalValueSol: number;
+  totalDepositedSol: number;
+  totalWithdrawnSol: number;
+  returnsSol: number;
+  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; openCount: number; flat: boolean; queued: number }[];
+  exposures: { poolId: number; poolName: string; token: string; trader: string; unrealizedPct: number | null; mySizeSol: number }[];
+  pending: { id: number; poolId: number; poolName: string; shares: number; createdAt: string; nextCheckpointAt: string | null }[];
+  history: { date: string; type: string; poolId: number; poolName: string; tx: string; amountSol: number; sharesDelta: number; status: string }[];
+}
+
+export function getPortfolioOverview(token?: string): Promise<{ success: boolean; data: PortfolioOverview }> {
+  return token ? fetchJsonAuth('/api/vaults/portfolio', token) : fetchJson('/api/vaults/portfolio');
+}
+
+export function cancelWithdrawal(id: number, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  return fetchJsonAuth(`/api/vaults/withdraw/${id}`, token, { method: 'DELETE' });
+}
+
 export function queueVaultDeposit(input: {
   depositor: string;
   amountSol: number;

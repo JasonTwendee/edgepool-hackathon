@@ -131,6 +131,50 @@ paths:
                             week: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
                             month: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
                             all: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
+  /api/vaults/portfolio:
+    get:
+      summary: Portfolio overview for the session identity (P3)
+      operationId: getPortfolioOverview
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Totals, pools, exposures, pending, history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/withdraw/{id}:
+    delete:
+      summary: Cancel an own QUEUED withdrawal (P3)
+      operationId: cancelWithdrawal
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      status: { type: string }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/wallets/{address}/enrich:
     post:
       summary: Backfill verified identity (avatar/bio/EVM) from FomoScan (ADMIN, audited)
