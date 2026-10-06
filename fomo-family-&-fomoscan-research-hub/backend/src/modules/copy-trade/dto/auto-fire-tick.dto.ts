@@ -5,7 +5,7 @@ export class AutoFireTickDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(120)
+  @Max(10080)
   minutes?: number;
 
   @IsOptional()
