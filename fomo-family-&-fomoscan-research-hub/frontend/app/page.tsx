@@ -30,7 +30,7 @@ function Sparkline({ points, positive }: { points: number[]; positive: boolean }
   );
 }
 
-function PoolCard({ pool, period }: { pool: PoolSummary; period: Period }) {
+function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; index: number }) {
   const featured = pool.kind === 'basket';
   const pnl = pool.pnl[period];
   const positive = pnl.sol >= 0;
@@ -40,11 +40,12 @@ function PoolCard({ pool, period }: { pool: PoolSummary; period: Period }) {
   const pts = [pool.pnl.day.sol, pool.pnl.week.sol, pool.pnl.month.sol, pool.pnl.all.sol];
   return (
     <article
-      className="pool-card"
+      className="pool-card ep-enter"
       style={{
         borderRadius: 18,
         padding: 22,
         background: 'var(--ep-surface, #1D1F2C)',
+        animationDelay: `${Math.min(index, 7) * 55}ms`,
       }}
     >
       <div className="flex items-center justify-between">
@@ -81,7 +82,7 @@ function PoolCard({ pool, period }: { pool: PoolSummary; period: Period }) {
         </span>
       </div>
       <div className="flex items-end justify-between mt-3">
-        <div className="font-mono text-2xl" style={{ color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+        <div key={period} className="ep-fade font-mono text-2xl" style={{ color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
           {positive ? '+' : ''}{pnl.sol.toFixed(2)} <span className="text-sm">({positive ? '+' : ''}{pnl.pct.toFixed(1)}%)</span>
         </div>
         <Sparkline points={pts} positive={positive} />
@@ -112,15 +113,46 @@ function PoolCard({ pool, period }: { pool: PoolSummary; period: Period }) {
   );
 }
 
+function PoolSkeleton({ index }: { index: number }) {
+  return (
+    <div
+      className="ep-enter"
+      style={{
+        borderRadius: 18,
+        padding: 22,
+        background: 'var(--ep-surface, #1D1F2C)',
+        boxShadow: '0 0 0 1px var(--ep-border, #2E313F)',
+        animationDelay: `${Math.min(index, 7) * 55}ms`,
+      }}
+      aria-hidden
+    >
+      <div className="ep-skel" style={{ width: 120, height: 11 }} />
+      <div className="ep-skel mt-3" style={{ width: '70%', height: 26 }} />
+      <div className="ep-skel mt-2" style={{ width: '45%', height: 12 }} />
+      <div className="flex items-center gap-2 mt-3">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className="ep-skel rounded-full" style={{ width: 28, height: 28, borderRadius: 999 }} />
+        ))}
+      </div>
+      <div className="ep-skel mt-4" style={{ width: '55%', height: 30 }} />
+      <div className="ep-skel mt-3" style={{ width: '100%', height: 72 }} />
+      <div className="ep-skel mt-3" style={{ width: '100%', height: 6 }} />
+      <div className="ep-skel mt-4" style={{ width: 110, height: 36 }} />
+    </div>
+  );
+}
+
 export default function PoolsPage() {
   const [pools, setPools] = useState<PoolSummary[]>([]);
   const [period, setPeriod] = useState<Period>('week');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listPools()
       .then((r) => setPools(r.data.filter((p) => p.listing === 'public')))
-      .catch((e) => setError((e as Error).message));
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -164,9 +196,9 @@ export default function PoolsPage() {
       {error && <p className="text-xs mt-4" style={{ color: 'var(--ep-neg, #F28881)' }}>{error}</p>}
 
       <div className="grid gap-4 mt-4 pb-16" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,360px),1fr))' }}>
-        {pools.map((p) => (
-          <PoolCard key={p.id} pool={p} period={period} />
-        ))}
+        {loading
+          ? [0, 1, 2, 3, 4].map((i) => <PoolSkeleton key={i} index={i} />)
+          : pools.map((p, i) => <PoolCard key={p.id} pool={p} period={period} index={i} />)}
       </div>
 
       <footer className="text-xs pb-8" style={{ color: 'var(--ep-faint, #75798C)' }}>

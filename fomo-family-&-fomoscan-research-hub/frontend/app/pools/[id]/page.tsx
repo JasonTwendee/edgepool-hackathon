@@ -92,8 +92,22 @@ export default function PoolDetailPage() {
   }
   if (!pool) {
     return (
-      <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px)' }}>
-        <p className="text-sm" style={{ color: 'var(--ep-muted, #9397AB)' }}>Loading pool…</p>
+      <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }} aria-hidden>
+        <div className="ep-skel" style={{ width: 90, height: 14 }} />
+        <div className="ep-skel mt-4" style={{ width: 180, height: 12 }} />
+        <div className="ep-skel mt-3" style={{ width: 'min(420px,80%)', height: 38 }} />
+        <div className="ep-skel mt-2" style={{ width: 'min(560px,90%)', height: 14 }} />
+        <div className="flex gap-2 mt-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="ep-skel" style={{ width: 150, height: 24, borderRadius: 999 }} />
+          ))}
+        </div>
+        <div className="ep-skel mt-5" style={{ width: 'min(300px,60%)', height: 40 }} />
+        <div className="ep-skel mt-2" style={{ width: '100%', height: 120 }} />
+        <div className="grid gap-4 mt-4" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
+          <div className="ep-skel" style={{ height: 220 }} />
+          <div className="ep-skel" style={{ height: 220 }} />
+        </div>
       </div>
     );
   }
@@ -119,7 +133,7 @@ export default function PoolDetailPage() {
             const active = (v === 'advanced') === advanced;
             const href = v === 'advanced' ? `/pools/${id}?view=advanced` : `/pools/${id}`;
             return (
-              <Link key={v} href={href} className="text-xs font-bold px-3 py-1.5 capitalize"
+              <Link key={v} href={href} scroll={false} className="text-xs font-bold px-3 py-1.5 capitalize"
                 style={active ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
                 {v}
               </Link>
@@ -149,9 +163,11 @@ export default function PoolDetailPage() {
       </div>
 
       {advanced && pool.advanced ? (
-        <AdvancedView pool={pool} periodPnl={pnl} />
+        <div key="advanced" className="ep-fade">
+          <AdvancedView pool={pool} periodPnl={pnl} />
+        </div>
       ) : (
-      <div className="grid gap-4 mt-5" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
+      <div key="calm" className="ep-fade grid gap-4 mt-5" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
         <div className="space-y-4 min-w-0">
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
             <div className="flex gap-1">
@@ -162,7 +178,7 @@ export default function PoolDetailPage() {
                 </button>
               ))}
             </div>
-            <div className="font-mono mt-2" style={{ fontSize: 'clamp(26px,3vw,34px)', color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+            <div key={period} className="ep-fade font-mono mt-2" style={{ fontSize: 'clamp(26px,3vw,34px)', color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
               {positive ? '+' : ''}{pnl.sol.toFixed(2)} SOL ({positive ? '+' : ''}{pnl.pct.toFixed(1)}%)
             </div>
             {pts.length > 1 && (
