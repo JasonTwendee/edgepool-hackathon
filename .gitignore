@@ -32,5 +32,10 @@ Thumbs.db
 .cache/
 tmp/
 
+# Server ops: never commit key material or DB dumps (see docs/setup/CICD_SERVER.md)
+*.pem
+*.key
+pg-*.tar.gz
+
 # Prune evidence archive (local JSONL, volume-mounted in prod)
 fomo-family-&-fomoscan-research-hub/backend/data/
