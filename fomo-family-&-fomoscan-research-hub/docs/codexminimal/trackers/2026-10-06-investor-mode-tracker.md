@@ -10,7 +10,11 @@
   stranger sees zero; assert-vault §6 GREEN)
 - [x] I2 FE MyVault + gating (positions/earnings/rank/weight/3D): `done`
   (tsc + next build xanh)
-- [ ] I3 live verify 3 roles + review: `open`
+- [x] I3 live verify 3 roles + review: `done`
+  (mine: user 0.53 shares/value 1.0 after settle, stranger zero, anon 401;
+  FE 200 + mine 401 via funnel; reviewer APPROVE)
+
+## Review gate — APPROVE
 
 ## Handoff log
 
