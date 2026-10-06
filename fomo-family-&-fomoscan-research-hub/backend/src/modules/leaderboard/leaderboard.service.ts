@@ -1,6 +1,7 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
+import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { SolanaOnChainListenerService } from '../../server/solana.service.js';
 import { SolanaStreamService } from '../../server/solana-stream.service.js';
 import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
@@ -80,7 +81,18 @@ export class LeaderboardService implements OnModuleInit {
     const topN = Math.max(intEnv('LEADERBOARD_TOP_N', DEFAULT_TOP_N), 1);
     const cap = Math.max(intEnv('LEADERBOARD_CAP', DEFAULT_CAP), topN);
     const lb = await this.fomoscan.leaderboard(cap, period as 'daily' | 'weekly' | 'monthly');
-    const top = lb.entries.slice(0, topN);
+    // Solana-only: the pump leaderboard should be Solana wallets, but guard
+    // anyway — skip entries without a valid 32-byte Solana address or unverified.
+    const usable = lb.entries.filter((e) => {
+      if (!e.isVerified) return false;
+      try {
+        decodeWalletAddress(e.wallet);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    const top = usable.slice(0, topN);
     const topSet = new Set(top.map((e) => e.wallet));
 
     let added = 0;

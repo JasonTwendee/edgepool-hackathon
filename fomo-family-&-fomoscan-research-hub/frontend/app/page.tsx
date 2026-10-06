@@ -97,7 +97,14 @@ export default function HomePage() {
       setWalletsError(null);
       setSelectedAddress((prev) => {
         if (prev && res.data.some((w) => w.address === prev)) return prev;
-        const top = [...res.data].sort((a, b) => (b.totalPnlUsd ?? 0) - (a.totalPnlUsd ?? 0))[0];
+        // Default to the top ACTIVE trader (dropped/inactive wallets keep history
+        // but never become the landing view).
+        const top = [...res.data].sort((a, b) => {
+          const aa = (a.isActive ?? true) ? 0 : 1;
+          const bb = (b.isActive ?? true) ? 0 : 1;
+          if (aa !== bb) return aa - bb;
+          return (b.totalPnlUsd ?? 0) - (a.totalPnlUsd ?? 0);
+        })[0];
         return top ? top.address : null;
       });
     } catch (e) {
