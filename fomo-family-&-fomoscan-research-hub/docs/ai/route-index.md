@@ -52,6 +52,7 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | GET | `/api/audit` | `audit.controller.ts` (ADMIN) | `api.ts#listAudit` | append-only |
 | GET | `/api/demo/bot/:id/performance` | `demo.controller.ts` | terminal | bot perf |
 | POST | `/api/demo/seed|replay|reset` | `demo.controller.ts` (ADMIN+Audit) | — | demo controls |
+| POST | `/api/demo/scenario` | `demo.controller.ts` (ADMIN+Audit) | `api.ts#runDemoScenario` + AdminPanel demo tab | reset + 3 cases parallel |
 | GET | `/api/bots` | `bots.controller.ts` | `api.ts#listBots` | pool bots |
 | POST | `/api/bots` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#createBot` | 1 pool = 1 bot |
 | POST | `/api/bots/:id/mode` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#setBotMode` | AUTO/PAUSED |

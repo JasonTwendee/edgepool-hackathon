@@ -225,6 +225,7 @@
     "POST /api/demo/seed": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
     "POST /api/demo/replay": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
     "POST /api/demo/reset": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
+    "POST /api/demo/scenario": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit, reset + 3 parallel seed/replay cases)",
     "GET /api/vaults": "backend/src/modules/vaults/vaults.controller.ts",
     "GET /api/vaults/pools": "backend/src/modules/vaults/vaults.controller.ts (pool summaries)",
     "POST /api/vaults": "backend/src/modules/vaults/vaults.controller.ts (ADMIN+Audit)",
