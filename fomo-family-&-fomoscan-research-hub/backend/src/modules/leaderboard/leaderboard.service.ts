@@ -208,6 +208,12 @@ export class LeaderboardService implements OnModuleInit {
           where: { id: { in: victims.map((v) => v.id) } },
         });
         pruned = gone.count;
+        // Pruned wallets must leave the live pipeline too — otherwise their
+        // WS subs + poll slots keep burning RPC after the DB row is gone.
+        for (const v of victims) {
+          this.listener.removeTrackedWallet(v.address);
+          await this.stream.unwatch(v.address).catch(() => undefined);
+        }
         await this.audit
           .record({
             actor: 'system:rotation',
