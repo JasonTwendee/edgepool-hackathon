@@ -173,11 +173,16 @@ export class PnlService {
     return Promise.all(wallets.map((w) => this.getWalletPnl(w.address, days)));
   }
 
-  private fomoscanWindow(days: number): string {
-    if (days <= 1) return '24h';
-    if (days <= 7) return '7d';
-    if (days <= 31) return '30d';
-    return 'all';
+  private pickWindow(windows: Record<string, unknown>, days: number): string | null {
+    // FomoScan windows vary (24h/7d/30d[/all]) — pick the largest window that
+    // does not exceed the requested range; never invent a wider one.
+    const span: Record<string, number> = { '24h': 1, '7d': 7, '30d': 30, all: 36500 };
+    const avail = Object.keys(windows).filter((w) => w in span).sort((a, b) => span[a] - span[b]);
+    let best: string | null = null;
+    for (const w of avail) {
+      if (span[w] <= days) best = w;
+    }
+    return best;
   }
 
   private async getOverviewFast(days: number): Promise<WalletPnl[]> {
@@ -185,12 +190,12 @@ export class PnlService {
     const handled = wallets.filter((w) => (w.handle ?? '').trim());
     const batch = await this.fomoscan.batchPnl(handled.map((w) => w.handle));
     const byHandle = new Map(batch.entries.map((e) => [e.handle.toLowerCase(), e]));
-    const win = this.fomoscanWindow(days);
     return Promise.all(
       wallets.map(async (w) => {
         const entry = byHandle.get((w.handle ?? '').toLowerCase());
-        const wdata = entry?.windows?.[win];
-        // No handle, no ready window → local FIFO for this wallet.
+        const win = entry ? this.pickWindow(entry.windows ?? {}, days) : null;
+        const wdata = win ? entry.windows?.[win] : undefined;
+        // No handle, no suitable window, or not ready → local FIFO for this wallet.
         if (!wdata || entry.status !== 'ready') return this.getWalletPnl(w.address, days);
         return {
           wallet: w.address,
@@ -228,17 +233,17 @@ export class PnlService {
     const local = await this.getWalletPnl(clean, days);
     const handle = (tracked.handle ?? '').trim() || null;
     if (!handle) {
-      return { wallet: clean, handle, localRealizedUsd: local.realizedPnlUsd, fomoscanNetUsd: null, fomoscanWindow: this.fomoscanWindow(days), deltaUsd: null };
+      return { wallet: clean, handle, localRealizedUsd: local.realizedPnlUsd, fomoscanNetUsd: null, fomoscanWindow: '', deltaUsd: null };
     }
     const remote = await this.fomoscan.getPnl(handle);
-    const win = this.fomoscanWindow(days);
-    const net = remote.windows?.[win]?.netUsd ?? null;
+    const win = this.pickWindow(remote.windows ?? {}, days);
+    const net = win ? remote.windows?.[win]?.netUsd ?? null : null;
     return {
       wallet: clean,
       handle,
       localRealizedUsd: local.realizedPnlUsd,
       fomoscanNetUsd: net === null ? null : Math.round(net),
-      fomoscanWindow: win,
+      fomoscanWindow: win ?? '',
       deltaUsd: net === null ? null : Math.round(local.realizedPnlUsd - net),
     };
   }
