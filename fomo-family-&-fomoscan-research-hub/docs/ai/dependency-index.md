@@ -1,30 +1,31 @@
 # Dependency Index
 
-## Root (legacy compat + monorepo orchestration)
+## Root (`fomo-monorepo`, orchestrator only)
+
+`tsx` + `typescript` for typecheck orchestration. No runtime deps (Vite/Express legacy removed 2026-09-29). Lockfiles committed for reproducible CI.
+
+## Backend (`backend/`, NestJS 12 runtime)
 
 | Dep | Version | Used by |
 |---|---|---|
-| `react`, `react-dom` | `^19.0.1` | Legacy `src/*` + canonical `frontend/` |
-| `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite`, `tailwindcss` | `^8.3.0`, `^4.3.3` | Legacy Vite dev/build |
-| `express` | `^4.21.2` | Legacy `server.ts` + `backend/src/main.ts` core (until `@nestjs/platform-express`) |
-| `@solana/web3.js` | `^1.99.0` | `src/server/solanaService.ts` → `backend/src/server/solana.service.ts` |
-| `bs58` | `^6.0.0` | Signature/key helpers |
-| `lucide-react`, `motion` | `^0.546.0`, `^12.23.24` | FE icons/animation |
-| `@google/genai` | `^2.4.0` | Applet capability (`metadata.json`) |
-| `dotenv`, `tsx`, `typescript` | `^17.2.3`, `^4.21.0` | Env + dev runner + typecheck |
+| `@nestjs/common/core/platform-express` | `^12` | Runtime, DI, `@Sse`, guards/interceptors |
+| `prisma` / `@prisma/client` | `^7.10` | `prisma/schema.prisma` (19 models), adapter-pg, `prisma migrate deploy` on boot |
+| `@solana/web3.js` | `^1` | listener, ed25519 verify (zero-dep `node:crypto` + inline base58) |
+| `reflect-metadata`, `rxjs` | — | Nest core |
+| `class-validator/transformer` | — | DTO classes (+ explicit `validateDto()` under tsx) |
+| `express` | `^4` | Platform adapter under Nest |
 
-## Backend canonical (`backend/`) — spec-first
+## Frontend (`frontend/`, Next.js 16 runtime)
 
-- Current: `express` + `@solana/web3.js` + `dotenv` (no new runtime deps added in this pass to avoid breaking `npm install`).
-- To go full NestJS runtime, install: `@nestjs/common @nestjs/core @nestjs/platform-express reflect-metadata rxjs class-validator class-transformer`.
-- `backend/README.md` lists the install command + what changes (decorators become live, `main.ts` switches to `NestFactory`).
-
-## Frontend canonical (`frontend/`) — spec-first
-
-- Current: `react@19` + `tailwindcss@4` (same as root; no new deps in this pass).
-- To go full Next.js runtime, install: `next@15 react@19 react-dom@19` + add `next.config.ts`, migrate `vite.config.ts` usage.
-- `frontend/README.md` lists the cutover steps.
+| Dep | Version | Used by |
+|---|---|---|
+| `next` | `^16` | App Router (`/`, `/pools/[id]`, `/portfolio`, `/trader`, `/terminal`), rewrites `/api` → BE |
+| `react` / `react-dom` | `^19` | UI |
+| `tailwindcss` + `@tailwindcss/postcss` | `^4` | Styling |
+| `lucide-react` | — | Icons |
 
 ## Env contract (`backend/.env.example` + `frontend/.env.example` canonical)
 
-BE: `SOLANA_RPC_URL`, `HELIUS_API_KEY?`, `JITO_BLOCK_ENGINE_URL`, `VAULT_PRIVATE_KEY?`, `PORT`, `POSTGRES_*`, `DATABASE_URL?`. FE (public): `NEXT_PUBLIC_API_URL?`, `BACKEND_URL`.
+- BE runtime: `SOLANA_RPC_URL`, `PORT`, `HELIUS_API_KEY?`, `FLUXRPC_API_KEY/REGION`, `DATASTREAM_API_KEY/BASE_URL`, `RUGCHECK_API_KEY/STRICT`, `FOMOSCAN_API_KEY/BASE_URL/PNL_PRIMARY`, `LEADERBOARD_TOP_N/CAP/PERIOD/SYNC_INTERVAL_MS`, `COPY_TRADE_PAPER_ENABLED/MAX_USD`, `COPY_MIN_MCAP_USD`, `DEVNET_RPC_URL`, `COPY_AUTO/MANAGE/ALLOC_INTERVAL_MS`, `AUTO_FIRE_WINDOW_MAX_MIN`, `SYNC_INTERVAL_MS`, `FULL_HISTORY_DAYS`, `LANTERN_URL`, `JITO_BLOCK_ENGINE_URL`, `VAULT_PRIVATE_KEY?`, `POSTGRES_*/DATABASE_URL`, `ENABLE_SYNC`, `COOKIE_SECURE`, `ADMIN_WALLETS`, `SEED_*` (9 seeded accounts), `PRUNE_ARCHIVE_DIR`.
+- FE public only: `NEXT_PUBLIC_API_URL` (empty = same-origin), `BACKEND_URL`.
+- Rule: every `process.env.X` read must exist in the matching example (CI `check-env-contract.sh`).

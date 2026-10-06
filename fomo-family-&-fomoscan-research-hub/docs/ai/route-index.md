@@ -1,35 +1,113 @@
 # Route Index
 
-Canonical contract: `docs/api/openapi.yaml`.
+Canonical contract: `docs/api/openapi.yaml` (61 paths).
 
-## REST
+## REST — markets / wallets / rotation
 
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
-| GET | `/api/health` | `backend/src/modules/health/health.controller.ts` → `HealthController.getHealth` | `frontend/lib/api.ts#getHealth` | RPC, `heliusEnabled`, wallet count |
-| GET | `/api/wallets` | `wallets.controller.ts` → `findAll` | `api.ts#listWallets` | Tracked masters |
-| POST | `/api/wallets` | `wallets.controller.ts` → `create` (`CreateWalletDto`) | `api.ts#addWallet` | PubKey validation, 400 on invalid |
-| DELETE | `/api/wallets/:address` | `wallets.controller.ts` → `remove` | `api.ts#removeWallet` | 404 if unknown |
-| PATCH | `/api/wallets/:address` | `wallets.controller.ts` → `updateCopyConfig` (`UpdateWalletDto`) | `api.ts#updateWalletCopy` | `isCopyEnabled`, `allocationWeight` |
-| GET | `/api/portfolio/transactions` | `portfolio.controller.ts` → `getTransactions` (`PortfolioQueryDto`) | `api.ts#getPortfolioTransactions` | `?wallet=ALL\|<addr>&limit=25`, 250 total |
-| POST | `/api/copy-trade/execute` | `copy-trade.controller.ts` → `execute` (`ExecuteCopyDto`) | `api.ts#executeCopyTrade` + `#executePaperTrade` | Sim default; `mode:paper`+`confirm` → devnet paper lifecycle |
-| GET | `/api/copy-trade/history` | `copy-trade.controller.ts` → `history` | `api.ts#listCopyHistory` | `?wallet=&limit=`, newest first |
-| POST | `/api/vaults/deposit` | `vaults.controller.ts` → `deposit` | — (BE-only, FE pending) | Queue at epoch price |
-| POST | `/api/vaults/withdraw` | `vaults.controller.ts` → `withdraw` | — | Burn at settle price |
-| POST | `/api/vaults/settle` | `vaults.controller.ts` → `settle` | — | Mint/burn + HWM fee |
-| GET | `/api/vaults/status` | `vaults.controller.ts` → `status` | — | Vault + last epoch + queued |
+| GET | `/api/health` | `health.controller.ts` → `getHealth` | `api.ts#getHealth` | RPC, `heliusEnabled`, wallet count, secrets masked |
+| GET | `/api/market/ticks` | `market.controller.ts` | `useMarketTicker` | CoinGecko majors proxy |
+| GET | `/api/market/prices` | `market.controller.ts` | pool/portfolio | DataStream bulk prices proxy |
+| GET | `/api/wallets` | `wallets.controller.ts` → `findAll` | `api.ts#listWallets` | Tracked actives (rotation-owned) |
+| PATCH | `/api/wallets/:address` | `wallets.controller.ts` → `updateCopyConfig` | `api.ts#updateWalletCopy` | `isCopyEnabled`, `allocationWeight` |
+| POST | `/api/wallets/:address/enrich` | `wallets.controller.ts` | — | bio/EVM enrich |
+| GET | `/api/wallets/rotation/status` | `leaderboard.controller.ts` | terminal | 30 active Solana traders |
+| POST | `/api/wallets/rotation/tick` | `leaderboard.controller.ts` | — (ADMIN+Audit) | topN=30 cap=50 reconcile |
+
+## REST — portfolio / onchain
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| GET | `/api/portfolio/transactions` | `portfolio.controller.ts` | `api.ts#getPortfolioTransactions` | `?wallet=ALL\|<addr>&limit=` |
+| GET | `/api/portfolio/pnl` | `portfolio.controller.ts` | `api.ts#getWalletPnl` | FIFO realized per wallet |
+| GET | `/api/portfolio/pnl/overview` | `portfolio.controller.ts` | `api.ts#getPnlOverview` | sidebar realized totals |
+| GET | `/api/portfolio/holdings` | `portfolio.controller.ts` | `api.ts#getHoldings` | live holdings |
+| GET | `/api/portfolio/fomoscan` | `portfolio.controller.ts` | leaderboard PnL | FomoScan fast-path display |
+| GET | `/api/onchain/events` | `onchain.controller.ts` | `api.ts#listRealtimeEvents` | persisted events |
+| POST | `/api/webhooks/helius` | `webhooks.controller.ts` | — | Helius ingest (secret-gated) |
+
+## REST — copy-trade engine
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| POST | `/api/copy-trade/execute` | `copy-trade.controller.ts` → `execute` | `api.ts#executeCopyTrade` + `#executePaperTrade` | Sim default; `mode:paper`+`confirm` → devnet |
+| GET | `/api/copy-trade/history` | `copy-trade.controller.ts` → `history` | `api.ts#listCopyHistory` | legs incl. TP1/TP2/trail |
+| POST | `/api/copy-trade/auto-fire/tick` | `copy-trade.controller.ts` | `api.ts#runAutoFireTick` (ADMIN+Audit) | Qualify→size 1% NAV→enter |
+| POST | `/api/copy-trade/manage/tick` | `copy-trade.controller.ts` | — (ADMIN+Audit) | exits: TP1 60%/TP2/stop/trail/time |
+| POST | `/api/copy-trade/allocation/rebalance` | `copy-trade.controller.ts` | — (ADMIN+Audit) | manual (interval default 0) |
+
+## REST — auth / users / audit / demo / bots
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| POST | `/api/auth/nonce` | `auth.controller.ts` | `api.ts#issueAuthNonce` | wallet challenge |
+| POST | `/api/auth/verify` | `auth.controller.ts` | `api.ts#verifyAuthSignature` | wallet login → httpOnly cookie |
+| POST | `/api/auth/login` | `auth.controller.ts` | `api.ts#loginAccount` | username + scrypt (seeded admin/user/kol) |
+| POST | `/api/auth/logout` | `auth.controller.ts` | `api.ts#logout` | session revoke |
+| POST | `/api/auth/purge` | `auth.controller.ts` | — (ADMIN+Audit) | revoke sessions |
+| GET | `/api/auth/me` | `auth.controller.ts` (AuthGuard) | `api.ts#getAuthMe` | role gating |
+| GET | `/api/users` | `users.controller.ts` (ADMIN) | `api.ts#listUsers` | admin panel |
+| POST | `/api/users/:wallet/role` | `users.controller.ts` (ADMIN+Audit) | `api.ts#setUserRole` | setRole by username |
+| GET | `/api/audit` | `audit.controller.ts` (ADMIN) | `api.ts#listAudit` | append-only |
+| GET | `/api/demo/bot/:id/performance` | `demo.controller.ts` | terminal | bot perf |
+| POST | `/api/demo/seed|replay|reset` | `demo.controller.ts` (ADMIN+Audit) | — | demo controls |
+| GET | `/api/bots` | `bots.controller.ts` | `api.ts#listBots` | pool bots |
+| POST | `/api/bots` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#createBot` | 1 pool = 1 bot |
+| POST | `/api/bots/:id/mode` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#setBotMode` | AUTO/PAUSED |
+
+## REST — vaults / pools
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| GET | `/api/vaults/pools` | `vaults.controller.ts` | `api.ts#listPools` | pool summaries (index) |
+| GET | `/api/vaults/:id/pool` | `vaults.controller.ts` | `api.ts#getPoolDetail` | detail + `advanced` (KPIs/risk/ladder/exposure) |
+| GET | `/api/vaults/mine` | `vaults.controller.ts` (Auth) | `api.ts#getVaultMine` | my position per pool |
+| GET | `/api/vaults/portfolio` | `vaults.controller.ts` (Auth) | `api.ts#getPortfolioOverview` | investor overview |
+| GET | `/api/vaults/:id/earnings` | `vaults.controller.ts` (KOL-gated) | `api.ts#getVaultEarnings` | partner fee rows |
+| POST | `/api/vaults/deposit` | `vaults.controller.ts` (Auth) | `api.ts#queueVaultDeposit` | min 0.5 SOL, slots gate |
+| POST | `/api/vaults/withdraw` | `vaults.controller.ts` (Auth) | `api.ts#requestVaultWithdraw` | flat=instant else queued |
+| DELETE | `/api/vaults/withdraw/:id` | `vaults.controller.ts` (Auth) | `api.ts#cancelWithdrawal` | cancel QUEUED |
+| POST | `/api/vaults/settle` | `vaults.controller.ts` | — | epoch mint/burn + HWM fee |
+| GET | `/api/vaults` | `vaults.controller.ts` | `api.ts#listVaults` | admin vault list |
+| POST | `/api/vaults` | `vaults.controller.ts` (ADMIN+Audit) | `api.ts#createVault` | create pool |
+| GET/POST | `/api/vaults/:id/traders` | `vaults.controller.ts` (+ADMIN write) | `api.ts#assignVaultTrader` | basket assignment |
+| DELETE | `/api/vaults/:id/traders/:wallet` | `vaults.controller.ts` (ADMIN+Audit) | `api.ts#removeVaultTrader` | unassign |
+| POST | `/api/vaults/:id/policy` | `vaults.controller.ts` (ADMIN+Audit) | `api.ts#setVaultPolicy` | rules/slots/windows |
+| GET | `/api/vaults/status` | `vaults.controller.ts` | `api.ts#getVaultStatus` | vault + epoch + queued |
+
+## REST — partner (trader portal)
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| POST | `/api/partner/apply` | `partner.controller.ts` | `api.ts#partnerApply` | public, pending review |
+| GET | `/api/partner/me` | `partner.controller.ts` (Auth) | `api.ts#partnerMe` | pending/claimable/paid fees |
+| POST | `/api/partner/payout-wallet/challenge` | `partner.controller.ts` (Auth) | `api.ts#partnerPayoutChallenge` | ownership proof |
+| POST | `/api/partner/payout-wallet` | `partner.controller.ts` (Auth) | `api.ts#partnerSetPayoutWallet` | verified set only |
+| POST | `/api/partner/claim` | `partner.controller.ts` (Auth) | `api.ts#partnerClaim` | sandbox ledger (no on-chain yet) |
+| PATCH | `/api/partner/pools/:id/settings` | `partner.controller.ts` (owner) | `api.ts#partnerUpdateSettings` | rename/pause/slots |
+| GET | `/api/partner/pools/:id/traders` | `partner.controller.ts` (owner) | `api.ts#partnerPoolTraders` | manage basket |
+| POST | `/api/partner/pools/:id/traders/:wallet/pause` | `partner.controller.ts` (owner) | `api.ts#partnerPauseTrader` | pause trader |
+| DELETE | `/api/partner/pools/:id/traders/:wallet` | `partner.controller.ts` (owner) | — | remove trader |
+| POST | `/api/partner/pools/:id/request-trader` | `partner.controller.ts` (owner) | `api.ts#partnerRequestTrader` | ask for trader |
+| GET | `/api/partner/signals` | `partner.controller.ts` (owner) | `api.ts#partnerSignals` | pool signals |
+| GET | `/api/partner/payouts` | `partner.controller.ts` (owner) | `api.ts#partnerPayouts` | payout rows |
+| GET | `/api/partner/applications` | `partner.controller.ts` (ADMIN) | — | review queue |
+| POST | `/api/partner/applications/:id/review` | `partner.controller.ts` (ADMIN+Audit) | — | approve/reject |
 
 ## SSE
 
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
-| GET | `/api/onchain/stream` | `backend/src/modules/onchain/onchain.controller.ts` → `stream` | `frontend/lib/sse.ts`, `hooks/useOnchainStream.ts` | `CONNECTED` then `ONCHAIN_SWAP_EVENT`, 15s `: heartbeat` |
+| GET | `/api/onchain/stream` | `onchain.controller.ts` → `stream` | `lib/sse.ts`, `hooks/useOnchainStream.ts` | `CONNECTED` then `ONCHAIN_SWAP_EVENT`, 15s `PING` |
 
-## Frontend routes (Next.js App Router spec)
+## Frontend routes (Next.js App Router)
 
 | Route | File | Notes |
 |---|---|---|
-| `/` | `frontend/app/page.tsx` | Tab switcher: overview, vault-spec, fomo-family, fomoscan, explorer, risks |
-| layout | `frontend/app/layout.tsx` | Fonts (Plus Jakarta + JetBrains Mono), dark theme, metadata |
-
-Legacy Vite entry (`src/main.tsx` → `#root` in `index.html`) retained for compat only.
+| `/` | `frontend/app/page.tsx` | Pool index (main surface): cards, Day/Week/Month/All PnL |
+| `/pools/[id]` | `frontend/app/pools/[id]/page.tsx` | Calm detail; `?view=advanced` = KPIs + risk + ladder + exposure |
+| `/portfolio` | `frontend/app/portfolio/page.tsx` | Investor overview + withdraw modal |
+| `/trader` | `frontend/app/trader/page.tsx` | KOL portal (fees/claim/settings) |
+| `/terminal` | `frontend/app/terminal/page.tsx` | Admin terminal (login wall) |
+| layout | `frontend/app/layout.tsx` | Fonts, dark theme, metadata |
