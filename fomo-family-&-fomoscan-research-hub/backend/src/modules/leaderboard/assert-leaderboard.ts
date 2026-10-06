@@ -107,20 +107,25 @@ function stub(order: Row[], enrichOk = true) {
 const noopTransport = {
   addTrackedWallet: () => undefined,
   removeTrackedWallet: () => false,
+  getTrackedWallets: () => [],
   watch: async () => undefined,
   unwatch: async () => undefined,
 } as never;
 
 /** Spy transport: records removals/unwatches for prune-pipeline asserts. */
-function spyTransport(): never & { removed: string[]; unwatched: string[] } {
+function spyTransport(registry: string[] = []): never & { removed: string[]; unwatched: string[] } {
   const removed: string[] = [];
   const unwatched: string[] = [];
+  const live = [...registry];
   return {
     addTrackedWallet: () => undefined,
     removeTrackedWallet: (address: string) => {
       removed.push(address);
+      const i = live.indexOf(address);
+      if (i >= 0) live.splice(i, 1);
       return true;
     },
+    getTrackedWallets: () => live.map((address) => ({ address })),
     watch: async () => undefined,
     unwatch: async (address: string) => {
       unwatched.push(address);
@@ -298,6 +303,20 @@ async function main(): Promise<void> {
       (transport as { unwatched: string[] }).unwatched.includes('OLD1'),
       'stream unsubscribed pruned wallet',
     );
+    restore();
+  }
+
+  // 11. Reconcile: registry ghosts (not DB-active) are unsubscribed.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const ghost = base58Encode(Buffer.alloc(32, 79));
+    const { prisma, audit } = makeFake();
+    const transport = spyTransport([walletOf(1), walletOf(2), ghost]);
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit, transport);
+    await svc.tick();
+    assert.ok((transport as { removed: string[] }).removed.includes(ghost));
+    assert.ok((transport as { unwatched: string[] }).unwatched.includes(ghost));
+    assert.ok(!(transport as { removed: string[] }).removed.includes(walletOf(1)));
     restore();
   }
 
