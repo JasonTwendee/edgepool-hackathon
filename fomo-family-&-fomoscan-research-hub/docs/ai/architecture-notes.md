@@ -13,13 +13,18 @@ Durable architecture facts and decisions.
 | 2026-09-29 | Reference schema 3 bảng (`tracked_wallets`/`transactions`/`realtime_events`, FK CASCADE, Prisma migrations): portfolio DB-first + RPC backfill, poll persist tx+events+cursors, API shape giữ nguyên qua mappers | User đưa sơ đồ DB tham khảo | Portfolio hội tụ về pure DB reads; DELETE ví cascade lịch sử; `allocationWeight` guard 99.99 |
 | 2026-09-29 | Poll loop 8s (2 ví/sample, new-sig) + SyncScheduler 60s (full 25 tx mọi ví, recompute stats) | Ví ít tx do poll miss + backfill theo nhu cầu; seed tĩnh không tự đổi | `SYNC_INTERVAL_MS` (env); stats = realized khi đủ pairs, seed + badge khi chưa |
 | 2026-09-29 | tsx-safe DI/validation: `@Inject()`显式 mọi constructor; `validateDto()`显式 cho body; query parse thủ công | tsx/esbuild không emit decorator metadata → DI `undefined`, ValidationPipe transform bị skip (lỗi thật đã gặp) | Ghi thành quy ước bắt buộc trong `backend/README.md` + rule-registry |
+| 2026-10-05 | Tracked universe = FomoScan rotation (topN=30, cap=50, Solana-only verified); drop → deactivate giữ history | Sync loop skip inactive; rotation tick throttle FomoScan ≥1.1s (sponsor 60 req/min; batch POST 403 → single GETs) | Sidebar rank-sort qua `isActive` API; `modules/leaderboard/*` |
+| 2026-10-05 | Global login wall: seeded admin/user/kol (scrypt), wallet multi-provider; không public registration | Terminal dời về `/terminal` (admin); pool app là main surface | `LoginModal`, `POST /api/auth/login|purge`, failed-login audit |
+| 2026-10-06 | Pool model: 1 pool = 1 vault + 1 AUTO bot + 3–5 traders; NAV theo trader trades qua MTM engine | Fee 20% HWM → 80 depositors / 15 partner / 5 Edgepool (basket 10/10) | Pool app P1–P5 (`/`, `/pools/[id]`, `/portfolio`, `/trader`); Calm + `?view=advanced` |
+| 2026-10-06 | Paper/sandbox only: shares sổ off-chain, claim ghi sổ, executor chặn mainnet bằng devnet genesis-check | Tiền thật cần custody + on-chain vault + mainnet executor (phase Product) | KOL claim sandbox; payout wallet verify ownership trước khi set |
+| 2026-10-06 | Public URL cố định qua Tailscale Funnel; deploy chỉ khi CI xanh qua runner `edgepool` | SSOT: `docs/setup/CICD_SERVER.md`; rolling prune 35d có archive | quick-tunnel ephemeral đã bỏ; audit/orders/vaults không prune |
 
 ## Boundaries
 
 | Boundary | Rule | Notes |
 |---|---|---|
 | FE ↔ BE | HTTP REST + SSE only, via `docs/api/openapi.yaml` | FE never imports `backend/` |
-| BE modules | `wallets` / `portfolio` / `onchain` / `health` / `copy-trade` own controller+service+dto; chain client singleton via global `SolanaModule` | Share via `common/` + `config/`; never provide listener per-module (duplicate Maps/poll loops) |
+| BE modules | 17 modules own controller+service+dto; chain client singleton via global `SolanaModule` | Share via `common/` + `config/`; never provide listener per-module; controller dùng `@Audit()` phải import `AuditModule` |
 | Legacy | REMOVED 2026-09-29 (`src/`, `server.ts`, `vite.config.ts`, `index.html` deleted; backup `/tmp/opencode/legacy-backup-20260929.tar.gz`) | Không còn compat layer |
 | Secrets | `backend/.env` + `frontend/.env` never committed; examples canonical | RPC/Jito/vault keys via `backend/src/config/`; FE env public-only |
 

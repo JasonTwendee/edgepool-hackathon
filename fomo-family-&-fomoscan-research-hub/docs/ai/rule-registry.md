@@ -67,6 +67,9 @@ This file is the durable rule source.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES START -->
 - 2026-09-29 (user-confirmed): Docs follow CodexMinimal plugin standard; source split FE/BE clearly; FE = Next.js spec; BE = NestJS spec.
 - 2026-09-29 (user-confirmed pass 2): BE = NestJS runtime thật (không Express thủ công); FE/BE `npm install` riêng; xóa `src/` cũ, giữ thông tin cần thiết cho source mới.
+- 2026-10-02: KHÔNG BAO GIỜ sửa migration đã apply — backfill/data-fix luôn bằng migration mới (Prisma checksum drift).
+- 2026-10-06 (user-confirmed): Deploy + CI/CD ghi vào 1 file SSOT `docs/setup/CICD_SERVER.md`; session mới đọc file này trước, không đoán lệnh.
+- 2026-10-06: Structural change (module/route/entity/suite mới) → update `docs/ai` indexes + `context-map.json` ngay trong cùng commit.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
 ## User Overrides

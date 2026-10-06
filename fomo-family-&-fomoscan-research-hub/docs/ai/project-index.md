@@ -11,26 +11,26 @@ High-level AI-readable map of this repository.
 - Detected stack: `@nestjs/*`, `next@16`, `react@19`, `@solana/web3.js@1`, `tailwindcss@4`
 - Active profile: generic + dual-stack override (see `stack-profile.md`)
 - Main app entry: `backend/src/main.ts` (BE :3000) + `frontend/app/page.tsx` (FE :3001)
-- Test command: none yet (add `*.spec.ts` under `backend/`)
+- Test command: `npx tsx src/modules/**/assert-*.ts` from `backend/` (22 suites, mocked; CI runs all) — see `docs/ai/test-index.md`
 - Lint command: `npm run typecheck` (root = BE + FE `tsc --noEmit -p`)
 - Build command: `npm run build` (BE `tsc -p tsconfig.build.json` + FE `next build`)
 - Typecheck command: `npm run typecheck`
-- Smoke command: `curl -s http://localhost:3000/api/health` (BE) + `curl -s http://localhost:3001/api/health` (qua FE rewrites)
-- Docker runtime (2026-10-01, thay PM2): `docker compose up -d --build` → `postgres` (5433) + `backend` (3000, `node dist/main.js` sau `prisma migrate deploy`) + `frontend` (3001, `next start`); hackathon-only opt-in `cloudflared` via `--profile tunnel`. Runbook: `docs/setup/DOCKER.md`
+- Smoke command: `curl -s http://localhost:3000/api/health` (BE) + `curl -s http://localhost:3001/api/health` (qua FE rewrites); prod: `https://edgepool-dev.tailec308e.ts.net/` (Tailscale Funnel)
+- Docker runtime (2026-10-01, thay PM2): `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` → `postgres` (5433) + `backend` (3000, `node dist/main.js` sau `prisma migrate deploy`) + `frontend` (3001, `next start`) + `caddy` (:80/:443 single entry). Runbooks: `docs/setup/DOCKER.md`, `docs/setup/CICD_SERVER.md`
 
 ## Key Areas
 
 | Area | Path | Responsibility |
 |---|---|---|
-| FE routes | `frontend/app/` | Next.js App Router pages (`layout.tsx` with Metadata API, `page.tsx` tab router) |
-| FE UI | `frontend/components/` | 9 presentational sections (materialized from legacy `src/`, real code) |
-| FE data | `frontend/data/`, `frontend/lib/`, `frontend/hooks/` | Demo content, REST/SSE clients, formatting, stream hooks |
-| FE contracts | `frontend/types/` | `fomo.ts`, `onchain.ts` mirroring BE DTOs |
+| FE routes | `frontend/app/` | Pool app: `/` index, `/pools/[id]` (Calm + `?view=advanced`), `/portfolio`, `/trader`, `/terminal` (admin login wall) |
+| FE UI | `frontend/components/` | 17 components: `LoginModal` (account + multi-wallet), `MyVault`, `VaultCard`, `AdminPanel`, charts/tables/ticker |
+| FE data | `frontend/lib/`, `frontend/hooks/` | `api.ts` (60+ fns), `sse.ts`, `format.ts`, `solana.ts`; stream/ledger/ticker hooks |
+| FE contracts | `frontend/types/` | `fund.ts` (pool/investor), `onchain.ts` mirroring BE DTOs |
 | FE config | `frontend/next.config.ts`, `postcss.config.mjs`, `.env.example` | `/api` rewrites → BE, Tailwind v4, env |
 | BE bootstrap | `backend/src/main.ts`, `backend/src/app.module.ts` | `NestFactory` + global ValidationPipe + CORS |
 | BE config | `backend/src/config/` | Env + Solana/RPC configuration |
-| BE domain | `backend/src/modules/*` | `health`, `wallets`, `portfolio`, `onchain` (`@Sse`), `copy-trade` (controller+service+dto) |
-| BE shared | `backend/src/common/` | `validation/validate-dto.ts`, `utils/signature.util.ts` |
+| BE domain | `backend/src/modules/*` | 17 modules: `health`, `wallets`, `leaderboard` (rotation), `portfolio` (pnl/holdings), `onchain` (+webhooks), `copy-trade` (auto-fire/manage/alloc/paper), `market`, `helius`, `sync`, `transactions`, `vaults` (pools/NAV), `partner`, `auth`, `users`, `audit`, `bots`, `demo` |
+| BE shared | `backend/src/common/` | auth guards, fomoscan client (≥1.1s throttle), market, rugcheck, validation |
 | BE chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global singleton) | RPC listener, poll loop, SSE fan-out |
 | API contract | `docs/api/openapi.yaml` | REST + SSE source of truth |
 | Architecture | `docs/architecture/` | System design, data-flow, ADRs |
@@ -44,10 +44,11 @@ High-level AI-readable map of this repository.
 | Full-stack dev (split) | `npm run dev:backend` (:3000) + `npm run dev:frontend` (:3001) | Mở http://localhost:3001 |
 | BE dev (NestJS) | `backend/src/main.ts` | `npm run dev:backend` |
 | FE dev (Next.js) | `frontend/app/page.tsx` | `npm run dev:frontend` (rewrites `/api` → BE) |
-| Wallet tracking | `backend/src/modules/wallets/`, `backend/src/server/solana.service.ts` | CRUD + `Map` store + PubKey validation |
-| Portfolio ledger | `backend/src/modules/portfolio/` | 25 tx/wallet, 250 total, `slot` desc sort |
-| Realtime stream | `backend/src/modules/onchain/` | SSE `CONNECTED` + `ONCHAIN_SWAP_EVENT`, 15s heartbeat |
-| Copy-trade sim | `backend/src/modules/copy-trade/` | Simulation only, no fund movement |
+| Wallet tracking | `backend/src/modules/wallets/`, `leaderboard/`, `server/solana.service.ts` | Rotation-owned universe (30 active Solana); enrich bio/EVM; drop→deactivate |
+| Portfolio ledger | `backend/src/modules/portfolio/` | DB-first + Flux/Helius backfill; FIFO realized PnL; 35d rolling prune w/ archive |
+| Realtime stream | `backend/src/modules/onchain/` | SSE `CONNECTED` + `ONCHAIN_SWAP_EVENT`, 15s heartbeat; Helius webhook ingest |
+| Copy-trade engine | `backend/src/modules/copy-trade/` | Paper-only devnet: auto-fire (Qualify→1% NAV→TP1 60%), manage legs, rebalance; genesis gate |
+| Pool app | `backend/src/modules/vaults/` + `partner/` + `frontend/app/{pools,portfolio,trader}/` | 1 pool = 1 vault + 1 bot + 3–5 traders; NAV MTM engine; HWM fee 75/25; deposit≥0.5 |
 
 ## Lookup Strategy
 

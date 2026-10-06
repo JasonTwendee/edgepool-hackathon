@@ -11,6 +11,7 @@ Critical paths require explicit approval before any edit.
 | `.env` | Live secrets / RPC keys | Yes |
 | `.env.local` | Live secrets | Yes |
 | `backend/src/config/*` | RPC / Jito / vault key wiring | Yes (prod values) |
+| `backend/prisma/migrations/*` (applied) | Prisma checksum drift → đòi reset mất DB | Yes (backfill/data-fix = migration mới) |
 | `docs/ai/protected-files.md` | Policy itself | Yes |
 
 ## Sensitive
