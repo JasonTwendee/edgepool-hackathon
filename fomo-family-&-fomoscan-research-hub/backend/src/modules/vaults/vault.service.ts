@@ -596,6 +596,7 @@ export class VaultService {
     }));
     const holding = user ? await this.mine(vaultId, user) : null;
     const masked = !holding || holding.valueSol < 0.5;
+    const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
     return {
       ...base,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
@@ -607,6 +608,7 @@ export class VaultService {
       exposure,
       myHolding: holding,
       masked,
+      advanced,
     };
   }
 
@@ -700,6 +702,98 @@ export class VaultService {
     if (row.status !== 'QUEUED') fail(`Withdrawal ${id} is ${row.status}, only QUEUED can be cancelled.`);
     await this.prisma.withdrawal.update({ where: { id }, data: { status: 'CANCELLED' } });
     return { id, status: 'CANCELLED' };
+  }
+
+  /**
+   * Pool app P5 — Advanced view payload: KPIs, risk vs limits, ladder per
+   * open position, exposure vs the 2% per-trader cap.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async advancedView(vaultId: number, orders: any[], withLegs: { orderId: number; leg: string }[], epochs: { navSol: any; createdAt: any; sharePrice?: any }[], nav: number, solPx: number, exposure: { trader: string; pctNav: number }[]): Promise<Record<string, unknown>> {
+    const now = Date.now();
+    const dayAgo = now - 86400000;
+    const weekAgo = now - 7 * 86400000;
+    const navAt = (ts: number): number | null => {
+      const past = epochs.filter((e) => new Date(e.createdAt as unknown as string).getTime() <= ts);
+      return past.length > 0 ? num(past[past.length - 1].navSol) : null;
+    };
+    const dayBase = navAt(dayAgo) ?? nav;
+    const weekBase = navAt(weekAgo) ?? nav;
+    const dayPct = dayBase > 0 ? r9(((nav - dayBase) / dayBase) * 100) : 0;
+    const weekPct = weekBase > 0 ? r9(((nav - weekBase) / weekBase) * 100) : 0;
+    const open = orders.filter((o) => !o.closedAt && o.status === 'CONFIRMED');
+    const mints = [...new Set(open.filter((o) => o.tokenMint).map((o) => o.tokenMint as string))];
+    let px: Record<string, number> = {};
+    try {
+      px = this.prices && mints.length > 0 ? await this.prices.bulkPrices(mints) : {};
+    } catch {
+      px = {};
+    }
+    let deployedUsd = 0;
+    let unrealSol = 0;
+    for (const o of open) {
+      const live = o.tokenMint ? (px[o.tokenMint as string] as number | undefined) : undefined;
+      const entry = num(o.entryPriceUsd);
+      if (typeof live === 'number' && live > 0 && entry > 0 && solPx > 0) {
+        const qty = num(o.amountUsd) / entry;
+        const unrealUsd = qty * live - num(o.amountUsd);
+        unrealSol = r9(unrealSol + unrealUsd / solPx);
+        deployedUsd += num(o.amountUsd);
+      } else if (solPx > 0) {
+        deployedUsd += num(o.amountUsd);
+      }
+    }
+    const deployedPctNav = nav > 0 && solPx > 0 ? r9((deployedUsd / solPx / nav) * 100) : 0;
+    const hwmRow = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    const hwm = hwmRow ? num(hwmRow.hwmSharePrice) : 0;
+    const lastEp = epochs[epochs.length - 1];
+    const shareNow = lastEp ? num(lastEp.sharePrice ?? null) : 1;
+    const fromHwmPct = hwm > 0 ? r9(((shareNow - hwm) / hwm) * 100) : 0;
+    const in24h = orders.filter((o) => new Date(o.createdAt as unknown as string).getTime() >= dayAgo);
+    const exits7d = orders.filter(
+      (o) => o.closedAt && new Date((o.closedAt ?? o.createdAt) as unknown as string).getTime() >= weekAgo &&
+        ['STOP_HIT', 'TRAIL_HIT', 'TIME_STOP'].includes((o.closeReason as string) ?? ''),
+    );
+    const legsByOrder = new Map<number, string[]>();
+    for (const l of withLegs) {
+      const arr = legsByOrder.get(l.orderId) ?? [];
+      arr.push(l.leg);
+      legsByOrder.set(l.orderId, arr);
+    }
+    const ladder = open.map((o) => {
+      const legs = legsByOrder.get(o.id as number) ?? [];
+      const tp1 = num(o.tp1Pct) > 0 ? num(o.tp1Pct) : 60;
+      const stop = num(o.stopPct) > 0 ? -Math.abs(num(o.stopPct)) : -30;
+      const tp2 = tp1 * (num(o.tp2MultPct) > 0 ? num(o.tp2MultPct) / 100 : 2);
+      const entry = num(o.entryPriceUsd);
+      const live = o.tokenMint ? ((px[o.tokenMint as string] as number | undefined) ?? null) : null;
+      const movePct = entry > 0 && typeof live === 'number' ? r9(((live - entry) / entry) * 100) : null;
+      return {
+        token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
+        trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
+        entry, live, movePct,
+        tp1Pct: r9(tp1), tp1Hit: legs.includes('TP1'),
+        tp2Pct: r9(tp2), tp2Hit: legs.includes('TP2'),
+        stopPct: r9(stop),
+        trailFloorPct: legs.includes('TP2') ? r9(tp1 + (tp2 - tp1) / 2) : null,
+        currentPctOfRange: 0,
+        stage: (o.closeReason as string | null) ?? 'OPEN',
+      };
+    });
+    return {
+      kpis: {
+        navSol: r9(nav), sharePrice: r9(shareNow),
+        pnlSol: null, unrealizedSol: r9(unrealSol),
+        deployedPctNav, fromHwmPct,
+      },
+      risk: {
+        dayPct: r9(dayPct), dayLimitPct: 5, dayUsedPct: Math.min(100, Math.abs(dayPct) / 5 * 100),
+        weekPct: r9(weekPct), weekLimitPct: 15, weekUsedPct: Math.min(100, Math.abs(weekPct) / 15 * 100),
+        signals24h: in24h.length, emergencyExits7d: exits7d.length,
+      },
+      ladder,
+      exposure: exposure.map((e) => ({ ...e, capPct: r9(Math.min(100, (e.pctNav / 2) * 100)) })),
+    };
   }
 
   async status(vaultId: number): Promise<VaultStatus> {

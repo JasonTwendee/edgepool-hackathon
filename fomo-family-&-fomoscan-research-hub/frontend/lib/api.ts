@@ -215,6 +215,12 @@ export interface PoolDetail extends PoolSummary {
   exposure: { trader: string; pctNav: number; pnlSol: number }[];
   myHolding: VaultMine | null;
   masked: boolean;
+  advanced?: {
+    kpis: { navSol: number; sharePrice: number; pnlSol: number | null; unrealizedSol: number; deployedPctNav: number; fromHwmPct: number };
+    risk: { dayPct: number; dayLimitPct: number; dayUsedPct: number; weekPct: number; weekLimitPct: number; weekUsedPct: number; signals24h: number; emergencyExits7d: number };
+    ladder: { token: string; trader: string; entry: number | null; live: number | null; movePct: number | null; tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; stage: string }[];
+    exposure: { trader: string; pctNav: number; pnlSol: number; capPct: number }[];
+  };
 }
 
 export function getPoolDetail(id: number): Promise<{ success: boolean; data: PoolDetail }> {

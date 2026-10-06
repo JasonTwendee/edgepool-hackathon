@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import {
   getAuthMe,
@@ -31,7 +31,9 @@ const STEP_STYLE: Record<string, { bg: string; fg: string }> = {
 
 export default function PoolDetailPage() {
   const params = useParams();
+  const search = useSearchParams();
   const id = Number(params.id);
+  const advanced = search.get('view') === 'advanced';
   const [pool, setPool] = useState<PoolDetail | null>(null);
   const [period, setPeriod] = useState<Period>('week');
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +114,21 @@ export default function PoolDetailPage() {
 
   return (
     <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
-      <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
+        <div className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+          {(['calm', 'advanced'] as const).map((v) => {
+            const active = (v === 'advanced') === advanced;
+            const href = v === 'advanced' ? `/pools/${id}?view=advanced` : `/pools/${id}`;
+            return (
+              <Link key={v} href={href} className="text-xs font-bold px-3 py-1.5 capitalize"
+                style={active ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
+                {v}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
       {pool.status === 'paused' && (
         <div className="mt-3 text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(240,190,103,0.12)', color: 'var(--ep-amber, #F0BE67)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
           This pool is paused by the owner — no new positions. Withdrawals still work.
@@ -134,6 +150,9 @@ export default function PoolDetailPage() {
         ))}
       </div>
 
+      {advanced && pool.advanced ? (
+        <AdvancedView pool={pool} />
+      ) : (
       <div className="grid gap-4 mt-5" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
         <div className="space-y-4 min-w-0">
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
@@ -281,6 +300,150 @@ export default function PoolDetailPage() {
           </section>
         </div>
       </div>
+      )}
+    </div>
+  );
+}
+
+function AdvancedView({ pool }: { pool: PoolDetail }) {
+  const adv = pool.advanced;
+  if (!adv) return null;
+  const card: React.CSSProperties = { background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' };
+  const tile: React.CSSProperties = { background: 'var(--ep-surface-sunk, #1A1C2A)' };
+  const k = adv.kpis;
+  const r = adv.risk;
+  return (
+    <div className="space-y-4 mt-5">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-display text-lg font-medium">{pool.name}</h2>
+        <span className="font-mono text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+          {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {pool.slots.used}/{pool.slots.max} slots · Initial strategy settings under validation
+        </span>
+      </div>
+
+      <div className="rounded-2xl p-4" style={{ ...card, border: '1px solid var(--ep-aqua, #49E6D7)' }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+          {[
+            ['My position', pool.myHolding ? `${pool.myHolding.valueSol.toFixed(4)} SOL` : '—'],
+            ['My PnL', pool.myHolding ? `${pool.myHolding.returnsSol >= 0 ? '+' : ''}${pool.myHolding.returnsSol.toFixed(4)}` : '—'],
+            ['Shares', pool.myHolding ? pool.myHolding.shares.toFixed(2) : '—'],
+            ['Withdraw', pool.myHolding && pool.myHolding.shares > 0 ? 'available' : '—'],
+          ].map(([label, v]) => (
+            <div key={label}>
+              <div className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
+              <div className="text-sm font-mono font-bold">{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px,1fr))' }}>
+        {[
+          ['Pool NAV', `${k.navSol.toFixed(2)} SOL`],
+          ['NAV/share', k.sharePrice.toFixed(4)],
+          ['Unrealized', `${k.unrealizedSol >= 0 ? '+' : ''}${k.unrealizedSol.toFixed(4)}`],
+          ['Deployed % NAV', `${k.deployedPctNav.toFixed(1)}%`],
+          ['From HWM', `${k.fromHwmPct >= 0 ? '+' : ''}${k.fromHwmPct.toFixed(1)}%`],
+        ].map(([label, v]) => (
+          <div key={label} className="rounded-2xl p-3 text-center" style={card}>
+            <div className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
+            <div className="text-sm font-mono font-bold mt-1">{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl p-4" style={card}>
+        <h3 className="font-display text-sm font-medium">Risk limits</h3>
+        {[
+          ['Daily kill switch −5%', r.dayUsedPct, `${r.dayPct >= 0 ? '+' : ''}${r.dayPct.toFixed(1)}% today`],
+          ['Weekly loss limit −15%', r.weekUsedPct, `${r.weekPct >= 0 ? '+' : ''}${r.weekPct.toFixed(1)}% week`],
+        ].map(([label, used, note]) => (
+          <div key={label as string} className="mt-2">
+            <div className="flex justify-between text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              <span>{label}</span><span className="font-mono">{note as string}</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, Number(used))}%`, background: Number(used) > 80 ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-aqua, #49E6D7)' }} />
+            </div>
+          </div>
+        ))}
+        <div className="text-[11px] font-mono mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+          Signals 24h: {r.signals24h} · Emergency exits 7d: {r.emergencyExits7d}
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4 overflow-x-auto" style={card}>
+        <h3 className="font-display text-sm font-medium">Positions</h3>
+        <table className="w-full text-xs mt-2" style={{ minWidth: 1000 }}>
+          <thead>
+            <tr style={{ color: 'var(--ep-faint, #75798C)' }}>
+              {['Token', 'Trader', 'Move', 'Unrealized', 'Price ladder', 'Stop/floor', 'Stage'].map((h) => (
+                <th key={h} className="text-left font-medium px-2 py-1.5">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {adv.ladder.map((l, i) => (
+              <tr key={i} style={{ borderTop: '1px solid var(--ep-row-rule, #26283A)' }}>
+                <td className="px-2 py-2 font-bold">{l.token}</td>
+                <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{l.trader}</td>
+                <td className="px-2 py-2 font-mono" style={{ color: (l.movePct ?? 0) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                  {l.movePct === null ? '—' : `${l.movePct >= 0 ? '+' : ''}${l.movePct.toFixed(1)}%`}
+                </td>
+                <td className="px-2 py-2 font-mono">—</td>
+                <td className="px-2 py-2" style={{ minWidth: 240 }}>
+                  <LadderBar l={l} />
+                </td>
+                <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-neg, #F28881)' }}>
+                  {l.trailFloorPct !== null ? `floor +${l.trailFloorPct.toFixed(0)}%` : `${l.stopPct.toFixed(0)}%`}
+                </td>
+                <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{l.stage}</td>
+              </tr>
+            ))}
+            {adv.ladder.length === 0 && (
+              <tr><td colSpan={7} className="px-2 py-4 text-center" style={{ color: 'var(--ep-muted, #9397AB)' }}>No open positions — pool is flat.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-2xl p-4" style={card}>
+        <h3 className="font-display text-sm font-medium">Exposure per trader <span className="font-mono text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>(share of 2% cap)</span></h3>
+        <div className="mt-2 space-y-2">
+          {adv.exposure.map((e) => (
+            <div key={e.trader}>
+              <div className="flex justify-between text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                <span>{e.trader.slice(0, 8)}…</span><span>{e.pctNav.toFixed(2)}% NAV</span>
+              </div>
+              <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+                <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.capPct)}%`, background: e.capPct >= 100 ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-aqua, #49E6D7)' }} />
+              </div>
+            </div>
+          ))}
+          {adv.exposure.length === 0 && <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>No exposure.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LadderBar({ l }: { l: { tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; movePct: number | null } }) {
+  // Range: stop (left) → +300% (right). Ticks positioned by %.
+  const RANGE_MIN = -50;
+  const RANGE_MAX = 300;
+  const pos = (pct: number) => Math.min(100, Math.max(0, ((pct - RANGE_MIN) / (RANGE_MAX - RANGE_MIN)) * 100));
+  const cur = l.movePct ?? 0;
+  return (
+    <div className="relative h-5" style={{ minWidth: 220 }}>
+      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px]" style={{ background: 'var(--ep-border, #2E313F)' }} />
+      <div title={`Stop ${l.stopPct.toFixed(0)}%`} className="absolute top-1/2 -translate-y-1/2 w-[2px] h-3" style={{ left: `${pos(l.stopPct)}%`, background: 'var(--ep-neg, #F28881)' }} />
+      <div title="Entry" className="absolute top-1/2 -translate-y-1/2 w-[2px] h-3" style={{ left: `${pos(0)}%`, background: 'var(--ep-muted, #9397AB)' }} />
+      <div title={`TP1 +${l.tp1Pct.toFixed(0)}%`} className="absolute top-1/2 -translate-y-1/2 w-[2px] h-3" style={{ left: `${pos(l.tp1Pct)}%`, background: l.tp1Hit ? 'var(--ep-violet, #9184D9)' : 'var(--ep-ghost, #595D6C)' }} />
+      <div title={`TP2 +${l.tp2Pct.toFixed(0)}%`} className="absolute top-1/2 -translate-y-1/2 w-[2px] h-3" style={{ left: `${pos(l.tp2Pct)}%`, background: l.tp2Hit ? 'var(--ep-violet, #9184D9)' : 'var(--ep-ghost, #595D6C)' }} />
+      {l.trailFloorPct !== null && (
+        <div title={`Runner floor +${l.trailFloorPct.toFixed(0)}%`} className="absolute top-1/2 -translate-y-1/2 h-[2px] border-t border-dashed" style={{ left: `${pos(l.trailFloorPct)}%`, width: `${100 - pos(l.trailFloorPct)}%`, borderColor: 'var(--ep-violet, #9184D9)' }} />
+      )}
+      <div title={`Now ${cur >= 0 ? '+' : ''}${cur.toFixed(1)}%`} className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2" style={{ left: `calc(${pos(cur)}% - 6px)`, background: 'var(--ep-aqua, #49E6D7)', borderColor: 'var(--ep-abyss, #0D0F18)' }} />
     </div>
   );
 }
