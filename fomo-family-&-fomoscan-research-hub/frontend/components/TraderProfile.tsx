@@ -226,7 +226,7 @@ export function TraderProfile({
             className={`w-16 h-16 rounded-full object-cover border-2 border-[#3F424D] ${wallet.avatar ? '' : 'hidden'}`}
             loading="lazy"
           />
-          {!wallet.avatar && <WalletAvatar label={wallet.label} avatarUrl={wallet.avatar} size="lg" />}
+          {!wallet.avatar && <WalletAvatar label={wallet.label} avatarUrl={wallet.avatar} address={wallet.address} size="lg" />}
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-black text-[#E9E9ED] flex items-center gap-2 flex-wrap">
               {wallet.label}
@@ -238,8 +238,15 @@ export function TraderProfile({
             </h1>
             <div className="text-xs font-mono text-[#9397AB] mt-0.5">@{wallet.handle}</div>
             <p className="text-xs text-[#E9E9ED] italic mt-1.5">
-              Solana wallet tracked on-chain{trackedSince ? ` · since ${trackedSince}` : ''}
+              {wallet.bio ? wallet.bio : `Solana wallet tracked on-chain${trackedSince ? ` · since ${trackedSince}` : ''}`}
             </p>
+            {wallet.fomoRank !== null && wallet.fomoRank !== undefined && (
+              <div className="mt-1.5">
+                <span className="text-[10px] font-mono font-bold text-[#49E6D7] border border-[#49E6D7]/40 rounded px-1.5 py-0.5">
+                  FOMO RANK #{wallet.fomoRank}
+                </span>
+              </div>
+            )}
             <div className="mt-2 flex items-center gap-3 text-xs flex-wrap">
               <span><b className="text-[#E9E9ED] font-bold">{swapsTotal}</b> <span className="text-[#9397AB]">Swaps</span></span>
               <span className="text-[#595D6C]">•</span>

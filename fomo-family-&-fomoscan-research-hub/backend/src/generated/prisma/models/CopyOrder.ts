@@ -946,18 +946,6 @@ export type CopyOrderScalarRelationFilter = {
   isNot?: Prisma.CopyOrderWhereInput
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type CopyOrderCreateNestedOneWithoutLegsInput = {
   create?: Prisma.XOR<Prisma.CopyOrderCreateWithoutLegsInput, Prisma.CopyOrderUncheckedCreateWithoutLegsInput>
   connectOrCreate?: Prisma.CopyOrderCreateOrConnectWithoutLegsInput

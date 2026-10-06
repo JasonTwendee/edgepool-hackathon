@@ -10,6 +10,9 @@ export interface TrackedWallet {
   evmAddress?: string | null;
   totalPnlUsd?: number;
   winRate?: number;
+  /** FomoScan leaderboard snapshot (instant display before local history exists). */
+  fomoPnlUsd?: number | null;
+  fomoRank?: number | null;
   isCopyEnabled: boolean;
   /** Rotation state: false = dropped from top-N, history kept, read-only. */
   isActive?: boolean;
@@ -34,6 +37,8 @@ export function toTrackedWallet(e: PrismaTrackedWallet): TrackedWallet {
     evmAddress: e.evmAddress ?? null,
     totalPnlUsd: e.cumulativePnlUsd?.toNumber() ?? undefined,
     winRate: e.winRate?.toNumber() ?? undefined,
+    fomoPnlUsd: e.fomoPnlUsd?.toNumber() ?? null,
+    fomoRank: e.fomoRank ?? null,
     isCopyEnabled: e.isActive,
     isActive: e.isActive,
     allocationWeight: e.allocationWeight.toNumber(),

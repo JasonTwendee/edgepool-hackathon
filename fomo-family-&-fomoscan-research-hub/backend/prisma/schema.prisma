@@ -20,6 +20,11 @@ model TrackedWallet {
   // rows stay NULL until an ADMIN runs POST /api/wallets/:address/enrich.
   bio                  String?  @db.Text
   evmAddress           String?  @map("evm_address") @db.VarChar(64)
+  // Leaderboard snapshot (rotation tick): instant display data for wallets
+  // with no local tx history yet. Refreshed on every rotation tick.
+  fomoPnlUsd           Decimal? @map("fomo_pnl_usd") @db.Decimal(15, 2)
+  fomoRank             Int?     @map("fomo_rank")
+  fomoSyncedAt         DateTime? @map("fomo_synced_at") @db.Timestamptz()
   ownerNotes           String?   @map("owner_notes") @db.Text
   allocationWeight     Decimal  @map("allocation_weight") @db.Decimal(4, 2)
   isActive             Boolean  @map("is_active") @default(true)

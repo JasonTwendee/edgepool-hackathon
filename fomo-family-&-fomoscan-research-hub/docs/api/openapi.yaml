@@ -1277,6 +1277,8 @@ components:
         bio: { type: string, nullable: true, description: Verified bio from FomoScan enrich }
         evmAddress: { type: string, nullable: true, description: Verified EVM wallet from FomoScan enrich }
         isActive: { type: boolean, description: Rotation state, false = dropped from top-N (history kept) }
+        fomoPnlUsd: { type: number, nullable: true, description: Leaderboard snapshot PnL (instant display) }
+        fomoRank: { type: integer, nullable: true, description: Leaderboard rank at last rotation tick }
         totalPnlUsd: { type: number }
         winRate: { type: number }
         isCopyEnabled: { type: boolean }

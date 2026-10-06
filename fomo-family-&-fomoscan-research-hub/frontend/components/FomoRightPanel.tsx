@@ -51,7 +51,7 @@ export function FomoRightPanel({ wallet, holdings, lastSwap, isAdmin }: Props) {
             <h3 className="font-display text-sm font-medium text-[#E9E9ED]">Send</h3>
             {wallet ? (
               <span className="flex items-center gap-1.5 bg-[#161826] border border-[#3F424D] px-2.5 py-1 rounded-full text-xs text-[#E9E9ED] min-w-0">
-                <WalletAvatar label={wallet.label} avatarUrl={wallet.avatar} size="sm" />
+                <WalletAvatar label={wallet.label} avatarUrl={wallet.avatar} address={wallet.address} size="sm" />
                 <span className="truncate font-mono">@{wallet.handle} ⚡</span>
               </span>
             ) : (

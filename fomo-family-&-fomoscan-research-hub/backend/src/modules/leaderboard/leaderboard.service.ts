@@ -99,6 +99,11 @@ export class LeaderboardService implements OnModuleInit {
     let reactivated = 0;
     for (const e of top) {
       const existing = await this.prisma.trackedWallet.findUnique({ where: { address: e.wallet } });
+      const snapshot = {
+        fomoPnlUsd: e.pnlUsd,
+        fomoRank: e.rank,
+        fomoSyncedAt: new Date(),
+      };
       if (!existing) {
         await this.prisma.trackedWallet.create({
           data: {
@@ -108,15 +113,19 @@ export class LeaderboardService implements OnModuleInit {
             allocationWeight: 1.0,
             isActive: true,
             totalTradesCount: 0,
+            ...snapshot,
           },
         });
         added++;
-      } else if (!existing.isActive) {
+      } else {
         await this.prisma.trackedWallet.update({
           where: { address: e.wallet },
-          data: { isActive: true, label: e.username, handle: e.username },
+          data: {
+            ...(existing.isActive ? {} : { isActive: true, label: e.username, handle: e.username }),
+            ...snapshot,
+          },
         });
-        reactivated++;
+        if (!existing.isActive) reactivated++;
       }
       // Best-effort enrich (unknown wallets simply stay unenriched).
       try {

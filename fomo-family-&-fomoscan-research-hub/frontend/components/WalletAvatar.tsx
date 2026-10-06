@@ -1,16 +1,25 @@
 import { useState } from 'react';
 
 /**
- * Wallet avatar: real image when available, otherwise the Edgepool initial
- * pattern (violet-tinted basin + light violet letter, Inter Tight).
+ * Wallet avatar: real image when available, otherwise a deterministic gradient
+ * derived from the address (stable per wallet, no network needed).
  */
+function gradientFor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+  const h2 = (h + 60) % 360;
+  return `linear-gradient(135deg, hsl(${h} 60% 32%), hsl(${h2} 65% 22%))`;
+}
+
 export function WalletAvatar({
   label,
   avatarUrl,
+  address,
   size = 'md',
 }: {
   label: string;
   avatarUrl?: string;
+  address?: string;
   size?: 'sm' | 'md' | 'lg';
 }) {
   const [broken, setBroken] = useState(false);
@@ -29,7 +38,8 @@ export function WalletAvatar({
   }
   return (
     <div
-      className={`shrink-0 rounded-full bg-[#2B2741] flex items-center justify-center font-display font-medium text-[#D2CEFD] ${dims}`}
+      className={`shrink-0 rounded-full flex items-center justify-center font-display font-medium text-[#E9E9ED] ${dims}`}
+      style={{ background: gradientFor(address ?? label) }}
     >
       {(label || '?').slice(0, 1).toUpperCase()}
     </div>
