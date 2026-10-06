@@ -195,6 +195,10 @@ async function main(): Promise<void> {
   assert.equal((det.signals as Row[]).length, 2);
   assert.equal(det.masked, true); // no user → masked
   assert.ok(Array.isArray(det.navSeries) && (det.navSeries as Row[]).length === 1);
+  const adv = det.advanced as Row;
+  assert.ok(adv && typeof (adv.kpis as Row).deployedPctNav === 'number');
+  assert.ok(Array.isArray(adv.ladder) && (adv.ladder as Row[]).length === 1);
+  assert.equal((((adv.ladder as Row[])[0] as Row).tp1Hit as boolean), true);
   void dSvc;
 
   console.log('pools asserts: ALL GREEN');
