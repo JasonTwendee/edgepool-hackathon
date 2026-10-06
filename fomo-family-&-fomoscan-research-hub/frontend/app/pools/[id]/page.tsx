@@ -117,6 +117,7 @@ export default function PoolDetailPage() {
   const positive = pnl.sol >= 0;
   const myVal = pool.myHolding?.valueSol ?? 0;
   const locked = pool.masked;
+  const isDemo = pool.name.startsWith('demo-');
   const pts = pool.navSeries.slice(-60);
   const min = pts.length ? Math.min(...pts.map((p) => p.v)) : 0;
   const max = pts.length ? Math.max(...pts.map((p) => p.v)) : 1;
@@ -150,12 +151,12 @@ export default function PoolDetailPage() {
 
       <div className="mt-3 flex items-center gap-2">
         <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
-          ● {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {pool.kind === 'basket' ? 'FLAGSHIP' : 'PARTNER'}
+          ● {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {isDemo ? 'DEMO' : pool.kind === 'basket' ? 'FLAGSHIP' : 'PARTNER'}
         </span>
       </div>
       <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>{pool.name}</h1>
       <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-        {pool.kind === 'basket' ? 'Edgepool basket · algorithm-picked traders' : 'Partner pool'} · {pool.traders.length} traders · {pool.slots.used}/{pool.slots.max} slots
+        {isDemo ? 'Demo pool · scripted scenario (unlisted)' : pool.kind === 'basket' ? 'Edgepool basket · algorithm-picked traders' : 'Partner pool'} · {pool.traders.length} traders · {pool.slots.used}/{pool.slots.max} slots
       </p>
       <div className="flex gap-2 mt-3 flex-wrap">
         {['2% cap per trader', '50% now + 50% limit at −10%', 'Adaptive stop', '−5% daily kill switch'].map((r) => (
