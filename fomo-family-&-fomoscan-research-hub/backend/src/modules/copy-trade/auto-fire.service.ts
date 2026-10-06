@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CopyTradeService, type PaperOverrides } from './copy-trade.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { emitSignal } from './signal-bus.js';
 
 export interface AutoFireSummary {
   scanned: number;
@@ -218,6 +219,13 @@ export class AutoFireService implements OnModuleInit {
           );
           summary.fired++;
           summary.orderIds.push(order.id);
+          emitSignal({
+            vaultId: botVault,
+            kind: 'ENTER',
+            token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
+            trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
+            note: `order #${order.id} entered`,
+          });
           await this.audit
             .record({
               actor: `bot:${bot.id}`,
@@ -232,6 +240,13 @@ export class AutoFireService implements OnModuleInit {
           const msg = e instanceof Error ? e.message : 'auto-fire failed';
           if (isGateBlock(msg)) summary.blocked++;
           else summary.errors++;
+          emitSignal({
+            vaultId: botVault,
+            kind: 'SKIP',
+            token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
+            trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
+            note: msg.slice(0, 120),
+          });
         }
       }
       return summary;

@@ -9,6 +9,7 @@ import {
   type PoolDetail,
 } from '../../../lib/api';
 import { getStoredToken } from '../../../lib/api';
+import SignalStream from '../../../components/SignalStream';
 
 type Period = 'day' | 'week' | 'month' | 'all';
 const PERIODS: { key: Period; label: string }[] = [
@@ -252,6 +253,8 @@ export default function PoolDetailPage() {
               ))}
             </div>
           </section>
+
+          <SignalStream vaultId={pool.id} />
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
             <h2 className="font-display text-base font-medium">Trader basket</h2>
