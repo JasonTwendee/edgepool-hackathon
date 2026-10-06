@@ -57,6 +57,16 @@ export class DemoController {
     return { success: true, data };
   }
 
+  @Post('scenario')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('demo.scenario_tick')
+  async scenario(@Req() req: { user?: AuthedUser }): Promise<{ success: boolean; data: unknown }> {
+    const data = await this.demo.scenario(this.actor(req));
+    return { success: true, data };
+  }
+
   @Get('bot/:id/performance')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN')

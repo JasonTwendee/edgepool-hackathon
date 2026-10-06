@@ -5,6 +5,7 @@ import { CopyTradeService } from '../copy-trade/copy-trade.service.js';
 import { ManageService } from '../copy-trade/manage.service.js';
 import type { PaperExecutorService } from '../copy-trade/paper-executor.service.js';
 import { VaultService } from '../vaults/vault.service.js';
+import { emitSignal } from '../copy-trade/signal-bus.js';
 import { BotsService } from '../bots/bots.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
@@ -166,8 +167,22 @@ export class DemoService {
         );
         fired++;
         orderIds.push(order.id);
-      } catch {
+        emitSignal({
+          vaultId,
+          kind: 'ENTER',
+          token: (s.symbol ?? (s.tokenMint ?? '').slice(0, 8)) || '—',
+          trader: (s.walletAddress ?? '').slice(0, 8),
+          note: `order #${order.id} entered (demo)`,
+        });
+      } catch (e) {
         failed++;
+        emitSignal({
+          vaultId,
+          kind: 'SKIP',
+          token: (s.symbol ?? (s.tokenMint ?? '').slice(0, 8)) || '—',
+          trader: (s.walletAddress ?? '').slice(0, 8),
+          note: `demo skip: ${e instanceof Error ? e.message.slice(0, 100) : 'failed'}`,
+        });
       }
     }
     const managed = await this.manage.tick(100).catch(() => null);
@@ -222,6 +237,50 @@ export class DemoService {
       withdrawal,
       environment: 'sandbox' as const,
     };
+  }
+
+  /**
+   * One-click stage demo: reset old demo pools, then run 3 cases in parallel.
+   * Each case = seed (vault + bot + traders + deposit + settle) + replay
+   * (real ledger BUYs → SKIP/ENTER on the terminal bus, manage EXITs,
+   * second deposit + settle moves NAV, withdrawal stays QUEUED = vault trừ tiền).
+   */
+  async scenario(actor: string) {
+    const cleaned = await this.reset(actor);
+    const cases = [
+      { name: 'case-momentum', depositSol: 100, traderCount: 3, limit: 5 },
+      { name: 'case-value', depositSol: 50, traderCount: 2, limit: 3 },
+      { name: 'case-broad', depositSol: 200, traderCount: 5, limit: 8 },
+    ];
+    const settled = await Promise.allSettled(
+      cases.map(async (c) => {
+        const seeded = await this.seed(
+          { name: c.name, depositSol: c.depositSol, traderCount: c.traderCount },
+          actor,
+        );
+        const replayed = await this.replay(
+          { vaultId: seeded.vaultId, botId: seeded.botId, days: 7, limit: c.limit },
+          actor,
+        );
+        return { name: c.name, ...replayed };
+      }),
+    );
+    const results = settled.map((r, i) =>
+      r.status === 'fulfilled'
+        ? { ok: true as const, ...r.value }
+        : {
+            ok: false as const,
+            name: cases[i].name,
+            error: r.reason instanceof Error ? r.reason.message : 'scenario case failed',
+          },
+    );
+    await this.audit.record({
+      actor,
+      action: 'demo.scenario',
+      target: 'demo:scenariox3',
+      reason: results.map((d) => `${d.name}:${d.ok ? 'ok' : `fail(${d.error})`}`).join(', '),
+    });
+    return { cleaned, cases: results, environment: 'sandbox' as const };
   }
 
   /** Close still-open demo orders as TIME scratch (no price guessing). */
