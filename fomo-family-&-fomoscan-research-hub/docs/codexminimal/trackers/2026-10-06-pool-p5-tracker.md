@@ -6,9 +6,12 @@
 
 ## Phases
 
-- [ ] P5.1 BE advanced payload: `open`
-- [ ] P5.2 FE advanced view + toggle: `open`
-- [ ] P5.3 asserts + contract + live verify: `open`
+- [x] P5.1 BE advanced payload: `done` (KPIs/risk/ladder/exposure; assert-pools GREEN)
+- [x] P5.2 FE advanced view + toggle: `done` (`?view=advanced` 200)
+- [x] P5.3 asserts + contract + live verify: `done`
+  (live: ladder 2, risk day 100% used, reviewer APPROVE)
+
+## Review gate — APPROVE
 
 ## Handoff log
 
