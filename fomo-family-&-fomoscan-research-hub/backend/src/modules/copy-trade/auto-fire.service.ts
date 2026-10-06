@@ -109,7 +109,10 @@ export class AutoFireService implements OnModuleInit {
     try {
       const bots = await this.prisma.bot.findMany({ where: { mode: 'AUTO' }, orderBy: { id: 'asc' } });
       if (bots.length === 0) return { ...fresh(), note: 'no-auto-bots' };
-      const since = new Date(Date.now() - Math.min(Math.max(windowMin, 1), 120) * 60000);
+      // Max lookback is env-overridable for demo seeding (default 120');
+      // production stays at fresh-signal immediacy.
+      const windowMax = Math.max(1, Number(process.env.AUTO_FIRE_WINDOW_MAX_MIN ?? 120) || 120);
+      const since = new Date(Date.now() - Math.min(Math.max(windowMin, 1), windowMax) * 60000);
       const signals = await this.prisma.transaction.findMany({
         where: { action: 'BUY', createdAt: { gte: since }, NOT: [{ tokenMint: null }] },
         select: {
