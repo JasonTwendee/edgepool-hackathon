@@ -186,32 +186,38 @@ export class PnlService {
   }
 
   private async getOverviewFast(days: number): Promise<WalletPnl[]> {
+    // NOTE: POST /handles/pnl (batch) is 403 on the sponsor plan for >1 handle,
+    // so the fast-path fans out to single GETs (client self-throttles ≥1.1s,
+    // 5-min cache). Same shape, same fallback contract.
     const wallets = await this.wallets.findAll();
-    const handled = wallets.filter((w) => (w.handle ?? '').trim());
-    const batch = await this.fomoscan.batchPnl(handled.map((w) => w.handle));
-    const byHandle = new Map(batch.entries.map((e) => [e.handle.toLowerCase(), e]));
-    return Promise.all(
+    const results = await Promise.all(
       wallets.map(async (w) => {
-        const entry = byHandle.get((w.handle ?? '').toLowerCase());
-        const win = entry ? this.pickWindow(entry.windows ?? {}, days) : null;
-        const wdata = win ? entry?.windows?.[win] : undefined;
-        // No handle, no suitable window, or not ready → local FIFO for this wallet.
-        if (!wdata || entry?.status !== 'ready') return this.getWalletPnl(w.address, days);
-        return {
-          wallet: w.address,
-          days,
-          realizedPnlUsd: Math.round(wdata.netUsd),
-          pairs: wdata.trades,
-          matchedSells: wdata.sells,
-          totalSells: wdata.sells,
-          totalBuys: wdata.buys,
-          winRate: wdata.tokensTraded > 0 ? (wdata.winningTokens / wdata.tokensTraded) * 100 : null,
-          perSymbol: [],
-          series: [],
-          topTrades: [],
-        };
+        const handle = (w.handle ?? '').trim();
+        if (!handle) return this.getWalletPnl(w.address, days);
+        try {
+          const entry = await this.fomoscan.getPnl(handle);
+          const win = this.pickWindow(entry.windows ?? {}, days);
+          const wdata = win ? entry.windows?.[win] : undefined;
+          if (!wdata || entry.status !== 'ready') return this.getWalletPnl(w.address, days);
+          return {
+            wallet: w.address,
+            days,
+            realizedPnlUsd: Math.round(wdata.netUsd),
+            pairs: wdata.trades,
+            matchedSells: wdata.sells,
+            totalSells: wdata.sells,
+            totalBuys: wdata.buys,
+            winRate: wdata.tokensTraded > 0 ? (wdata.winningTokens / wdata.tokensTraded) * 100 : null,
+            perSymbol: [],
+            series: [],
+            topTrades: [],
+          };
+        } catch {
+          return this.getWalletPnl(w.address, days);
+        }
       }),
     );
+    return results;
   }
 
   /**
