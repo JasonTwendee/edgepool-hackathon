@@ -1,0 +1,61 @@
+/* Edgepool app tokens (Nocturne foundation + Edgepool accents). Values match the reference exactly. */
+:root {
+  /* Grounds */
+  --ep-abyss: #0D0F18;        /* deepest; overlays, modal scrims (rgba(13,15,24,0.72)) */
+  --ep-midnight: #161826;     /* page background */
+  --ep-surface: #1D1F2C;      /* cards, panels */
+  --ep-surface-sunk: #1A1C2A; /* table headers, inputs, signal cards */
+  --ep-border: #2E313F;       /* 1px card edges (box-shadow: 0 0 0 1px) and row rules */
+  --ep-border-strong: #3F424D;/* inputs, outlined buttons, chips */
+  --ep-row-rule: #26283A;     /* advanced table row dividers */
+
+  /* Text */
+  --ep-text: #E9E9ED;         /* primary */
+  --ep-text-2: #CFD3E5;       /* secondary emphasis */
+  --ep-text-3: #B2B6CA;       /* body on dark */
+  --ep-muted: #9397AB;        /* supporting copy */
+  --ep-faint: #75798C;        /* labels, timestamps */
+  --ep-ghost: #595D6C;        /* USDC placeholders, disabled */
+
+  /* Accents */
+  --ep-aqua: #49E6D7;         /* primary signal + solid CTA (text #0D0F18 on it) */
+  --ep-aqua-300: #81EADE;
+  --ep-aqua-100: #BBF6EE;
+  --ep-aqua-tint: #004B45;    /* tag fills */
+  --ep-aqua-deep: #032D2A;    /* "my position" card, toast */
+  --ep-violet: #9184D9;       /* secondary / future / partner */
+  --ep-violet-300: #B5ABFC;
+  --ep-violet-100: #D2CEFD;
+  --ep-violet-tint: #2B2741;  /* paywall banners, avatars */
+  --ep-amber: #F0BE67;        /* risk / nearly full / paused */
+  --ep-amber-tint: #4A3B1C;
+  --ep-amber-100: #F7DDA9;
+  --ep-pos: #73DEA4;          /* positive PnL */
+  --ep-neg: #F28881;          /* negative PnL, errors, stops */
+  --ep-neg-tint: #3A2226;
+  --ep-neg-100: #F7C1BC;
+  --ep-neg-border: #5A2A2E;
+
+  /* Type */
+  --ep-font-heading: "Inter Tight", Inter, system-ui, sans-serif; /* weight 500 only */
+  --ep-font-body: Inter, system-ui, sans-serif;                   /* 400 / 500 */
+  --ep-font-mono: "JetBrains Mono", ui-monospace, monospace;      /* all numbers, SOL, labels like LIVE */
+
+  /* Radii */
+  --ep-r-xs: 6px;   /* tags, tabs inner */
+  --ep-r-sm: 8px;   /* buttons, inputs */
+  --ep-r-md: 10px;  /* primary CTAs, inner panels */
+  --ep-r-lg: 14px;  /* cards */
+  --ep-r-xl: 16px;  /* major cards */
+  --ep-r-2xl: 18px; /* pool cards, modals */
+
+  /* Elevation */
+  --ep-shadow-modal: 0 0 0 1px #3F424D, 0 24px 60px rgba(0,0,0,0.5);
+  --ep-shadow-toast: 0 0 0 1px #004B45, 0 12px 32px rgba(0,0,0,0.4);
+
+  /* Layout */
+  --ep-max: 1240px;
+  --ep-gutter: clamp(16px, 4vw, 40px);
+  --ep-header-h: 64px;
+  --ep-tabbar-h: 68px; /* mobile only, < 760px */
+}

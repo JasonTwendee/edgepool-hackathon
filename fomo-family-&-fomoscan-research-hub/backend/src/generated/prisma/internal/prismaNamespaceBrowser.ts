@@ -174,6 +174,7 @@ export const CopyOrderScalarFieldEnum = {
   closeReason: 'closeReason',
   closedAt: 'closedAt',
   realizedPnlUsd: 'realizedPnlUsd',
+  vaultId: 'vaultId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -206,6 +207,11 @@ export const VaultScalarFieldEnum = {
   treasurySol: 'treasurySol',
   settlePeriodHours: 'settlePeriodHours',
   settleLengthMin: 'settleLengthMin',
+  kind: 'kind',
+  status: 'status',
+  listing: 'listing',
+  maxSlots: 'maxSlots',
+  maxTraders: 'maxTraders',
   environment: 'environment',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

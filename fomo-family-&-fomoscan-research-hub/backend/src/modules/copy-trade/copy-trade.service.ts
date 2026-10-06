@@ -326,6 +326,7 @@ export class CopyTradeService {
         masterWallet: dto.masterWallet,
         masterHandle: dto.masterHandle,
         masterTxHash: dto.masterTxHash,
+        vaultId: sizingVaultId,
         symbol: dto.symbol,
         action: dto.action,
         tokenMint: dto.tokenMint,

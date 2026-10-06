@@ -84,6 +84,53 @@ paths:
                       active: { type: integer }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/pools:
+    get:
+      summary: Pools index (pool app P1) with NAV, PnL, slots, basket
+      operationId: listPools
+      responses:
+        '200':
+          description: Pools
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, kind, status, listing, navSol, navPerShare, slots, traders, pnl]
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        kind: { type: string, enum: [basket, partner] }
+                        status: { type: string, enum: [live, paused] }
+                        listing: { type: string, enum: [public, unlisted] }
+                        navSol: { type: number }
+                        navPerShare: { type: number }
+                        hwmNavPerShare: { type: number }
+                        totalShares: { type: number }
+                        slots: { type: object, properties: { used: { type: integer }, max: { type: integer } } }
+                        maxTraders: { type: integer }
+                        traders:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              wallet: { type: string }
+                              handle: { type: string }
+                              rank: { type: integer, nullable: true }
+                        pnl:
+                          type: object
+                          properties:
+                            day: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
+                            week: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
+                            month: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
+                            all: { type: object, properties: { sol: { type: number }, pct: { type: number } } }
   /api/wallets/{address}/enrich:
     post:
       summary: Backfill verified identity (avatar/bio/EVM) from FomoScan (ADMIN, audited)
@@ -1549,10 +1596,10 @@ components:
         shares: { type: number }
     VaultSettleDto:
       type: object
-      required: [navSol]
+      required: []
       properties:
         vaultId: { type: integer }
-        navSol: { type: number }
+        navSol: { type: number, description: Omitted = NAV engine mark-to-market }
     VaultSettleResult:
       type: object
       properties:

@@ -185,6 +185,27 @@ export function getVaultMine(vaultId = 1, token?: string): Promise<{ success: bo
   return token ? fetchJsonAuth(path, token) : fetchJson(path);
 }
 
+export interface PoolSummary {
+  id: number;
+  name: string;
+  kind: 'basket' | 'partner';
+  status: 'live' | 'paused';
+  listing: 'public' | 'unlisted';
+  navSol: number;
+  navPerShare: number;
+  hwmNavPerShare: number;
+  totalShares: number;
+  slots: { used: number; max: number };
+  maxTraders: number;
+  traders: { wallet: string; handle: string; rank: number | null }[];
+  pnl: Record<'day' | 'week' | 'month' | 'all', { sol: number; pct: number }>;
+  myHolding?: { shares: number; valueSol: number; returnsSol: number };
+}
+
+export function listPools(): Promise<{ success: boolean; total: number; data: PoolSummary[] }> {
+  return fetchJson('/api/vaults/pools');
+}
+
 export function queueVaultDeposit(input: {
   depositor: string;
   amountSol: number;

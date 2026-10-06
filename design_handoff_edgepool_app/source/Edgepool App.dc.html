@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/nocturne-b7bc2df0-9173-4a23-9cf1-a8f35c67b5de/styles.css">
+<script src="_ds/nocturne-b7bc2df0-9173-4a23-9cf1-a8f35c67b5de/_ds_bundle.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+<script src="./cover-download.js"></script>
+<link rel="icon" href="exports/svg/edgepool-favicon.svg">
+<style>
+html,body{margin:0;background:#161826}
+a{color:#49E6D7;text-decoration:none}
+a:hover{color:#81EADE}
+input::placeholder{color:#595D6C}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #49E6D7;outline-offset:2px}
+</style>
+</helmet>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#161826"></rect><path d="M64 34H44A10 10 0 0 0 34 44V56A10 10 0 0 0 44 66H64M34 50H52" stroke="#E9E9ED" stroke-width="7" fill="none" stroke-linecap="round"></path><circle cx="64" cy="50" r="5" fill="#49E6D7"></circle></svg></template>
+
+<div style="min-height:100vh;background:#161826;color:#E9E9ED;font-family:Inter,sans-serif;display:flex;flex-direction:column">
+
+  <header style="position:sticky;top:0;z-index:20;background:rgba(22,24,38,0.9);backdrop-filter:blur(10px);border-bottom:1px solid #2E313F">
+    <div style="max-width:1240px;margin:0 auto;height:64px;padding:0 clamp(16px,4vw,40px);display:flex;align-items:center;gap:24px">
+      <button onClick="{{ goPools }}" aria-label="Edgepool home" style="border:0;background:transparent;padding:0;cursor:pointer;display:flex"><sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}"><img src="exports/svg/edgepool-horizontal-dark.svg" alt="edgepool" style="height:26px"></sc-if><sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}"><img src="exports/svg/edgepool-symbol-dark.svg" alt="edgepool" style="height:26px"></sc-if></button>
+      <sc-if value="{{ notMobile }}" hint-placeholder-val="{{ true }}">
+        <nav style="display:flex;gap:4px">
+          <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3"><button onClick="{{ n.on }}" style="height:36px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:{{ n.color }};font:500 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="{{ n.icon }}" style="font-size:15px"></i>{{ n.label }}</button></sc-for>
+        </nav>
+      </sc-if>
+      <span style="flex:1"></span>
+      <sc-if value="{{ onPool }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;padding:3px;border-radius:8px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ modeTabs }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.on }}" style="height:30px;padding:0 12px;border:0;border-radius:6px;font:500 13px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+      </sc-if>
+      <button onClick="{{ openWallet }}" style="height:38px;padding:0 14px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#E9E9ED;font:500 13px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap"><i class="ph ph-wallet" style="font-size:16px;color:{{ walletIconC }}"></i>{{ walletLabel }}</button>
+    </div>
+  </header>
+
+  <main style="flex:1;width:100%;max-width:1240px;margin:0 auto;box-sizing:border-box;padding:28px clamp(16px,4vw,40px) {{ mainPadB }}">
+
+    <!-- POOLS -->
+    <sc-if value="{{ rPools }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:clamp(30px,4vw,44px);letter-spacing:-0.03em;line-height:1.05">Pools</h1><span style="font-size:15px;line-height:1.5;color:#9397AB;max-width:620px">Each pool copies its own basket of ranked onchain traders under fixed risk rules. Signals unlock with a 0.5 SOL deposit.</span></div>
+          <div style="display:flex;padding:3px;border-radius:8px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ periodTabs }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.on }}" style="height:32px;padding:0 14px;border:0;border-radius:6px;font:500 13px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:20px">
+          <sc-for list="{{ cards }}" as="c" hint-placeholder-count="3">
+            <div style="padding:22px;border-radius:18px;background:radial-gradient(90% 80% at 100% 0%,{{ c.glow }},transparent 65%),#1D1F2C;box-shadow:0 0 0 1px {{ c.border }};display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;color:{{ c.tagC }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ c.tagC }}"></span>{{ c.tag }}</span><sc-if value="{{ c.holder }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:#004B45;color:#BBF6EE">You hold {{ c.holdS }}</span></sc-if></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'Inter Tight',sans-serif;font-size:24px;font-weight:500;letter-spacing:-0.015em;line-height:1.15">{{ c.name }}</span><span style="font-size:13px;color:#9397AB">{{ c.kind }}</span></div>
+              <div style="display:flex;align-items:center;gap:10px"><div style="display:flex"><sc-for list="{{ c.avatars }}" as="a" hint-placeholder-count="4"><span style="width:28px;height:28px;margin-right:-8px;border-radius:50%;background:#2B2741;color:#D2CEFD;display:grid;place-items:center;font-size:12px;box-shadow:0 0 0 2px #1D1F2C">{{ a.init }}</span></sc-for></div><span style="font-size:12px;color:#9397AB;margin-left:8px">{{ c.traderLine }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">PnL · {{ periodName }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500;color:{{ c.pnlC }}">{{ c.pct }}</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">NAV</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px">{{ c.nav }}</span></div></div>
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;height:72px;display:block" fill="none"><path d="{{ c.area }}" fill="{{ c.areaFill }}"></path><path d="{{ c.line }}" stroke="{{ c.pnlC }}" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#9397AB;display:flex;align-items:center;gap:6px"><i class="ph ph-users-three" style="font-size:15px"></i>Depositor slots</span><span style="font-family:'JetBrains Mono',monospace;color:{{ c.slotC }}">{{ c.slotLabel }}</span></div><span style="height:6px;border-radius:3px;background:#2E313F;position:relative;overflow:hidden;display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ c.slotPct }};background:{{ c.slotC }};border-radius:3px"></span></span></div>
+              <button onClick="{{ c.open }}" style="height:46px;border-radius:10px;border:{{ c.btnBorder }};background:{{ c.btnBg }};color:{{ c.btnFg }};font:500 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">{{ c.btnLabel }}<i class="ph ph-arrow-right" style="font-size:16px"></i></button>
+            </div>
+          </sc-for>
+          <div style="padding:22px;border-radius:18px;border:1px dashed #3F424D;display:flex;flex-direction:column;gap:10px;min-height:200px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#B5ABFC">COMING SOON</span><span style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:500;color:#CFD3E5">Basket 02</span><span style="font-size:13px;line-height:1.5;color:#9397AB">A second set of algorithm-ranked traders, same pool rules.</span><button onClick="{{ notify }}" style="margin-top:auto;align-self:flex-start;height:38px;padding:0 14px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#E9E9ED;font:500 13px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="{{ notifyIcon }}" style="font-size:15px"></i>{{ notifyLabel }}</button></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- POOL DETAIL -->
+    <sc-if value="{{ rPool }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:22px">
+        <button onClick="{{ goPools }}" style="align-self:flex-start;border:0;background:transparent;color:#9397AB;font:500 13px Inter,sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px"><i class="ph ph-arrow-left"></i>All pools</button>
+        <sc-if value="{{ P.paused }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 16px;border-radius:12px;background:#4A3B1C;color:#F7DDA9;font-size:13px;display:flex;gap:10px;align-items:center"><i class="ph ph-pause-circle" style="font-size:18px"></i>The pool owner has paused new trades. Open positions are still managed by the rules.</div></sc-if>
+
+        <!-- CALM -->
+        <sc-if value="{{ calm }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:{{ sideCols }};gap:28px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:22px;min-width:0">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <span style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.12em;color:#49E6D7"><span style="width:6px;height:6px;border-radius:50%;background:#49E6D7;box-shadow:0 0 8px #49E6D7"></span>{{ P.tag }}</span>
+                <h1 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:clamp(30px,4vw,42px);letter-spacing:-0.03em;line-height:1.05">{{ P.name }}</h1>
+                <p style="margin:0;font-size:15px;line-height:1.5;color:#B2B6CA;max-width:620px">{{ P.desc }}</p>
+                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ P.chips }}" as="ch" hint-placeholder-count="4"><span style="font-size:12px;padding:6px 11px;border-radius:999px;box-shadow:inset 0 0 0 1px #3F424D;color:#CFD3E5">{{ ch.t }}</span></sc-for></div>
+              </div>
+              <div style="padding:22px 24px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:24px">
+                <div style="display:flex;flex-direction:column;gap:12px;min-width:0;grid-column:span 2">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pool PnL · {{ periodName }}</span><div style="display:flex;padding:3px;border-radius:8px;background:#161826;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ periodTabs }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.on }}" style="height:28px;padding:0 11px;border:0;border-radius:6px;font:500 12px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+                  <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:clamp(26px,3vw,34px);font-weight:500;color:{{ P.pnlC }}">{{ P.pnlSol }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px;color:{{ P.pnlC }}">{{ P.pnlPct }}</span></div>
+                  <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;height:120px;display:block" fill="none"><path d="{{ P.area }}" fill="{{ P.areaFill }}"></path><path d="{{ P.line }}" stroke="{{ P.pnlC }}" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
+                  <span style="font-size:12px;color:#75798C">NAV per share, {{ periodRange }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pool NAV</span><span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500">{{ P.navS }}</span><span style="font-size:12px;color:#9397AB">NAV / share <span style="font-family:'JetBrains Mono',monospace;color:#49E6D7">{{ P.navpsS }}</span></span></div>
+                  <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Today</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ P.todayC }}">{{ P.today }}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Since inception</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ P.incC }}">{{ P.inception }}</span></div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;align-items:start">
+                <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Open positions · {{ P.openN }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ P.unrealC }}">{{ P.unreal }} unrealized</span></div>
+                  <sc-if value="{{ P.noPositions }}" hint-placeholder-val="{{ false }}"><span style="padding:14px 0;border-top:1px solid #2E313F;font-size:13px;color:#9397AB">No open positions. This pool is flat, so withdrawals are instant.</span></sc-if>
+                  <sc-for list="{{ P.positions }}" as="o" hint-placeholder-count="4">
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid #2E313F"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:14px;font-weight:500;letter-spacing:{{ o.ls }}">{{ o.tok }}</span><span style="font-size:12px;color:#9397AB">{{ o.meta }}</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ o.color }}">{{ o.pnl }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#75798C">{{ o.pnlSol }}</span></div></div>
+                  </sc-for>
+                </div>
+                <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#49E6D7"><span style="width:6px;height:6px;border-radius:50%;background:#49E6D7;box-shadow:0 0 8px #49E6D7"></span>LIVE SIGNALS</span><span style="font-size:11px;color:#75798C">Detect → Qualify → Enter → Manage</span></div>
+                  <sc-if value="{{ P.locked }}" hint-placeholder-val="{{ true }}"><div style="padding:12px 14px;border-radius:10px;background:#2B2741;display:flex;gap:10px;align-items:center;font-size:12px;line-height:1.45;color:#D2CEFD"><i class="ph ph-lock-simple" style="font-size:16px"></i><span style="flex:1">Tokens, contract addresses and entries unlock with a 0.5 SOL deposit.</span><button onClick="{{ prefill }}" style="height:30px;padding:0 12px;border-radius:8px;border:1px solid #9184D9;background:transparent;color:#D2CEFD;font:500 12px Inter,sans-serif;cursor:pointer;white-space:nowrap">Unlock</button></div></sc-if>
+                  <sc-for list="{{ P.signals }}" as="sg" hint-placeholder-count="3">
+                    <div style="padding:12px 14px;border-radius:10px;background:#1A1C2A;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:13px"><b style="font-weight:500;letter-spacing:{{ sg.ls }}">{{ sg.tok }}</b> <span style="color:#9397AB">via {{ sg.trader }}</span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#75798C">{{ sg.t }}</span></div><div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ sg.steps }}" as="st" hint-placeholder-count="4"><span style="font-size:11px;padding:3px 7px;border-radius:6px;background:{{ st.bg }};color:{{ st.fg }}">{{ st.l }}</span></sc-for></div><span style="font-size:12px;color:#9397AB">{{ sg.note }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Trader basket · {{ P.trCount }}</span><span style="font-size:12px;color:#9397AB">Rank · 24h / 7d / 30d</span></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:0 24px">
+                  <sc-for list="{{ P.traders }}" as="t" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #2E313F"><span style="width:34px;height:34px;border-radius:50%;background:#2B2741;color:#D2CEFD;display:grid;place-items:center;font-family:'Inter Tight',sans-serif;font-weight:500;flex:none">{{ t.init }}</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="display:flex;gap:6px;align-items:center;font-size:14px;font-weight:500">{{ t.h }}<i class="ph ph-x-logo" style="font-size:12px;color:#75798C"></i></span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9397AB">{{ t.ranks }}</span></div><span style="font-family:'JetBrains Mono',monospace;font-size:13px">{{ t.e }}</span></div></sc-for>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:88px">
+              <sc-if value="{{ P.holder }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:20px 22px;border-radius:16px;background:#032D2A;box-shadow:0 0 0 1px #004B45;display:flex;flex-direction:column;gap:12px">
+                  <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#81EADE">My position</span>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500">{{ P.myValue }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ P.myPnlC }}">{{ P.myPnl }}</span></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#81EADE">Shares</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">{{ P.myShares }}</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#81EADE">Deposited</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">{{ P.myDep }}</span></div></div>
+                  <button onClick="{{ P.withdraw }}" style="height:40px;border-radius:8px;border:1px solid #49E6D7;background:transparent;color:#49E6D7;font:500 14px Inter,sans-serif;cursor:pointer">{{ P.wdLabel }}</button>
+                </div>
+              </sc-if>
+              <div style="padding:22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pool NAV</span><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500">{{ P.navS }}</span><span style="font-size:13px;color:#9397AB">NAV / share <span style="font-family:'JetBrains Mono',monospace;color:#49E6D7">{{ P.navpsS }}</span></span></div>
+                <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#9397AB;display:flex;align-items:center;gap:6px"><i class="ph ph-users-three" style="font-size:15px"></i>Depositor slots</span><span style="font-family:'JetBrains Mono',monospace;color:{{ P.slotC }}">{{ P.slotLabel }}</span></div><span style="height:6px;border-radius:3px;background:#2E313F;position:relative;overflow:hidden;display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ P.slotPct }};background:{{ P.slotC }};border-radius:3px"></span></span><span style="font-size:11px;color:{{ P.slotSubC }}">{{ P.slotSub }}</span></div>
+                <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12px;color:#9397AB">Amount</span><div style="height:52px;border-radius:10px;box-shadow:inset 0 0 0 1px #3F424D;display:flex;align-items:center;padding:0 12px 0 14px;gap:10px"><input value="{{ amount }}" onChange="{{ onAmount }}" inputMode="decimal" placeholder="0.50" aria-label="Deposit amount in SOL" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#E9E9ED;font:500 20px 'JetBrains Mono',monospace"><span style="font-size:13px;color:#9397AB">SOL</span><button onClick="{{ prefill }}" style="height:26px;padding:0 8px;border:0;border-radius:6px;background:#2E313F;color:#CFD3E5;font:500 12px Inter,sans-serif;cursor:pointer">Min</button></div><span style="font-size:12px;color:#75798C">≈ {{ estShares }} shares · ≈ $—</span></div>
+                <button onClick="{{ deposit }}" style="height:52px;border-radius:10px;border:0;background:{{ P.depBg }};color:{{ P.depFg }};font:500 16px Inter,sans-serif;cursor:pointer">{{ P.depLabel }}</button>
+                <span style="font-size:12px;line-height:1.45;color:{{ hintC }}">{{ hint }}</span>
+                <div style="display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid #2E313F;font-size:13px"><sc-for list="{{ P.terms }}" as="tm" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:12px"><span style="color:#9397AB">{{ tm.k }}</span><span style="text-align:right">{{ tm.v }}</span></div></sc-for></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ADVANCED -->
+        <sc-if value="{{ adv }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><h1 style="margin:0;font-family:'Inter Tight',sans-serif;font-size:clamp(24px,3vw,28px);font-weight:500;letter-spacing:-0.02em">{{ P.name }}</h1><span style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;color:#49E6D7"><span style="width:6px;height:6px;border-radius:50%;background:#49E6D7;box-shadow:0 0 8px #49E6D7"></span>LIVE</span><span style="flex:1"></span><span style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;border-radius:8px;box-shadow:inset 0 0 0 1px #3F424D;color:{{ P.slotC }}"><i class="ph ph-users-three" style="font-size:15px"></i><span style="font-family:'JetBrains Mono',monospace">{{ P.slotLabel }}</span></span><span style="font-size:12px;color:#9397AB">Initial strategy settings under validation</span></div>
+            <div style="padding:16px 20px;border-radius:14px;background:radial-gradient(80% 140% at 0% 0%,rgba(3,45,42,0.7),transparent 70%),#1D1F2C;box-shadow:0 0 0 1px #49E6D7;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:20px;align-items:center">
+              <sc-if value="{{ P.holder }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#81EADE">My position</span><span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:500">{{ P.myValue }}</span></div><div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#81EADE">My PnL</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ P.myPnlC }}">{{ P.myPnl }}</span></div><div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#81EADE">Shares</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">{{ P.myShares }}</span></div><button onClick="{{ P.withdraw }}" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #49E6D7;background:transparent;color:#49E6D7;font:500 13px Inter,sans-serif;cursor:pointer">Withdraw</button></div>
+              </sc-if>
+              <sc-if value="{{ P.notHolder }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:14px"><i class="ph ph-lock-simple-open" style="font-size:24px;color:#B5ABFC"></i><div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:15px;font-weight:500">Deposit 0.5 SOL or more</span><span style="font-size:13px;color:#9397AB">Unlocks tokens, traders, sizes and the full execution log.</span></div></div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;gap:10px"><div style="flex:1;min-width:0;height:46px;border-radius:10px;box-shadow:inset 0 0 0 1px #3F424D;background:#161826;display:flex;align-items:center;padding:0 10px 0 12px;gap:8px"><input value="{{ amount }}" onChange="{{ onAmount }}" inputMode="decimal" placeholder="0.50" aria-label="Deposit amount in SOL" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#E9E9ED;font:500 17px 'JetBrains Mono',monospace"><span style="font-size:12px;color:#9397AB">SOL</span><button onClick="{{ prefill }}" style="height:26px;padding:0 8px;border:0;border-radius:6px;background:#2E313F;color:#CFD3E5;font:500 12px Inter,sans-serif;cursor:pointer">Min</button></div><button onClick="{{ deposit }}" style="height:46px;padding:0 20px;border-radius:10px;border:0;background:{{ P.depBg }};color:{{ P.depFg }};font:500 15px Inter,sans-serif;cursor:pointer;white-space:nowrap">{{ P.depLabel }}</button></div>
+                <span style="font-size:12px;color:{{ hintC }}">{{ hint }}</span>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px">
+              <sc-for list="{{ P.kpis }}" as="k" hint-placeholder-count="6"><div style="padding:14px 16px;border-radius:12px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:4px"><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">{{ k.l }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:17px;color:{{ k.c }}">{{ k.v }}</span></div></sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px">
+              <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:10px;min-width:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">NAV per share · {{ periodRange }}</span><div style="display:flex;padding:3px;border-radius:8px;background:#161826;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ periodTabs }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.on }}" style="height:26px;padding:0 11px;border:0;border-radius:6px;font:500 12px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+                <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;height:150px;display:block" fill="none"><path d="M0 25H300M0 50H300M0 75H300" stroke="#2E313F" stroke-width="1" vector-effect="non-scaling-stroke"></path><path d="{{ P.area }}" fill="{{ P.areaFill }}"></path><path d="{{ P.line }}" stroke="{{ P.pnlC }}" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
+                <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#9397AB"><span>Change <span style="font-family:'JetBrains Mono',monospace;color:{{ P.pnlC }}">{{ P.pnlPct }}</span></span><span>Today <span style="font-family:'JetBrains Mono',monospace;color:{{ P.todayC }}">{{ P.today }}</span></span><span>Since inception <span style="font-family:'JetBrains Mono',monospace;color:{{ P.incC }}">{{ P.inception }}</span></span></div>
+              </div>
+              <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:14px">
+                <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Risk limits</span>
+                <sc-for list="{{ P.limits }}" as="lm" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>{{ lm.l }}</span><span style="font-family:'JetBrains Mono',monospace;color:#9397AB">{{ lm.v }}</span></div><span style="height:6px;border-radius:3px;background:#2E313F;position:relative;overflow:hidden;display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ lm.w }};background:#F0BE67"></span></span><span style="font-size:11px;color:{{ lm.c }}">{{ lm.s }}</span></div></sc-for>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;border-top:1px solid #2E313F;font-size:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#75798C">Signals · 24h</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">{{ P.sig24 }}</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#75798C">Emergency exits · 7d</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">{{ P.emerg }}</span></div></div>
+              </div>
+            </div>
+            <div style="border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;overflow:hidden">
+              <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Open positions · {{ P.openN }}</span><sc-if value="{{ P.locked }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:6px;background:#2B2741;color:#D2CEFD"><i class="ph ph-lock-simple"></i>Unlocks with a 0.5 SOL deposit</span></sc-if><span style="display:flex;gap:12px;font-size:11px;color:#75798C"><span style="display:flex;align-items:center;gap:5px"><span style="width:2px;height:10px;background:#F28881"></span>Stop</span><span style="display:flex;align-items:center;gap:5px"><span style="width:1px;height:10px;background:#9397AB"></span>Entry</span><span style="display:flex;align-items:center;gap:5px"><span style="width:2px;height:10px;background:#9184D9"></span>TP hit</span><span style="display:flex;align-items:center;gap:5px"><span style="width:2px;height:10px;background:#595D6C"></span>TP armed</span></span></div>
+              <sc-if value="{{ P.noPositions }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 20px;border-top:1px solid #2E313F;font-size:13px;color:#9397AB">No open positions. This pool is flat.</div></sc-if>
+              <sc-if value="{{ P.hasPositions }}" hint-placeholder-val="{{ true }}">
+                <div style="overflow-x:auto">
+                  <div style="min-width:1000px">
+                    <div style="display:grid;grid-template-columns:96px 100px 84px 110px minmax(240px,1fr) 104px 130px 86px;gap:14px;padding:8px 20px;background:#1A1C2A;border-top:1px solid #2E313F;border-bottom:1px solid #2E313F;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C"><span>Token</span><span>Trader</span><span>Size</span><span>Unrealized</span><span style="white-space:nowrap">Price ladder</span><span>Stop / floor</span><span>Stage</span><span style="text-align:right">Time stop</span></div>
+                    <sc-for list="{{ P.positions }}" as="p" hint-placeholder-count="5">
+                      <div style="display:grid;grid-template-columns:96px 100px 84px 110px minmax(240px,1fr) 104px 130px 86px;gap:14px;align-items:center;padding:11px 20px;border-bottom:1px solid #26283A;font-size:13px">
+                        <span style="font-weight:500;letter-spacing:{{ p.ls }}">{{ p.tok }}</span>
+                        <span style="color:#9397AB;font-size:12px">{{ p.trader }}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{ p.size }}</span>
+                        <span style="display:flex;flex-direction:column;gap:1px"><span style="font-family:'JetBrains Mono',monospace;color:{{ p.color }}">{{ p.pnl }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#75798C">{{ p.pnlSol }}</span></span>
+                        <div style="position:relative;height:16px"><div style="position:absolute;left:0;right:0;top:7px;height:2px;background:#2E313F"></div><div style="position:absolute;left:{{ p.fillL }};width:{{ p.fillW }};top:7px;height:2px;background:{{ p.color }}"></div><div style="position:absolute;left:0;top:3px;width:2px;height:10px;background:#F28881"></div><div style="position:absolute;left:{{ p.entryL }};top:3px;width:1px;height:10px;background:#9397AB"></div><div style="position:absolute;left:{{ p.tp1L }};top:3px;width:2px;height:10px;background:{{ p.tp1C }}"></div><div style="position:absolute;left:{{ p.tp2L }};top:3px;width:2px;height:10px;background:{{ p.tp2C }}"></div><div style="position:absolute;left:{{ p.floorL }};top:1px;width:8px;height:14px;margin-left:-4px;border-radius:2px;border:1px dashed #B5ABFC;opacity:{{ p.floorOp }}"></div><div style="position:absolute;left:{{ p.curL }};top:2px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:{{ p.color }};box-shadow:0 0 0 3px #1D1F2C"></div></div>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#CFD3E5">{{ p.stop }}</span>
+                        <span style="font-size:12px;color:#9397AB">{{ p.stage }}</span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9397AB;text-align:right">{{ p.left }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="padding:10px 20px;font-size:11px;color:#75798C">Ladder spans the stop to +100%, or to +300% once a position is a runner. Time stop exits after 24h.</div>
+              </sc-if>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+              <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Exposure per trader</span><span style="font-size:11px;color:#75798C">PnL · {{ periodName }}</span></div>
+                <sc-for list="{{ P.exposure }}" as="x" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:90px 1fr 48px 90px;gap:14px;align-items:center;font-size:12px"><span>{{ x.h }}</span><span style="height:6px;border-radius:3px;background:#2E313F;position:relative;overflow:hidden;display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ x.w }};background:{{ x.bar }};border-radius:3px"></span></span><span style="font-family:'JetBrains Mono',monospace;text-align:right">{{ x.e }}</span><span style="font-family:'JetBrains Mono',monospace;text-align:right;color:{{ x.cc }}">{{ x.c }}</span></div></sc-for>
+                <span style="font-size:11px;color:#75798C">Bar is share of the 2% NAV cap. Amber means at cap.</span>
+              </div>
+              <div style="padding:18px 20px;border-radius:14px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C;padding-bottom:6px">Execution log</span>
+                <sc-for list="{{ P.log }}" as="g" hint-placeholder-count="6"><div style="display:grid;grid-template-columns:62px 1fr;gap:10px;padding:8px 0;border-top:1px solid #2E313F;font-size:12px"><span style="font-family:'JetBrains Mono',monospace;color:#75798C">{{ g.t }}</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span><span style="color:{{ g.c }};font-weight:500">{{ g.ev }}</span> · <span style="letter-spacing:{{ g.ls }}">{{ g.tok }}</span></span><span style="color:#9397AB">{{ g.tr }} · {{ g.d }}</span></div></div></sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- PORTFOLIO -->
+    <sc-if value="{{ rPortfolio }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <h1 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:clamp(30px,4vw,40px);letter-spacing:-0.03em;line-height:1.05">Portfolio</h1>
+        <sc-if value="{{ F.notConnected }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:clamp(24px,4vw,48px);border-radius:18px;background:radial-gradient(60% 120% at 100% 0%,rgba(3,45,42,0.7),transparent 65%),#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:32px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:12px"><span style="font-family:'Inter Tight',sans-serif;font-size:clamp(22px,3vw,30px);font-weight:500;letter-spacing:-0.02em">Connect a wallet to see your pools</span><span style="font-size:15px;line-height:1.5;color:#9397AB">Your value, PnL, positions and withdrawals live here once you've deposited into a pool.</span></div>
+            <button onClick="{{ openWallet }}" style="height:50px;border-radius:10px;border:0;background:#49E6D7;color:#0D0F18;font:500 15px Inter,sans-serif;cursor:pointer">Connect wallet</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ F.empty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:clamp(24px,4vw,48px);border-radius:18px;border:1px dashed #3F424D;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:500">0.00 SOL</span><span style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:500">No deposits yet</span><span style="font-size:15px;color:#9397AB">Pick a pool and deposit 0.5 SOL or more to unlock its live signals.</span></div>
+            <button onClick="{{ goPools }}" style="height:50px;padding:0 24px;border-radius:10px;border:0;background:#49E6D7;color:#0D0F18;font:500 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px">Browse pools<i class="ph ph-arrow-right"></i></button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ F.holding }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:24px 28px;border-radius:18px;background:radial-gradient(60% 120% at 0% 0%,rgba(3,45,42,0.6),transparent 65%),#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:32px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Total value</span>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:clamp(30px,4vw,40px);font-weight:500;letter-spacing:-0.02em">{{ F.total }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#595D6C">≈ $—</span></div>
+              <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:20px;color:{{ F.pnlC }}">{{ F.pnl }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:{{ F.pnlC }}">{{ F.pct }}</span><span style="font-size:12px;color:#75798C">total PnL</span></div>
+              <span style="font-size:12px;color:#9397AB">{{ F.flows }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">{{ F.chartLabel }}</span><div style="display:flex;padding:3px;border-radius:8px;background:#161826;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ F.chartTabs }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.on }}" style="height:28px;padding:0 14px;border:0;border-radius:6px;font:500 12px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div>
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;height:130px;display:block" fill="none"><path d="M0 25H300M0 50H300M0 75H300" stroke="#2E313F" stroke-width="1" vector-effect="non-scaling-stroke"></path><path d="{{ F.area }}" fill="rgba(73,230,215,0.09)"></path><path d="{{ F.line }}" stroke="#49E6D7" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
+            </div>
+          </div>
+          <div style="border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;overflow:hidden">
+            <div style="padding:16px 22px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">My pools</div>
+            <sc-for list="{{ F.rows }}" as="r" hint-placeholder-count="3">
+              <div style="border-top:1px solid #2E313F">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px 18px;align-items:center;padding:16px 22px;font-size:13px">
+                  <span style="display:flex;flex-direction:column;gap:2px;grid-column:span 2"><button onClick="{{ r.openPool }}" style="border:0;background:transparent;padding:0;text-align:left;color:#E9E9ED;font:500 15px Inter,sans-serif;cursor:pointer">{{ r.name }}</button><span style="font-size:11px;color:#75798C">{{ r.kind }}</span></span>
+                  <span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace">{{ r.valS }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#595D6C">≈ $—</span></span>
+                  <span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;color:{{ r.pnlC }}">{{ r.pnlS }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9397AB">{{ r.pctS }} share price</span></span>
+                  <span style="justify-self:start;font-size:11px;padding:4px 8px;border-radius:6px;background:{{ r.stBg }};color:{{ r.stFg }}">{{ r.status }}</span>
+                  <span style="display:flex;justify-content:flex-end;gap:8px"><button onClick="{{ r.toggle }}" style="height:34px;padding:0 12px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 12px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px">Detail<i class="{{ r.chev }}"></i></button><button onClick="{{ r.withdraw }}" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid #49E6D7;background:transparent;color:#49E6D7;font:500 12px Inter,sans-serif;cursor:pointer">Withdraw</button></span>
+                </div>
+                <sc-if value="{{ r.expanded }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin:0 22px 16px;padding:14px 18px;border-radius:10px;background:#161826;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px 24px;font-size:12px">
+                    <div style="display:flex;flex-direction:column;gap:4px"><span style="color:#75798C">Cash-flow PnL · value − deposited + withdrawn</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#CFD3E5">{{ r.cashLine }}</span></div>
+                    <div style="display:flex;flex-direction:column;gap:4px"><span style="color:#75798C">Share-price PnL · avg entry → now</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#CFD3E5">{{ r.shareLine }}</span></div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start">
+            <div style="padding:18px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:8px;flex-wrap:wrap"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Open positions across pools</span><span style="font-size:11px;color:#75798C">My exposure = my share of the pool</span></div>
+              <sc-for list="{{ F.masks }}" as="mk" hint-placeholder-count="1"><div style="margin-bottom:8px;padding:9px 12px;border-radius:8px;background:#2B2741;font-size:12px;color:#D2CEFD;display:flex;gap:8px;align-items:center"><i class="ph ph-lock-simple"></i>{{ mk.t }}</div></sc-for>
+              <sc-if value="{{ F.noPositions }}" hint-placeholder-val="{{ false }}"><span style="padding:12px 0;border-top:1px solid #2E313F;font-size:13px;color:#9397AB">None of your pools have open positions right now.</span></sc-if>
+              <sc-for list="{{ F.positions }}" as="o" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid #2E313F;font-size:13px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:500;letter-spacing:{{ o.ls }}">{{ o.tok }}</span><span style="font-size:12px;color:#9397AB">{{ o.pool }} · my exposure {{ o.exp }}</span></div><span style="font-family:'JetBrains Mono',monospace;color:{{ o.c }}">{{ o.pct }}</span></div></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div style="padding:18px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pending withdrawals</span>
+                <sc-if value="{{ F.noPend }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#75798C">Nothing queued. Pools that are flat pay out instantly.</span></sc-if>
+                <sc-for list="{{ F.pend }}" as="q" hint-placeholder-count="1"><div style="padding:12px 14px;border-radius:10px;background:#161826;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px"><span><b style="font-weight:500">{{ q.a }}</b> <span style="color:#9397AB">· {{ q.pool }}</span></span><span style="font-size:12px;color:#9397AB">Settles in <span style="font-family:'JetBrains Mono',monospace;color:#49E6D7;padding:1px 6px;border-radius:5px;background:rgba(73,230,215,0.1)">{{ q.cd }}</span></span><button onClick="{{ q.cancel }}" style="height:30px;padding:0 10px;border-radius:7px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 12px Inter,sans-serif;cursor:pointer">Cancel</button></div></sc-for>
+              </div>
+              <div style="padding:18px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C;padding-bottom:6px">Deposit and withdrawal history</span>
+                <sc-for list="{{ F.hist }}" as="h" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #2E313F;font-size:12px"><span style="color:#75798C">{{ h.d }}</span><span style="display:flex;flex-direction:column;gap:1px"><span>{{ h.type }}</span><span style="color:#75798C">{{ h.pool }} · {{ h.tx }}</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:1px"><span style="font-family:'JetBrains Mono',monospace">{{ h.a }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9397AB">{{ h.sh }}</span></span></div></sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- TRADER -->
+    <sc-if value="{{ rTrader }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ T.signedOut }}" hint-placeholder-val="{{ true }}">
+        <div style="border-radius:18px;overflow:hidden;box-shadow:0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));min-height:560px">
+          <div style="position:relative;padding:clamp(28px,4vw,48px);display:flex;flex-direction:column;justify-content:space-between;gap:32px;background:radial-gradient(70% 70% at 20% 30%,rgba(3,45,42,0.75),transparent 70%),#11131E;overflow:hidden">
+            <img src="exports/svg/motif-flow.svg" alt="" aria-hidden="true" style="position:absolute;left:-120px;top:55%;width:900px;opacity:0.45;pointer-events:none">
+            <span style="position:relative;align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;padding:4px 9px;border-radius:6px;background:#2B2741;color:#D2CEFD">PARTNER TRADERS</span>
+            <div style="position:relative;display:flex;flex-direction:column;gap:14px;max-width:480px"><h1 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:clamp(34px,4.5vw,50px);letter-spacing:-0.035em;line-height:1.02">Run your own copy pool.</h1><p style="margin:0;font-size:16px;line-height:1.5;color:#B2B6CA">Bring traders you trust. Every trader earns 15% of the profit their own signals make for the pool.</p></div>
+            <span style="position:relative;font-size:12px;color:#75798C">Invite only. Accounts are created by the Edgepool team.</span>
+          </div>
+          <div style="padding:clamp(28px,5vw,64px);display:flex;flex-direction:column;justify-content:center;background:#161826">
+            <sc-if value="{{ T.isLogin }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:16px;max-width:420px;width:100%">
+                <div style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:28px;letter-spacing:-0.02em">Sign in</h2><span style="font-size:14px;color:#9397AB">Use the login your Edgepool contact sent you.</span></div>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9397AB">Email<input type="email" value="{{ T.email }}" onChange="{{ T.onEmail }}" placeholder="you@example.com" style="height:48px;border-radius:10px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;padding:0 14px;font:400 15px Inter,sans-serif;outline:none"></label>
+                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9397AB">Password<input type="password" value="{{ T.pw }}" onChange="{{ T.onPw }}" placeholder="••••••••" style="height:48px;border-radius:10px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;padding:0 14px;font:400 15px Inter,sans-serif;outline:none"></label>
+                <button onClick="{{ T.signIn }}" style="height:50px;border-radius:10px;border:0;background:#49E6D7;color:#0D0F18;font:500 15px Inter,sans-serif;cursor:pointer">Sign in</button>
+                <span style="font-size:13px;color:#F28881">{{ T.loginErr }}</span>
+                <div style="padding-top:18px;border-top:1px solid #2E313F;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span style="font-size:14px;color:#CFD3E5">Not a partner yet?</span><button onClick="{{ T.goApply }}" style="height:42px;padding:0 16px;border-radius:10px;border:1px solid #9184D9;background:transparent;color:#D2CEFD;font:500 14px Inter,sans-serif;cursor:pointer">Apply to become a partner</button></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ T.isApply }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px;max-width:520px;width:100%">
+                <div style="display:flex;flex-direction:column;gap:6px"><h2 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:26px;letter-spacing:-0.02em">Apply as a partner</h2><span style="font-size:14px;color:#9397AB">We review your onchain trading history, then send login details.</span></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:14px"><sc-for list="{{ T.applyFields }}" as="fl" hint-placeholder-count="4"><label style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#9397AB">{{ fl.label }}<input value="{{ fl.val }}" onChange="{{ fl.on }}" placeholder="{{ fl.ph }}" style="height:46px;border-radius:10px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;padding:0 14px;font:400 14px Inter,sans-serif;outline:none"></label></sc-for></div>
+                <button onClick="{{ T.submitApply }}" style="height:50px;border-radius:10px;border:0;background:#49E6D7;color:#0D0F18;font:500 15px Inter,sans-serif;cursor:pointer">Submit application</button>
+                <span style="font-size:13px;color:#F28881">{{ T.applyErr }}</span>
+                <button onClick="{{ T.goLogin }}" style="align-self:flex-start;border:0;background:transparent;color:#9397AB;font:500 13px Inter,sans-serif;cursor:pointer;padding:0">← Back to sign in</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ T.isApplied }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px;max-width:420px">
+                <span style="width:56px;height:56px;border-radius:50%;background:#004B45;display:grid;place-items:center"><i class="ph ph-check" style="font-size:28px;color:#BBF6EE"></i></span>
+                <h2 style="margin:0;font-family:'Inter Tight',sans-serif;font-weight:500;font-size:26px;letter-spacing:-0.02em">Application received</h2>
+                <span style="font-size:15px;line-height:1.5;color:#B2B6CA">We'll review your trading history and send login details to {{ T.applyContact }}.</span>
+                <button onClick="{{ T.goLogin }}" style="align-self:flex-start;height:42px;padding:0 18px;border-radius:10px;border:1px solid #3F424D;background:transparent;color:#E9E9ED;font:500 14px Inter,sans-serif;cursor:pointer">Back to sign in</button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ T.signedIn }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span style="width:40px;height:40px;border-radius:50%;background:#2B2741;color:#D2CEFD;display:grid;place-items:center;font-family:'Inter Tight',sans-serif;font-weight:500">K</span><div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Inter Tight',sans-serif;font-size:24px;font-weight:500;letter-spacing:-0.015em">Partner dashboard</span><span style="font-size:13px;color:#9397AB">@kestrel · {{ T.walletChip }}</span></div><span style="flex:1"></span><button onClick="{{ T.signOut }}" style="height:36px;padding:0 14px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 13px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ph ph-sign-out"></i>Sign out</button></div>
+          <sc-if value="{{ T.noWallet }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:16px 20px;border-radius:12px;background:#2B2741;display:flex;align-items:center;gap:16px;flex-wrap:wrap"><i class="ph ph-wallet" style="font-size:24px;color:#D2CEFD"></i><div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500">Connect a payout wallet</span><span style="font-size:13px;color:#D2CEFD">Fees are paid here. Auto-payouts start once it's connected.</span></div><button onClick="{{ T.connectWallet }}" style="height:40px;padding:0 18px;border-radius:8px;border:0;background:#9184D9;color:#0D0F18;font:500 14px Inter,sans-serif;cursor:pointer">Connect Phantom</button><button onClick="{{ T.connectWallet }}" style="height:40px;padding:0 18px;border-radius:8px;border:1px solid #9184D9;background:transparent;color:#D2CEFD;font:500 14px Inter,sans-serif;cursor:pointer">Solflare</button></div>
+          </sc-if>
+          <div style="padding:22px 24px;border-radius:16px;background:radial-gradient(80% 140% at 0% 0%,rgba(3,45,42,0.6),transparent 70%),#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:20px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pending</span><span style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500">{{ T.pendingS }}</span><span style="font-size:12px;color:#9397AB">From winning trades</span></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Claimable</span><span style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500;color:#49E6D7">{{ T.claimableS }}</span><span style="font-size:12px;color:#9397AB">Settled above HWM</span></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Paid to date</span><span style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500">{{ T.paidS }}</span><span style="font-size:12px;color:#9397AB">To payout wallet</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;grid-column:span 2;min-width:0"><button onClick="{{ T.claim }}" disabled="{{ T.claimDisabled }}" style="height:46px;border-radius:10px;border:0;background:{{ T.claimBg }};color:{{ T.claimFg }};font:500 15px Inter,sans-serif;cursor:pointer">{{ T.claimLabel }}</button><span style="font-size:11px;line-height:1.45;color:#9397AB">{{ T.notePre }}<span style="font-family:'JetBrains Mono',monospace;font-weight:500;color:#49E6D7;padding:1px 6px;border-radius:5px;background:rgba(73,230,215,0.1);white-space:nowrap">{{ cd }}</span>{{ T.notePost }}</span></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:{{ sideCols }};gap:20px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+              <div style="padding:22px 24px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:16px">
+                <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                  <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">My pool</span><input value="{{ T.poolName }}" onChange="{{ T.onPoolName }}" aria-label="Pool name" style="background:transparent;border:0;outline:none;color:#E9E9ED;font:500 24px 'Inter Tight',sans-serif;letter-spacing:-0.02em;padding:0;border-bottom:1px dashed #3F424D;max-width:420px"><span style="font-size:13px;color:#9397AB">NAV 86.40 SOL · <span style="font-family:'JetBrains Mono',monospace;color:#49E6D7">1.0412 SOL</span> / share · above HWM</span><span style="font-size:13px;color:#9397AB">Traders in this pool earn <b style="font-weight:500;color:#49E6D7">15%</b> of their own profitable trades. Edgepool takes <b style="font-weight:500;color:#B5ABFC">5%</b>.</span></div>
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+                    <div style="display:flex;padding:3px;border-radius:8px;background:#161826;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ T.listingTabs }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.on }}" style="height:30px;padding:0 12px;border:0;border-radius:6px;font:500 12px Inter,sans-serif;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div>
+                    <button onClick="{{ T.togglePool }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid {{ T.poolBtnBorder }};background:transparent;color:{{ T.poolBtnFg }};font:500 12px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ph ph-pause" style="font-size:13px"></i>{{ T.poolBtnLabel }}</button>
+                    <button onClick="{{ T.viewPool }}" style="border:0;background:transparent;color:#49E6D7;font:500 12px Inter,sans-serif;cursor:pointer;padding:0;display:flex;align-items:center;gap:6px">View public page<i class="ph ph-arrow-up-right"></i></button>
+                  </div>
+                </div>
+                <div style="padding:16px 18px;border-radius:12px;background:#161826;box-shadow:inset 0 0 0 1px #2E313F;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:20px;align-items:center">
+                  <div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#9397AB">Depositor slots</span><span style="font-family:'JetBrains Mono',monospace;color:{{ T.slotC }}">{{ T.slotLabel }}</span></div><span style="height:6px;border-radius:3px;background:#2E313F;position:relative;overflow:hidden;display:block"><span style="position:absolute;left:0;top:0;bottom:0;width:{{ T.slotPct }};background:{{ T.slotC }};border-radius:3px"></span></span><span style="font-size:12px;color:#75798C">Shown to depositors as slots left. New deposits stop when full; current depositors can still add.</span></div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#9397AB">Max depositors</span><div style="display:flex;align-items:center;gap:8px"><button onClick="{{ T.slotDown }}" aria-label="Fewer slots" style="width:36px;height:40px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 18px Inter,sans-serif;cursor:pointer">−</button><input value="{{ T.slotMaxS }}" onChange="{{ T.onSlotMax }}" inputMode="numeric" aria-label="Max depositors" style="width:90px;height:40px;border-radius:8px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;text-align:center;font:500 16px 'JetBrains Mono',monospace;outline:none"><button onClick="{{ T.slotUp }}" aria-label="More slots" style="width:36px;height:40px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 18px Inter,sans-serif;cursor:pointer">+</button></div><span style="font-size:11px;color:{{ T.slotNoteC }}">{{ T.slotNote }}</span></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><span style="font-size:13px;color:#CFD3E5">Traders · {{ T.traderCount }}</span><div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9397AB">Max traders<div style="display:flex;padding:3px;border-radius:8px;background:#161826;box-shadow:0 0 0 1px #2E313F"><sc-for list="{{ T.maxTabs }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.on }}" style="height:26px;width:32px;border:0;border-radius:6px;font:500 12px 'JetBrains Mono',monospace;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button></sc-for></div></div></div>
+                <div style="overflow-x:auto"><div style="min-width:720px">
+                  <div style="display:grid;grid-template-columns:1.4fr 100px 90px 120px 120px 170px;gap:12px;padding:8px 0;border-top:1px solid #2E313F;border-bottom:1px solid #2E313F;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C"><span>Trader</span><span>Status</span><span>Signals 7d</span><span>Profit made</span><span>Fee earned 15%</span><span style="text-align:right">Controls</span></div>
+                  <sc-for list="{{ T.traders }}" as="t" hint-placeholder-count="3">
+                    <div style="display:grid;grid-template-columns:1.4fr 100px 90px 120px 120px 170px;gap:12px;align-items:center;padding:6px 0;font-size:13px;opacity:{{ t.op }}">
+                      <span style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:50%;background:#2B2741;color:#D2CEFD;display:grid;place-items:center;font-family:'Inter Tight',sans-serif;font-weight:500">{{ t.init }}</span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:500">{{ t.h }}</span><span style="font-size:11px;color:#75798C">{{ t.role }}</span></span></span>
+                      <span style="font-size:11px;padding:3px 8px;border-radius:6px;justify-self:start;background:{{ t.stBg }};color:{{ t.stFg }}">{{ t.status }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace">{{ t.signals }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;color:{{ t.profitC }}">{{ t.profitS }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace">{{ t.feeS }}</span>
+                      <span style="display:flex;justify-content:flex-end;gap:6px"><button onClick="{{ t.togglePause }}" style="height:30px;padding:0 10px;border-radius:7px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 12px Inter,sans-serif;cursor:pointer">{{ t.pauseLabel }}</button><sc-if value="{{ t.removable }}" hint-placeholder-val="{{ true }}"><button onClick="{{ t.remove }}" style="height:30px;padding:0 10px;border-radius:7px;border:1px solid #5A2A2E;background:transparent;color:#F7C1BC;font:500 12px Inter,sans-serif;cursor:pointer">Remove</button></sc-if></span>
+                    </div>
+                  </sc-for>
+                </div></div>
+                <sc-for list="{{ T.removed }}" as="rm" hint-placeholder-count="0"><div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:#3A2226;font-size:13px;color:#F7C1BC"><i class="ph ph-user-minus" style="font-size:16px"></i><span style="flex:1">{{ rm.h }} removed from the pool</span><button onClick="{{ rm.undo }}" style="height:30px;padding:0 12px;border-radius:7px;border:1px solid #F7C1BC;background:transparent;color:#F7C1BC;font:500 12px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ph ph-arrow-counter-clockwise" style="font-size:13px"></i>Undo</button></div></sc-for>
+                <sc-if value="{{ T.reqClosed }}" hint-placeholder-val="{{ true }}"><button onClick="{{ T.openReq }}" style="align-self:flex-start;height:38px;padding:0 16px;border-radius:8px;border:1px dashed #9184D9;background:transparent;color:#D2CEFD;font:500 13px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;opacity:{{ T.reqBtnOp }}"><i class="ph ph-user-plus" style="font-size:15px"></i>{{ T.reqBtnLabel }}</button></sc-if>
+                <sc-if value="{{ T.reqOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:16px;border-radius:12px;background:#161826;box-shadow:0 0 0 1px #3F424D;display:flex;flex-direction:column;gap:12px">
+                    <span style="font-size:13px;color:#CFD3E5">Request a trader. Edgepool reviews them and creates their account.</span>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap"><input value="{{ T.reqFomo }}" onChange="{{ T.onReqFomo }}" placeholder="Fomo handle" aria-label="Fomo handle" style="flex:1;min-width:160px;height:40px;border-radius:8px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;padding:0 12px;font:400 13px Inter,sans-serif;outline:none"><input value="{{ T.reqX }}" onChange="{{ T.onReqX }}" placeholder="X handle" aria-label="X handle" style="flex:1;min-width:160px;height:40px;border-radius:8px;border:0;box-shadow:inset 0 0 0 1px #3F424D;background:#1A1C2A;color:#E9E9ED;padding:0 12px;font:400 13px Inter,sans-serif;outline:none"><button onClick="{{ T.sendReq }}" style="height:40px;padding:0 16px;border-radius:8px;border:0;background:#9184D9;color:#0D0F18;font:500 13px Inter,sans-serif;cursor:pointer">Send request</button><button onClick="{{ T.closeReq }}" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#9397AB;font:500 13px Inter,sans-serif;cursor:pointer">Cancel</button></div>
+                    <span style="font-size:12px;color:#F28881">{{ T.reqErr }}</span>
+                  </div>
+                </sc-if>
+                <sc-for list="{{ T.requests }}" as="q" hint-placeholder-count="0"><div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9397AB"><i class="ph ph-hourglass-medium" style="font-size:15px;color:#B5ABFC"></i><span><b style="font-weight:500;color:#CFD3E5">{{ q.h }}</b> requested · waiting for Edgepool to create their account</span></div></sc-for>
+              </div>
+              <div style="padding:22px 24px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Pool rules · custom</span><span style="font-size:13px;color:#9397AB">Changes apply to new trades only.</span></div><div style="display:flex;align-items:center;gap:12px"><span style="font-size:12px;color:#73DEA4">{{ T.rulesMsg }}</span><button onClick="{{ T.saveRules }}" style="height:36px;padding:0 16px;border-radius:8px;border:1px solid #49E6D7;background:transparent;color:#49E6D7;font:500 13px Inter,sans-serif;cursor:pointer">Save rules</button></div></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px"><sc-for list="{{ T.ruleFields }}" as="r" hint-placeholder-count="8"><label style="padding:12px 14px;border-radius:10px;background:#161826;box-shadow:inset 0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:6px;font-size:11px;color:#9397AB">{{ r.label }}<span style="display:flex;align-items:baseline;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#75798C">{{ r.pre }}</span><input value="{{ r.val }}" onChange="{{ r.on }}" aria-label="{{ r.label }}" inputMode="decimal" style="width:56px;background:transparent;border:0;outline:none;color:#E9E9ED;font:500 18px 'JetBrains Mono',monospace;padding:0"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#75798C">{{ r.unit }}</span></span></label></sc-for></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:20px">
+              <div style="padding:20px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Edgepool Flagship Basket</span><span style="font-size:11px;padding:3px 8px;border-radius:6px;background:#004B45;color:#BBF6EE">In basket</span></div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#75798C">24h</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px">#2</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#75798C">7d</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px">#4</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;color:#75798C">30d</span><span style="font-family:'JetBrains Mono',monospace;font-size:16px">#1</span></div></div>
+                <span style="font-size:12px;line-height:1.45;color:#9397AB">You'd move out if you drop below #8 on 7d. Picked by algorithm; you earn <b style="font-weight:500;color:#49E6D7">10%</b> of the profit your signals make here, Edgepool takes <b style="font-weight:500;color:#B5ABFC">10%</b>.</span>
+              </div>
+              <div style="padding:20px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px"><span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">My signals in my pool</span><span style="font-size:11px;color:#75798C">Fee = 15% of profit</span></div>
+                <sc-for list="{{ T.mySignals }}" as="m" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:9px 0;border-top:1px solid #2E313F;font-size:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:500">{{ m.tok }}</span><span style="color:#9397AB">{{ m.st }}</span></div><span style="font-family:'JetBrains Mono',monospace;color:{{ m.c }}">{{ m.p }}</span><span style="font-family:'JetBrains Mono',monospace;color:#CFD3E5;min-width:64px;text-align:right">{{ m.fee }}</span></div></sc-for>
+              </div>
+              <div style="padding:20px 22px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;flex-direction:column">
+                <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C;padding-bottom:6px">Payouts</span>
+                <sc-for list="{{ T.payouts }}" as="p" hint-placeholder-count="3"><div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #2E313F;font-size:12px"><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#CFD3E5">{{ p.d }}</span><span style="color:#75798C">{{ p.kind }}</span></div><span style="font-family:'JetBrains Mono',monospace">{{ p.a }}</span><span style="font-family:'JetBrains Mono',monospace;color:#75798C">{{ p.tx }}</span></div></sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:22px 24px;border-radius:16px;background:#1D1F2C;box-shadow:0 0 0 1px #2E313F;display:flex;gap:28px;align-items:center;flex-wrap:wrap">
+            <div style="overflow-x:auto;max-width:100%"><div id="partner-share-card" style="width:600px;height:315px;position:relative;overflow:hidden;border-radius:12px;background:radial-gradient(70% 90% at 80% 40%,#1C1F30 0%,#161826 50%,#0D0F18 100%);box-shadow:0 0 0 1px #2E313F">
+              <img src="exports/svg/motif-flow.svg" alt="" aria-hidden="true" style="position:absolute;right:-180px;top:20px;width:620px;opacity:0.45">
+              <img src="exports/svg/edgepool-horizontal-dark.svg" alt="edgepool" style="position:absolute;left:32px;top:28px;height:22px">
+              <div style="position:absolute;left:32px;top:84px;display:flex;flex-direction:column;gap:14px">
+                <span style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;background:rgba(73,230,215,0.08);box-shadow:inset 0 0 0 1px rgba(73,230,215,0.5);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;color:#49E6D7"><span style="width:6px;height:6px;border-radius:50%;background:#49E6D7"></span>TRADER IN THE EDGEPOOL FLAGSHIP BASKET</span>
+                <span style="font-family:'Inter Tight',sans-serif;font-size:30px;font-weight:500;letter-spacing:-0.02em">@kestrel</span>
+                <div style="display:flex;gap:36px"><div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500;color:#73DEA4">{{ T.shareContrib }}</span><span style="font-size:12px;color:#9397AB">My profit for {{ T.poolName }} · 7d</span></div><div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:500">+2.20%</span><span style="font-size:12px;color:#9397AB">Pool NAV / share · 7d</span></div></div>
+              </div>
+              <span style="position:absolute;left:32px;bottom:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#81EADE">{{ T.shareLink }}</span>
+              <span style="position:absolute;right:24px;bottom:24px;font-size:10px;color:#75798C">Past performance does not indicate future results.</span>
+            </div></div>
+            <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:14px">
+              <span style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#75798C">Share card for X</span>
+              <span style="font-size:15px;line-height:1.5;color:#CFD3E5">Updates from your live numbers. The link points to your pool page; unlisted pools are only reachable through it.</span>
+              <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" data-download-target="#partner-share-card" data-scale="2" data-filename="edgepool-partner-card.png" style="height:42px;padding:0 16px;border-radius:8px;border:1px solid #49E6D7;background:transparent;color:#49E6D7;font:500 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ph ph-download-simple" style="font-size:16px"></i><span data-label="">Download PNG</span></button><button onClick="{{ T.copyLink }}" style="height:42px;padding:0 16px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#E9E9ED;font:500 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px"><i class="ph ph-link" style="font-size:16px"></i>{{ T.copyLabel }}</button></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+
+  <footer style="max-width:1240px;width:100%;margin:0 auto;box-sizing:border-box;padding:20px clamp(16px,4vw,40px) {{ footPadB }};display:flex;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;font-size:12px;color:#75798C;border-top:1px solid #2E313F">
+    <span>Sample data for prototype. Past performance does not indicate future results. Memecoin trading carries a high risk of loss.</span>
+    <button onClick="{{ goApply }}" style="border:0;background:transparent;padding:0;color:#49E6D7;font:500 12px Inter,sans-serif;cursor:pointer;white-space:nowrap">Become a partner trader →</button>
+  </footer>
+
+  <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+    <nav style="position:fixed;left:0;right:0;bottom:0;z-index:20;height:68px;background:rgba(26,28,42,0.96);backdrop-filter:blur(10px);border-top:1px solid #2E313F;display:grid;grid-template-columns:repeat(3,1fr)">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="3"><button onClick="{{ n.on }}" style="border:0;background:transparent;color:{{ n.color }};font:500 11px Inter,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="{{ n.icon }}" style="font-size:22px"></i>{{ n.label }}</button></sc-for>
+    </nav>
+  </sc-if>
+
+  <sc-if value="{{ walletOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeWalletBg }}" style="position:fixed;inset:0;z-index:50;background:rgba(13,15,24,0.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div role="dialog" aria-modal="true" aria-label="Connect wallet" onClick="{{ stop }}" style="width:100%;max-width:420px;padding:24px;border-radius:18px;background:#1D1F2C;box-shadow:0 0 0 1px #3F424D,0 24px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:500">{{ walletTitle }}</span><button onClick="{{ closeWallet }}" aria-label="Close" style="width:36px;height:36px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;cursor:pointer"><i class="ph ph-x"></i></button></div>
+        <sc-if value="{{ walletConnected }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px"><div style="padding:14px 16px;border-radius:12px;background:#161826;display:flex;align-items:center;gap:12px"><i class="ph ph-check-circle" style="font-size:22px;color:#73DEA4"></i><div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:14px">7xQ4…f3a</span><span style="font-size:12px;color:#9397AB">{{ walletKind }}</span></div></div><button onClick="{{ disconnect }}" style="height:44px;border-radius:10px;border:1px solid #5A2A2E;background:transparent;color:#F7C1BC;font:500 14px Inter,sans-serif;cursor:pointer">Disconnect</button></div>
+        </sc-if>
+        <sc-if value="{{ walletDisconnected }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ walletOpts }}" as="wo" hint-placeholder-count="4"><button onClick="{{ wo.on }}" style="height:54px;padding:0 16px;border-radius:12px;border:1px solid #3F424D;background:#161826;color:#E9E9ED;font:500 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left"><i class="{{ wo.icon }}" style="font-size:22px;color:{{ wo.c }}"></i><span style="flex:1">{{ wo.label }}</span><span style="font-size:12px;color:#75798C">{{ wo.sub }}</span></button></sc-for>
+            <span style="font-size:12px;color:#75798C">Prototype: no real wallet is connected.</span>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ W.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ W.closeBg }}" style="position:fixed;inset:0;z-index:50;background:rgba(13,15,24,0.72);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px">
+      <div role="dialog" aria-modal="true" aria-label="Withdraw" onClick="{{ stop }}" style="width:100%;max-width:440px;padding:24px;border-radius:18px;background:#1D1F2C;box-shadow:0 0 0 1px #3F424D,0 24px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Inter Tight',sans-serif;font-size:22px;font-weight:500">Withdraw</span><button onClick="{{ W.close }}" aria-label="Close" style="width:36px;height:36px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;cursor:pointer"><i class="ph ph-x"></i></button></div>
+        <span style="font-size:13px;color:#9397AB">{{ W.name }} · {{ W.max }}</span>
+        <div style="height:54px;border-radius:10px;box-shadow:inset 0 0 0 1px #3F424D;background:#161826;display:flex;align-items:center;padding:0 14px;gap:8px"><input value="{{ W.amt }}" onChange="{{ W.onAmt }}" inputMode="decimal" placeholder="0.00" aria-label="Withdraw amount in SOL" style="flex:1;min-width:0;background:transparent;border:0;outline:none;color:#E9E9ED;font:500 20px 'JetBrains Mono',monospace"><span style="font-size:13px;color:#9397AB">SOL</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><sc-for list="{{ W.pcts }}" as="p" hint-placeholder-count="3"><button onClick="{{ p.on }}" style="height:34px;border-radius:8px;border:1px solid #3F424D;background:transparent;color:#CFD3E5;font:500 13px Inter,sans-serif;cursor:pointer">{{ p.label }}</button></sc-for></div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:10px;background:#161826;font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:#9397AB">Shares burned</span><span style="font-family:'JetBrains Mono',monospace">{{ W.burn }}</span></div><div style="display:flex;justify-content:space-between"><span style="color:#9397AB">Est. SOL out</span><span style="font-family:'JetBrains Mono',monospace">{{ W.out }}</span></div><div style="display:flex;justify-content:space-between"><span style="color:#9397AB">≈ USDC</span><span style="font-family:'JetBrains Mono',monospace;color:#595D6C">$—</span></div></div>
+        <span style="font-size:13px;line-height:1.45;color:#CFD3E5">{{ W.modeLine }}<sc-if value="{{ W.queued }}" hint-placeholder-val="{{ false }}"><span style="font-family:'JetBrains Mono',monospace;color:#49E6D7">{{ cd }}</span>.</sc-if></span>
+        <span style="font-size:12px;color:#F28881">{{ W.err }}</span>
+        <button onClick="{{ W.confirm }}" style="height:50px;border-radius:10px;border:0;background:#49E6D7;color:#0D0F18;font:500 15px Inter,sans-serif;cursor:pointer">{{ W.cta }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position:fixed;left:50%;bottom:{{ toastB }};transform:translateX(-50%);z-index:60;max-width:calc(100% - 32px);padding:12px 18px;border-radius:12px;background:#032D2A;box-shadow:0 0 0 1px #004B45,0 12px 32px rgba(0,0,0,0.4);color:#BBF6EE;font-size:14px;display:flex;align-items:center;gap:10px"><i class="ph ph-check-circle" style="font-size:18px"></i>{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;demoHoldings&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;label&quot;:&quot;Start with sample wallet + holdings&quot;},&quot;slotsFull&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;label&quot;:&quot;Flagship pool is full&quot;},&quot;startRoute&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;pools&quot;,&quot;pool&quot;,&quot;portfolio&quot;,&quot;trader&quot;],&quot;default&quot;:&quot;pools&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;label&quot;:&quot;Start page&quot;}}">
+class Component extends DCLogic {
+  state = {};
+  componentDidMount() {
+    this._cpEnd = Date.now() + (14 * 3600 + 20 * 60) * 1000;
+    this._t = setInterval(() => { if (Date.now() >= this._cpEnd) this._cpEnd += 7 * 86400000; this.setState({ now: Date.now() }); }, 1000);
+    this._rs = () => this.setState({ w: window.innerWidth }); window.addEventListener('resize', this._rs); this._rs();
+    this._kd = e => { if (e.key === 'Escape') this.setState({ walletOpen: false, wdPool: null }); }; window.addEventListener('keydown', this._kd);
+  }
+  componentWillUnmount() { clearInterval(this._t); clearTimeout(this._tt); window.removeEventListener('resize', this._rs); window.removeEventListener('keydown', this._kd); }
+  flash(msg) { clearTimeout(this._tt); this.setState({ toast: msg }); this._tt = setTimeout(() => this.setState({ toast: null }), 2800); }
+  renderVals() {
+    const S = this.state, PR = this.props || {}, set = o => this.setState(o);
+    const demo = PR.demoHoldings ?? true;
+    const w = S.w || 1280, isMobile = w < 760;
+    const route = S.route || PR.startRoute || 'pools', mode = S.mode || 'calm', period = S.period || 'Week';
+    const wallet = S.wallet ?? demo;
+    const holdings = S.holdings || (demo ? { flag: { shares: 2.3285, dep: 2.70, wd: 0.30, avg: 1.0307 }, kes: { shares: 0.80, dep: 0.80, wd: 0, avg: 1.0000 }, qui: { shares: 0.31, dep: 0.32, wd: 0, avg: 1.0323 } } : {});
+    const hist = S.hist || (demo ? [
+      { d: 'Oct 3', pool: 'Quill Rotation', type: 'Deposit', a: '+0.32 SOL', sh: '+0.3100', tx: '5Gp…k2Q' },
+      { d: 'Sep 29', pool: 'Kestrel Collective', type: 'Deposit', a: '+0.80 SOL', sh: '+0.8000', tx: '2Rb…Wm8' },
+      { d: 'Sep 24', pool: 'Flagship Basket', type: 'Withdrawal · instant', a: '−0.30 SOL', sh: '−0.2911', tx: '8Hc…x4N' },
+      { d: 'Sep 12', pool: 'Flagship Basket', type: 'Deposit', a: '+1.70 SOL', sh: '+1.6421', tx: '6Fa…Lt7' },
+      { d: 'Aug 30', pool: 'Flagship Basket', type: 'Deposit', a: '+1.00 SOL', sh: '+0.9775', tx: '1Kd…Qe3' },
+    ] : []);
+    const pend = S.pend || (demo ? [{ pid: 'flag', amtN: 0.25, id: 'p0' }] : []);
+    const joined = S.joined || {};
+    const f2 = n => Math.abs(n).toFixed(2), f4 = n => n.toFixed(4), sgn = n => (n >= 0 ? '+' : '−');
+    const G = '#73DEA4', RD = '#F28881';
+    const cdR = Math.max(0, Math.floor(((this._cpEnd || Date.now() + 51600000) - Date.now()) / 1000));
+    const cd = Math.floor(cdR / 3600) + 'h ' + String(Math.floor(cdR % 3600 / 60)).padStart(2, '0') + 'm ' + String(cdR % 60).padStart(2, '0') + 's';
+    const TR = { K: ['K', '@kestrel', '#2 · #4 · #1'], W: ['W', '@wrenfi', '#1 · #3 · #6'], M: ['M', '@mothcap', '#5 · #1 · #2'], L: ['L', '@lumen', '#7 · #2 · #4'], P: ['P', '@pipwise', '#3 · #9 · #5'], S: ['S', '@sable', '#6 · #5 · #9'], Q: ['Q', '@quill', '#9 · #7 · #3'], R: ['R', '@rook', '#11 · #8 · #7'] };
+    // partner-controlled values for Kestrel Collective
+    const pListing = S.pListing || 'Public', pPaused = !!S.pPaused;
+    const kesUsed0 = 118, kesMaxRaw = S.dSlotMax ?? '150', kesMax = Math.max(parseInt(kesMaxRaw, 10) || 0, kesUsed0);
+    const ptr = S.pTraders || [
+      { id: 'k', init: 'K', h: '@kestrel', role: 'Owner', paused: false, signals: 23, profit: 5.60 },
+      { id: 's', init: 'S', h: '@sable', role: 'Invited', paused: false, signals: 14, profit: 2.10 },
+      { id: 'q', init: 'Q', h: '@quill', role: 'Invited', paused: false, signals: 9, profit: -0.80 },
+    ];
+    const DEF = {
+      flag: { id: 'flag', name: 'Edgepool Flagship Basket', short: 'Flagship Basket', kind: 'Edgepool basket · algorithm-ranked', tag: 'LIVE · FLAGSHIP', featured: true, desc: 'Copies 5 algorithm-ranked Fomo traders with the same entry, sizing and exit rules on every trade.', nav: 412.60, navps: 1.0874, tr: ['K', 'W', 'M', 'L', 'P'], max: 500, used0: 412, forceFull: !!PR.slotsFull, flat: false, trFee: 10, epFee: 10, seed: 1, up: true,
+        pnl: { Day: ['+1.92 SOL', '+0.47%'], Week: ['+9.36 SOL', '+2.32%'], Month: ['+21.40 SOL', '+5.47%'], All: ['+34.10 SOL', '+8.74%'] }, today: '+1.92 SOL · +0.47%', inception: '+34.10 SOL · +8.74%', unreal: '+3.84 SOL', deployed: '7.4%', hwm: '−0.6%', lim: ['+0.47% / −5%', '+2.32% / −15%'], sig24: '14 · 9 entered', emerg: '2',
+        expo: [['@kestrel', 1.8, '+4.10'], ['@wrenfi', 1.6, '+1.22'], ['@mothcap', 2.0, '+3.05'], ['@lumen', 1.1, '+1.40'], ['@pipwise', 0.9, '−0.41']],
+        pos: [['$GLINT', '@kestrel', 0.82, 118.4, 16, 1, 1, 'Runner 20%', 10, '17h 48m'], ['$FERN', '@lumen', 0.74, 64.0, 18, 1, 0, 'After TP1', 0, '20h 55m'], ['$SAGE', '@mothcap', 0.60, 31.9, 20, 0, 0, 'Full size', 0, '18h 27m'], ['$KILN', '@pipwise', 0.38, 12.7, 26, 0, 0, 'Full size', 0, '22h 50m'], ['$MOTH', '@mothcap', 0.41, 6.2, 22, 0, 0, '50% · limit open', 0, '23h 59m'], ['$ORB', '@wrenfi', 0.66, -5.1, 12, 0, 0, 'Full size', 0, '14h 20m'], ['$TIDE', '@kestrel', 0.55, -11.3, 15, 0, 0, 'Full size', 0, '9h 58m']],
+        sig: [['$MOTH', '@mothcap', '12s', '0.41 SOL now · 0.41 SOL limit pending', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter 50% ✓', 'wait:Limit −10% ◷']], ['$GLINT', '@kestrel', '4m', 'TP1 hit at +60% · runner and TP2 armed', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'vio:TP1 sold 40%']], ['$RUSH', '@wrenfi', '9m', 'Liquidity under pool rule · no trade', ['on:Detect ✓', 'warn:Qualify ✕', 'off:Enter', 'warn:Skipped']], ['$PIP', '@pipwise', '21m', 'Stop = clamp(2×ATR, 8%, 40%) → 14%', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'stop:Stop −14%']]],
+        log: [['14:02:11', '$MOTH', '@mothcap', 'Limit placed', '0.41 SOL at −10% from fill', 'l'], ['14:02:10', '$MOTH', '@mothcap', 'Entered 50%', '0.41 SOL · slippage 0.8%', 'e'], ['14:02:09', '$MOTH', '@mothcap', 'Qualified', 'RugCheck pass · liq 182 SOL', 'd'], ['13:58:40', '$GLINT', '@kestrel', 'Floor raised', 'Runner floor +10%', 't'], ['13:53:17', '$RUSH', '@wrenfi', 'Skipped', 'Liquidity below rule', 's'], ['13:41:05', '$PIP', '@pipwise', 'Adaptive stop', 'Exited −14% · 2×ATR(1h)', 'x'], ['13:20:52', '$FERN', '@lumen', 'TP1 · sold 40%', '+60.3%', 't'], ['12:47:33', '$ZEST', '@kestrel', 'Emergency exit', 'Trader sold >50%', 'x']] },
+      kes: { id: 'kes', name: S.pName || 'Kestrel Collective', short: S.pName || 'Kestrel Collective', kind: 'Partner pool · @kestrel', tag: pPaused ? 'PAUSED · PARTNER' : 'LIVE · PARTNER', desc: '@kestrel and invited traders. Each trader earns 15% of the profit their own signals make; Edgepool takes 5%.', nav: 86.40, navps: 1.0412, tr: ptr.map(t => t.init), max: kesMax, used0: kesUsed0, flat: true, trFee: 15, epFee: 5, seed: 3, up: true, paused: pPaused,
+        pnl: { Day: ['+0.21 SOL', '+0.24%'], Week: ['+1.86 SOL', '+2.20%'], Month: ['+3.10 SOL', '+3.72%'], All: ['+3.40 SOL', '+4.12%'] }, today: '+0.21 SOL · +0.24%', inception: '+3.40 SOL · +4.12%', unreal: '0.00 SOL', deployed: '0.0%', hwm: '0.0%', lim: ['+0.24% / −5%', '+2.20% / −15%'], sig24: '6 · 4 entered', emerg: '0',
+        expo: ptr.map(t => [t.h, 0, sgn(t.profit) + f2(t.profit)]), pos: [],
+        sig: [['$NOVA', '@kestrel', '38m', 'Closed at TP2 · +1.88 SOL to the pool', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'vio:TP2 sold']], ['$DUSK', '@sable', '2h', 'Adaptive stop · −0.31 SOL', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'stop:Stop −12%']]],
+        log: [['13:12:40', '$NOVA', '@kestrel', 'TP2 · sold 40%', '+100.4%', 't'], ['12:02:18', '$DUSK', '@sable', 'Adaptive stop', 'Exited −12%', 'x'], ['11:40:02', '$BRIM', '@quill', 'Skipped', 'RugCheck: mint authority', 's'], ['10:15:33', '$NOVA', '@kestrel', 'Entered 50%', '0.30 SOL', 'e']] },
+      qui: { id: 'qui', name: 'Quill Rotation', short: 'Quill Rotation', kind: 'Partner pool · @quill', tag: 'LIVE · PARTNER', desc: '@quill rotating with two invited traders. Each trader earns 15% of the profit their own signals make; Edgepool takes 5%.', nav: 54.00, navps: 0.9620, tr: ['Q', 'R', 'S'], max: 80, used0: 79, flat: false, trFee: 15, epFee: 5, seed: 5, up: false,
+        pnl: { Day: ['−0.32 SOL', '−0.59%'], Week: ['−1.10 SOL', '−1.98%'], Month: ['+0.60 SOL', '+1.12%'], All: ['−2.05 SOL', '−3.80%'] }, today: '−0.32 SOL · −0.59%', inception: '−2.05 SOL · −3.80%', unreal: '−0.12 SOL', deployed: '1.4%', hwm: '−3.8%', lim: ['−0.59% / −5%', '−1.98% / −15%'], sig24: '9 · 5 entered', emerg: '1',
+        expo: [['@quill', 0.8, '−0.60'], ['@rook', 0.6, '−0.50'], ['@sable', 0, '+0.10']],
+        pos: [['$LARK', '@quill', 0.40, 12.2, 18, 0, 0, 'Full size', 0, '19h 10m'], ['$MOSS', '@rook', 0.35, -8.4, 14, 0, 0, 'Full size', 0, '6h 42m']],
+        sig: [['$LARK', '@quill', '3h', 'Entered 50% · limit filled', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'on:Limit filled']], ['$MOSS', '@rook', '17h', 'Open · stop at −14%', ['on:Detect ✓', 'on:Qualify ✓', 'on:Enter ✓', 'wait:Managing']]],
+        log: [['11:02:44', '$LARK', '@quill', 'Limit filled', '0.20 SOL at −10%', 'l'], ['10:48:12', '$LARK', '@quill', 'Entered 50%', '0.20 SOL', 'e'], ['09:20:05', '$WREN', '@sable', 'Skipped', 'Liquidity below rule', 's'], ['Yesterday', '$MOSS', '@rook', 'Entered 50%', '0.18 SOL', 'e']] },
+    };
+    const ids = ['flag', 'kes', 'qui'];
+    const queuedFor = id => pend.filter(q => q.pid === id).reduce((a, q) => a + q.amtN, 0);
+    const held = id => (holdings[id] && holdings[id].shares) || 0;
+    const holdVal = id => held(id) * DEF[id].navps;
+    const series = (seed, up) => { const a = []; for (let i = 0; i < 15; i++) a.push(Math.max(0, Math.min(1, ((up ? i : 14 - i) / 14) * 0.75 + 0.12 + Math.sin(i * 1.7 + seed + (period === 'Day' ? 2 : period === 'Month' ? 4 : period === 'All' ? 6 : 0)) * 0.08))); return a; };
+    const path = pts => { const l = 'M' + pts.map((v, i) => ((i / (pts.length - 1)) * 300).toFixed(1) + ' ' + (92 - v * 80).toFixed(1)).join(' L'); return [l, l + ' L300 100 L0 100 Z']; };
+    const slot = p => {
+      const holder = held(p.id) > 0, used = p.forceFull ? p.max : Math.min(p.max, p.used0 + (joined[p.id] ? 1 : 0)), left = Math.max(0, p.max - used), full = left <= 0;
+      const c = full ? RD : (left <= Math.max(5, p.max * 0.1) ? '#F0BE67' : '#49E6D7');
+      return { holder, full, blocked: full && !holder, label: full ? `Full · ${used} / ${p.max}` : `${left} of ${p.max} left`, pct: (used / p.max * 100).toFixed(1) + '%', c,
+        sub: full ? (holder ? 'Pool is full. You can still add to your position.' : 'Pool is full. New depositors can join when a slot opens.') : `${used} depositors in · capped to protect execution`, subC: full ? '#F7C1BC' : '#75798C' };
+    };
+    const pnlCol = s => (s.startsWith('−') ? RD : G);
+    const go = (r, extra) => () => { set({ route: r, hint: null, ...(extra || {}) }); if (typeof window !== 'undefined') window.scrollTo(0, 0); };
+    const openPool = id => go('pool', { pid: id, amount: '' });
+
+    const cards = ids.filter(id => id !== 'kes' || pListing === 'Public' || held('kes') > 0).map(id => {
+      const p = DEF[id], si = slot(p), [line, area] = path(series(p.seed, p.up)), pc = pnlCol(p.pnl[period][1]);
+      return { name: p.name, kind: p.kind, tag: p.tag, tagC: p.paused ? '#F0BE67' : (p.featured ? '#49E6D7' : '#B5ABFC'), border: p.featured ? '#49E6D7' : '#2E313F', glow: p.featured ? 'rgba(3,45,42,0.75)' : 'rgba(43,39,65,0.55)',
+        holder: si.holder, holdS: holdVal(id).toFixed(2) + ' SOL', avatars: p.tr.map(k => ({ init: k })), traderLine: p.tr.length + ' traders · ' + p.trFee + '% to signal trader',
+        pct: p.pnl[period][1], pnlC: pc, nav: p.nav.toFixed(2) + ' SOL', line, area, areaFill: pc === G ? 'rgba(73,230,215,0.10)' : 'rgba(242,136,129,0.08)',
+        slotLabel: si.label, slotPct: si.pct, slotC: si.c,
+        btnLabel: si.blocked ? 'Full · view pool' : 'Open pool', btnBg: si.blocked ? 'transparent' : (p.featured ? '#49E6D7' : 'transparent'), btnFg: si.blocked ? '#E9E9ED' : (p.featured ? '#0D0F18' : '#49E6D7'), btnBorder: p.featured && !si.blocked ? '0' : '1px solid ' + (si.blocked ? '#3F424D' : '#49E6D7'),
+        open: openPool(id) };
+    });
+
+    // current pool
+    const pid = S.pid || 'flag', p = DEF[pid], si = slot(p), unlocked = holdVal(pid) >= 0.5, M = '$••••';
+    const [pLine, pArea] = path(series(p.seed, p.up)), pc = pnlCol(p.pnl[period][1]);
+    const ST = { on: ['#004B45', '#BBF6EE'], wait: ['#2E313F', '#B2B6CA'], off: ['transparent', '#75798C'], warn: ['#4A3B1C', '#F7DDA9'], vio: ['#2B2741', '#D2CEFD'], stop: ['#3A2226', '#F7C1BC'] };
+    const LC = { e: '#49E6D7', l: '#81EADE', t: '#9184D9', s: '#F0BE67', x: RD, d: '#9397AB' };
+    const positions = p.pos.map(([tok, tr, size, pnl, stop, tp1, tp2, stage, floor, left]) => {
+      const min = -stop, max = tp2 ? 300 : 100, L = v => (Math.max(0, Math.min(1, (v - min) / (max - min))) * 100).toFixed(1) + '%';
+      const cur = Math.max(min, Math.min(max, pnl)), lo = Math.min(0, cur), hi = Math.max(0, cur), up = pnl >= 0;
+      return { tok: unlocked ? tok : M, ls: unlocked ? '0' : '0.12em', trader: unlocked ? tr : 'Trader •', meta: (unlocked ? tr : 'Trader •') + ' · ' + stage,
+        size: unlocked ? size.toFixed(2) + ' SOL' : '•••', pnl: sgn(pnl) + Math.abs(pnl).toFixed(1) + '%', pnlSol: unlocked ? sgn(pnl) + f2(size * pnl / 100) + ' SOL' : '•••',
+        color: up ? G : RD, stop: tp2 ? 'Floor +' + floor + '%' : '−' + stop + '%', stage, left,
+        entryL: L(0), tp1L: L(60), tp2L: L(100), floorL: L(floor || 0), curL: L(cur), fillL: L(lo), fillW: ((hi - lo) / (max - min) * 100).toFixed(1) + '%',
+        tp1C: tp1 ? '#9184D9' : '#595D6C', tp2C: tp2 ? '#9184D9' : '#595D6C', floorOp: tp2 ? '1' : '0' };
+    });
+    const h = holdings[pid], myVal = holdVal(pid), myPnl = h ? myVal - h.dep + h.wd : 0;
+    const amtN = parseFloat(S.amount);
+    const doDeposit = (wOk) => {
+      const a = parseFloat(S.amount);
+      if (!(wOk ?? wallet)) return set({ walletOpen: true, afterConnect: 'deposit' });
+      if (!(a > 0)) return set({ hint: 'Enter an amount in SOL.', hintC: RD });
+      if (si.blocked) return set({ hint: 'This pool is full. New depositors can join when a slot opens.', hintC: RD });
+      if (a < 0.5) return set({ hint: 'Minimum deposit is 0.5 SOL.', hintC: RD });
+      const sh = a / p.navps, prev = holdings[pid] || { shares: 0, dep: 0, wd: 0, avg: p.navps };
+      const nsh = prev.shares + sh, avg = (prev.shares * prev.avg + sh * p.navps) / nsh;
+      const wasLocked = !unlocked;
+      set({ holdings: { ...holdings, [pid]: { shares: nsh, dep: prev.dep + a, wd: prev.wd, avg } }, joined: prev.shares > 0 ? joined : { ...joined, [pid]: true }, wallet: true,
+        hist: [{ d: 'Today', pool: p.short, type: 'Deposit', a: '+' + a.toFixed(2) + ' SOL', sh: '+' + f4(sh), tx: '4Fx…' + String(Math.floor(a * 97) % 90 + 10) + 'q' }, ...hist], amount: '', hint: null, afterConnect: null });
+      this.flash(`Deposited ${a.toFixed(2)} SOL · ${f4(sh)} shares minted` + (wasLocked && (prev.shares * p.navps + a) >= 0.5 ? ' · signals unlocked' : ''));
+    };
+    const openWd = id => () => set({ wdPool: id, wdAmt: '', wdErr: '' });
+    const P = {
+      name: p.name, tag: p.tag, desc: p.desc, paused: !!p.paused, chips: [{ t: '2% cap per trader' }, { t: '50% now + 50% limit at −10%' }, { t: 'Adaptive stop' }, { t: '−5% daily kill switch' }],
+      pnlSol: p.pnl[period][0], pnlPct: p.pnl[period][1], pnlC: pc, line: pLine, area: pArea, areaFill: pc === G ? 'rgba(73,230,215,0.10)' : 'rgba(242,136,129,0.08)',
+      navS: p.nav.toFixed(2) + ' SOL', navpsS: p.navps.toFixed(4) + ' SOL', today: p.today, todayC: pnlCol(p.today), inception: p.inception, incC: pnlCol(p.inception),
+      openN: p.pos.length, unreal: p.unreal, unrealC: pnlCol(p.unreal), positions, noPositions: p.pos.length === 0, hasPositions: p.pos.length > 0,
+      locked: !unlocked,
+      signals: p.sig.map(([tok, tr, t, note, steps]) => ({ tok: unlocked ? tok : M, ls: unlocked ? '0' : '0.12em', trader: unlocked ? tr : 'Trader •', t, note: unlocked ? note : 'Size, price and contract address hidden', steps: steps.map(s => { const [k, l] = s.split(':'); return { l, bg: ST[k][0], fg: ST[k][1] }; }) })),
+      trCount: p.tr.length, traders: p.tr.map(k => ({ init: TR[k][0], h: TR[k][1], ranks: TR[k][2], e: ((p.expo.find(x => x[0] === TR[k][1]) || [0, 0])[1]).toFixed(1) + '%' })),
+      holder: held(pid) > 0, notHolder: !(held(pid) > 0), myValue: myVal.toFixed(2) + ' SOL', myShares: f4(held(pid)), myDep: h ? h.dep.toFixed(2) + ' SOL' : '0.00 SOL',
+      myPnl: sgn(myPnl) + f2(myPnl) + ' SOL' + (h && h.dep - h.wd > 0 ? ` · ${sgn(myPnl)}${Math.abs(myPnl / (h.dep - h.wd) * 100).toFixed(1)}%` : ''), myPnlC: myPnl >= 0 ? G : RD,
+      withdraw: openWd(pid), wdLabel: p.flat ? 'Withdraw · instant while flat' : 'Withdraw · queued to checkpoint',
+      slotLabel: si.label, slotPct: si.pct, slotC: si.c, slotSub: si.sub, slotSubC: si.subC,
+      depBg: si.blocked ? '#2E313F' : '#49E6D7', depFg: si.blocked ? '#9397AB' : '#0D0F18', depLabel: si.blocked ? 'Pool full' : (wallet ? 'Deposit SOL' : 'Connect wallet to deposit'),
+      terms: [{ k: 'Cap per trader', v: '2% of NAV' }, { k: 'Daily kill switch', v: '−5% NAV' }, { k: 'Fee', v: `20% above HWM · ${p.trFee}% signal trader, ${p.epFee}% Edgepool` }, { k: 'Withdraw', v: p.flat ? 'Instant · pool is flat' : 'Queued to next checkpoint' }],
+      kpis: [{ l: 'Pool NAV', v: p.nav.toFixed(2) + ' SOL', c: '#E9E9ED' }, { l: 'NAV / share', v: p.navps.toFixed(4), c: '#49E6D7' }, { l: 'PnL · ' + period, v: p.pnl[period][0], c: pc }, { l: 'Unrealized', v: p.unreal, c: pnlCol(p.unreal) }, { l: 'Deployed', v: p.deployed + ' NAV', c: '#E9E9ED' }, { l: 'From HWM', v: p.hwm, c: '#E9E9ED' }],
+      limits: [{ l: 'Daily kill switch', v: p.lim[0], w: p.lim[0].startsWith('−') ? (parseFloat(p.lim[0].slice(1)) / 5 * 100).toFixed(0) + '%' : '0%', s: p.lim[0].startsWith('−') ? 'Armed · ' + (parseFloat(p.lim[0].slice(1)) / 5 * 100).toFixed(0) + '% of limit used' : 'Armed · 0% of limit used', c: p.lim[0].startsWith('−') ? '#F0BE67' : G },
+        { l: 'Weekly loss limit', v: p.lim[1], w: p.lim[1].startsWith('−') ? (parseFloat(p.lim[1].slice(1)) / 15 * 100).toFixed(0) + '%' : '0%', s: p.lim[1].startsWith('−') ? 'Armed · ' + (parseFloat(p.lim[1].slice(1)) / 15 * 100).toFixed(0) + '% of limit used' : 'Armed · 0% of limit used', c: p.lim[1].startsWith('−') ? '#F0BE67' : G }],
+      sig24: p.sig24, emerg: p.emerg,
+      exposure: p.expo.map(([hh, e, c]) => ({ h: hh, w: (e / 2 * 100) + '%', e: e.toFixed(1) + '%', bar: e >= 2 ? '#F0BE67' : '#49E6D7', c: c + ' SOL', cc: c.startsWith('−') ? RD : G })),
+      log: p.log.map(([t, tok, tr, ev, d, k]) => ({ t, tok: unlocked ? tok : M, ls: unlocked ? '0' : '0.12em', tr: unlocked ? tr : 'Trader •', ev, d: unlocked ? d : 'Details hidden', c: LC[k] })),
+    };
+
+    // portfolio
+    const owned = ids.filter(id => held(id) > 0.00005);
+    const tVal = owned.reduce((a, id) => a + holdVal(id), 0), tDep = ids.reduce((a, id) => a + ((holdings[id] && holdings[id].dep) || 0), 0), tWd = ids.reduce((a, id) => a + ((holdings[id] && holdings[id].wd) || 0), 0);
+    const tPnl = tVal - tDep + tWd, tPct = tDep - tWd > 0 ? tPnl / (tDep - tWd) * 100 : 0;
+    const chartK = S.pfChart || 'Value';
+    const [fLine, fArea] = path(chartK === 'Value' ? [0, .02, .03, .32, .33, .36, .35, .38, .78, .8, .77, .82, .84, .8, .9, .93, 1] : [.2, .25, .3, .1, .2, .35, .3, .45, .4, .55, .5, .62, .7, .66, .8, .86, 1]);
+    const masks = owned.filter(id => holdVal(id) < 0.5 && DEF[id].pos.length).map(id => ({ t: `Hold 0.5 SOL or more in ${DEF[id].name} to see its tokens.` }));
+    const fPositions = [];
+    owned.forEach(id => { const q = DEF[id], frac = held(id) / (q.nav / q.navps), show = holdVal(id) >= 0.5; q.pos.forEach(r => fPositions.push({ tok: show ? r[0] : M, ls: show ? '0' : '0.12em', pool: q.short, exp: show ? (r[2] * frac).toFixed(4) + ' SOL' : '•••', pct: sgn(r[3]) + Math.abs(r[3]).toFixed(1) + '%', c: r[3] >= 0 ? G : RD })); });
+    const F = {
+      notConnected: !wallet, empty: wallet && owned.length === 0 && pend.length === 0, holding: wallet && (owned.length > 0 || pend.length > 0),
+      total: tVal.toFixed(2) + ' SOL', pnl: sgn(tPnl) + f2(tPnl) + ' SOL', pct: sgn(tPct) + Math.abs(tPct).toFixed(2) + '%', pnlC: tPnl >= 0 ? G : RD, flows: `Deposited ${f2(tDep)} SOL · Withdrawn ${f2(tWd)} SOL`,
+      chartLabel: chartK === 'Value' ? 'Portfolio value · since first deposit' : 'Total PnL · since first deposit', line: fLine, area: fArea,
+      chartTabs: ['Value', 'PnL'].map(k => ({ label: k, on: () => set({ pfChart: k }), bg: chartK === k ? '#2E313F' : 'transparent', fg: chartK === k ? '#E9E9ED' : '#9397AB' })),
+      rows: owned.map(id => { const q = DEF[id], hh = holdings[id], val = holdVal(id), pn = val - hh.dep + hh.wd, spc = (q.navps / (hh.avg || q.navps) - 1) * 100, exp = S.pfOpen === id, qd = queuedFor(id);
+        return { name: q.name, kind: q.kind, valS: val.toFixed(2) + ' SOL', pnlS: sgn(pn) + f2(pn) + ' SOL', pnlC: pn >= 0 ? G : RD, pctS: sgn(spc) + Math.abs(spc).toFixed(1) + '%',
+          status: qd > 0 ? qd.toFixed(2) + ' SOL queued' : (q.flat ? 'Flat · instant exit' : q.pos.length + ' open · queued exit'), stBg: q.flat && !qd ? '#004B45' : '#2E313F', stFg: q.flat && !qd ? '#BBF6EE' : '#CFD3E5',
+          expanded: exp, chev: exp ? 'ph ph-caret-up' : 'ph ph-caret-down', cashLine: `${f2(val)} − ${f2(hh.dep)} + ${f2(hh.wd)} = ${sgn(pn)}${f2(pn)} SOL`, shareLine: `${(hh.avg || q.navps).toFixed(4)} → ${q.navps.toFixed(4)} SOL (${sgn(spc)}${Math.abs(spc).toFixed(1)}%)`,
+          toggle: () => set({ pfOpen: exp ? null : id }), withdraw: openWd(id), openPool: openPool(id) }; }),
+      masks, positions: fPositions, noPositions: fPositions.length === 0,
+      pend: pend.map(q => ({ a: q.amtN.toFixed(2) + ' SOL', pool: DEF[q.pid].short, cd, cancel: () => { set({ pend: pend.filter(x => x.id !== q.id) }); this.flash('Withdrawal request cancelled'); } })), noPend: pend.length === 0,
+      hist,
+    };
+
+    // withdraw modal
+    const wp = S.wdPool ? DEF[S.wdPool] : null, wAmt = parseFloat(S.wdAmt), wMax = wp ? holdVal(wp.id) - queuedFor(wp.id) : 0;
+    const W = {
+      open: !!wp, name: wp ? wp.name : '', max: wp ? `${f2(wMax)} SOL available` + (queuedFor(wp.id) > 0 ? ` · ${f2(queuedFor(wp.id))} queued` : '') : '',
+      amt: S.wdAmt || '', err: S.wdErr || '', burn: wp && wAmt > 0 ? f4(wAmt / wp.navps) : '0.0000', out: wAmt > 0 ? wAmt.toFixed(2) + ' SOL' : '0.00 SOL',
+      queued: wp ? !wp.flat : false, modeLine: wp ? (wp.flat ? 'Instant · this pool is flat, so SOL is sent now.' : `Queued · ${wp.pos.length} open positions. Settles at the next checkpoint in `) : '',
+      cta: wp && !wp.flat ? 'Request withdrawal' : 'Withdraw now',
+      onAmt: e => set({ wdAmt: e.target.value.replace(/[^0-9.]/g, ''), wdErr: '' }),
+      pcts: [25, 50, 100].map(n => ({ label: n === 100 ? 'Max' : n + '%', on: () => set({ wdAmt: (Math.floor(wMax * n) / 100).toFixed(2), wdErr: '' }) })),
+      close: () => set({ wdPool: null }), closeBg: e => { if (e.target === e.currentTarget) set({ wdPool: null }); },
+      confirm: () => {
+        if (!wp) return;
+        if (!(wAmt > 0)) return set({ wdErr: 'Enter an amount in SOL.' });
+        if (wAmt > wMax + 0.0001) return set({ wdErr: `You have ${f2(wMax)} SOL available in this pool.` });
+        const sh = wAmt / wp.navps;
+        if (wp.flat) {
+          const hh = holdings[wp.id];
+          set({ holdings: { ...holdings, [wp.id]: { ...hh, shares: Math.max(0, hh.shares - sh), wd: hh.wd + wAmt } }, wdPool: null, hist: [{ d: 'Today', pool: wp.short, type: 'Withdrawal · instant', a: '−' + wAmt.toFixed(2) + ' SOL', sh: '−' + f4(sh), tx: '3Zr…Np5' }, ...hist] });
+          this.flash(`Withdrew ${wAmt.toFixed(2)} SOL to your wallet`);
+        } else {
+          set({ wdPool: null, pend: [...pend, { pid: wp.id, amtN: wAmt, id: 'p' + Date.now() }] });
+          this.flash(`${wAmt.toFixed(2)} SOL queued · settles at the next checkpoint`);
+        }
+      },
+    };
+
+    // trader / partner
+    const signed = !!S.pSigned, tv = S.pView || 'login';
+    const pfld = (k, label, ph) => ({ label, ph, val: S[k] || '', on: e => set({ [k]: e.target.value, applyErr: '' }) });
+    const pWallet = !!S.pWallet, claimable = S.pClaimable ?? 1.26, paid = S.pPaid ?? 3.10, claimed = !!S.pClaimed;
+    const removed = S.pRemoved || [], requests = S.pReq || [], maxT = S.pMaxT || 5, total = ptr.length + requests.length, atMax = total >= maxT;
+    const R = S.pRules || { cap: '2', now: '50', limit: '10', stopMin: '8', stopMax: '40', time: '24', daily: '5', weekly: '15' };
+    const rf = (k, label, unit, pre = '') => ({ label, unit, pre, val: R[k], on: e => set({ pRules: { ...R, [k]: e.target.value.replace(/[^0-9.]/g, '') }, pRulesMsg: '' }) });
+    const kesSlot = slot(DEF.kes);
+    const T = {
+      signedOut: !signed, signedIn: signed, isLogin: tv === 'login', isApply: tv === 'apply', isApplied: tv === 'applied',
+      email: S.pEmail || '', pw: S.pPw || '', loginErr: S.loginErr || '',
+      onEmail: e => set({ pEmail: e.target.value, loginErr: '' }), onPw: e => set({ pPw: e.target.value, loginErr: '' }),
+      signIn: () => { if (!/^\S+@\S+\.\S+$/.test(S.pEmail || '')) return set({ loginErr: 'Enter the email your Edgepool contact used.' }); if (!S.pPw) return set({ loginErr: 'Enter your password.' }); set({ pSigned: true, loginErr: '' }); this.flash('Signed in as @kestrel'); },
+      signOut: () => set({ pSigned: false, pView: 'login', pPw: '' }),
+      goApply: () => set({ pView: 'apply' }), goLogin: () => set({ pView: 'login' }),
+      applyFields: [pfld('aFomo', 'Fomo handle', '@yourhandle'), pfld('aX', 'X handle', '@yourhandle'), pfld('aWallet', 'Trading wallet', 'Solana address'), pfld('aContact', 'Contact', 'Email or Telegram')],
+      applyErr: S.applyErr || '', applyContact: S.aContact || 'your contact',
+      submitApply: () => { if (!(S.aFomo || '').trim() || !(S.aX || '').trim()) return set({ applyErr: 'Add your Fomo and X handles.' }); if ((S.aWallet || '').trim().length < 32) return set({ applyErr: 'Enter a valid Solana wallet address.' }); if (!(S.aContact || '').trim()) return set({ applyErr: 'Add an email or Telegram handle so we can reach you.' }); set({ pView: 'applied' }); },
+      noWallet: !pWallet, connectWallet: () => { set({ pWallet: true }); this.flash('Payout wallet connected'); }, walletChip: pWallet ? 'Payout 9fK2…a71' : 'No payout wallet yet',
+      pendingS: '0.84 SOL', claimableS: claimable.toFixed(2) + ' SOL', paidS: paid.toFixed(2) + ' SOL',
+      claimDisabled: !pWallet || claimable <= 0, claimBg: pWallet && claimable > 0 ? '#49E6D7' : '#2E313F', claimFg: pWallet && claimable > 0 ? '#0D0F18' : '#75798C',
+      claimLabel: !pWallet ? 'Connect wallet to claim' : (claimable > 0 ? 'Claim ' + claimable.toFixed(2) + ' SOL' : 'Nothing to claim'),
+      claim: () => { if (pWallet && claimable > 0) { set({ pPaid: paid + claimable, pClaimable: 0, pClaimed: true }); this.flash(`Claimed ${claimable.toFixed(2)} SOL to your payout wallet`); } },
+      notePre: claimed ? 'Sent to your payout wallet. Next auto-pay in ' : 'Auto-paid at each checkpoint, next in ', notePost: claimed ? '.' : '. Pending becomes claimable when NAV per share is above its high-water mark.',
+      poolName: DEF.kes.name, onPoolName: e => set({ pName: e.target.value }),
+      listingTabs: ['Public', 'Unlisted'].map(k => ({ label: k, on: () => set({ pListing: k }), bg: pListing === k ? '#2E313F' : 'transparent', fg: pListing === k ? '#E9E9ED' : '#9397AB' })),
+      togglePool: () => set({ pPaused: !pPaused }), poolBtnLabel: pPaused ? 'Resume pool' : 'Pause pool', poolBtnBorder: pPaused ? '#F0BE67' : '#3F424D', poolBtnFg: pPaused ? '#F0BE67' : '#CFD3E5',
+      viewPool: openPool('kes'),
+      slotLabel: kesSlot.label, slotPct: kesSlot.pct, slotC: kesSlot.c, slotMaxS: kesMaxRaw,
+      slotNote: (parseInt(kesMaxRaw, 10) || 0) < kesUsed0 ? `Can't go below the ${kesUsed0} current depositors.` : `${kesUsed0} depositors in now.`, slotNoteC: (parseInt(kesMaxRaw, 10) || 0) < kesUsed0 ? '#F0BE67' : '#75798C',
+      onSlotMax: e => set({ dSlotMax: e.target.value.replace(/[^0-9]/g, '') }), slotUp: () => set({ dSlotMax: String(kesMax + 10) }), slotDown: () => set({ dSlotMax: String(Math.max(kesUsed0, kesMax - 10)) }),
+      traderCount: `${ptr.length} of ${maxT}`,
+      maxTabs: [3, 4, 5].map(n => ({ label: String(n), on: () => set({ pMaxT: Math.max(n, ptr.length) }), bg: maxT === n ? '#2E313F' : 'transparent', fg: maxT === n ? '#E9E9ED' : '#9397AB' })),
+      traders: ptr.map((t, i) => ({ init: t.init, h: t.h, role: t.role, signals: t.signals, profitS: sgn(t.profit) + f2(t.profit) + ' SOL', profitC: t.profit >= 0 ? G : RD, feeS: (Math.max(0, t.profit) * 0.15).toFixed(2) + ' SOL',
+        status: pPaused ? 'Pool paused' : (t.paused ? 'Paused' : 'Active'), stBg: pPaused || t.paused ? '#2E313F' : '#004B45', stFg: pPaused || t.paused ? '#B2B6CA' : '#BBF6EE', op: t.paused ? '0.6' : '1',
+        pauseLabel: t.paused ? 'Resume' : 'Pause', removable: t.role !== 'Owner',
+        togglePause: () => set({ pTraders: ptr.map(x => x.id === t.id ? { ...x, paused: !x.paused } : x) }),
+        remove: () => set({ pTraders: ptr.filter(x => x.id !== t.id), pRemoved: [...removed, { t, idx: i }] }) })),
+      removed: removed.map((r, i) => ({ h: r.t.h, undo: () => { const tr = [...ptr]; tr.splice(Math.min(r.idx, tr.length), 0, r.t); set({ pTraders: tr, pRemoved: removed.filter((_, j) => j !== i) }); } })),
+      reqOpen: !!S.pReqOpen, reqClosed: !S.pReqOpen, reqBtnOp: atMax ? '0.45' : '1', reqBtnLabel: atMax ? 'Pool is at max traders' : 'Request a trader',
+      openReq: () => { if (!atMax) set({ pReqOpen: true, reqErr: '' }); }, closeReq: () => set({ pReqOpen: false }),
+      reqFomo: S.reqFomo || '', reqX: S.reqX || '', reqErr: S.reqErr || '',
+      onReqFomo: e => set({ reqFomo: e.target.value, reqErr: '' }), onReqX: e => set({ reqX: e.target.value, reqErr: '' }),
+      sendReq: () => { const v = (S.reqFomo || '').trim(); if (!v) return set({ reqErr: "Add the trader's Fomo handle." }); const hh = v.startsWith('@') ? v : '@' + v; set({ pReq: [...requests, { h: hh }], pReqOpen: false, reqFomo: '', reqX: '' }); this.flash(`Request sent for ${hh}`); },
+      requests,
+      ruleFields: [rf('cap', 'Cap per trader', '% NAV'), rf('now', 'Enter now', '%'), rf('limit', 'Limit offset', '%', '−'), rf('stopMin', 'Stop min', '%'), rf('stopMax', 'Stop max', '%'), rf('time', 'Time stop', 'h'), rf('daily', 'Daily kill switch', '%', '−'), rf('weekly', 'Weekly loss limit', '%', '−')],
+      rulesMsg: S.pRulesMsg || '', saveRules: () => set({ pRulesMsg: 'Saved · applies to new trades' }),
+      mySignals: [{ tok: '$GLINT', st: 'Runner 20% · open', p: '+0.97 SOL', c: G, fee: '0.15 SOL' }, { tok: '$TIDE', st: 'Open', p: '−0.06 SOL', c: RD, fee: '—' }, { tok: '$ZEST', st: 'Closed · emergency exit', p: '+0.42 SOL', c: G, fee: '0.06 SOL' }, { tok: '$NOVA', st: 'Closed · TP2', p: '+1.88 SOL', c: G, fee: '0.28 SOL' }, { tok: '$DUSK', st: 'Closed · adaptive stop', p: '−0.31 SOL', c: RD, fee: '—' }],
+      payouts: [...(claimed ? [{ d: 'Just now', kind: 'Manual claim', a: '1.26 SOL', tx: '4hQ…pZ2' }] : []), { d: 'Oct 4 · checkpoint', kind: 'Auto-pay', a: '1.04 SOL', tx: '3Lw…8bE' }, { d: 'Sep 27 · checkpoint', kind: 'Auto-pay', a: '1.22 SOL', tx: '9cT…Rk1' }, { d: 'Sep 20 · checkpoint', kind: 'Auto-pay', a: '0.84 SOL', tx: '7Ma…u3V' }],
+      shareContrib: '+' + ((ptr.find(t => t.id === 'k') || { profit: 0 }).profit).toFixed(2) + ' SOL', shareLink: 'edgepool · ' + DEF.kes.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      copyLink: () => { set({ pCopied: true }); setTimeout(() => this.setState({ pCopied: false }), 1500); }, copyLabel: S.pCopied ? 'Copied' : 'Copy pool link',
+    };
+
+    const navC = r => (route === r ? '#E9E9ED' : '#9397AB');
+    return {
+      isMobile, notMobile: !isMobile,
+      rPools: route === 'pools', rPool: route === 'pool', rPortfolio: route === 'portfolio', rTrader: route === 'trader',
+      navItems: [{ label: 'Pools', icon: 'ph ph-drop', on: go('pools'), color: route === 'pools' || route === 'pool' ? (isMobile ? '#49E6D7' : '#E9E9ED') : '#9397AB' }, { label: 'Portfolio', icon: 'ph ph-chart-pie-slice', on: go('portfolio'), color: route === 'portfolio' ? (isMobile ? '#49E6D7' : '#E9E9ED') : '#9397AB' }, { label: 'Trader', icon: 'ph ph-user-circle', on: go('trader'), color: route === 'trader' ? (isMobile ? '#49E6D7' : '#E9E9ED') : '#9397AB' }],
+      goPools: go('pools'), goApply: go('trader', { pView: S.pSigned ? S.pView : 'apply' }),
+      onPool: route === 'pool', calm: mode === 'calm', adv: mode === 'advanced',
+      modeTabs: [['calm', 'Calm'], ['advanced', 'Advanced']].map(([k, l]) => ({ label: l, on: () => set({ mode: k }), bg: mode === k ? '#2E313F' : 'transparent', fg: mode === k ? '#E9E9ED' : '#9397AB' })),
+      periodTabs: ['Day', 'Week', 'Month', 'All'].map(k => ({ label: k, on: () => set({ period: k }), bg: period === k ? '#2E313F' : 'transparent', fg: period === k ? '#E9E9ED' : '#9397AB' })),
+      periodName: { Day: 'today', Week: 'this week', Month: 'this month', All: 'since inception' }[period], periodRange: { Day: 'last 24 hours', Week: 'last 7 days', Month: 'last 30 days', All: 'since inception' }[period],
+      cards, P, F, W, T, cd,
+      notify: () => { set({ notified: true }); this.flash("We'll let you know when Basket 02 opens"); }, notifyLabel: S.notified ? 'You’ll be notified' : 'Notify me', notifyIcon: S.notified ? 'ph ph-check' : 'ph ph-bell-simple',
+      amount: S.amount || '', onAmount: e => set({ amount: e.target.value.replace(/[^0-9.]/g, ''), hint: null }), prefill: () => set({ amount: '0.50', hint: null }),
+      estShares: amtN > 0 ? f4(amtN / p.navps) : '0.0000', deposit: () => doDeposit(),
+      hint: S.hint || (unlocked ? (p.flat ? 'Withdraw instantly while the pool is flat.' : 'Withdrawals settle at the next checkpoint while positions are open.') : 'Minimum 0.5 SOL. Your deposit unlocks live signals.'), hintC: S.hint ? (S.hintC || '#9397AB') : '#9397AB',
+      sideCols: isMobile ? 'minmax(0,1fr)' : 'minmax(0,1fr) minmax(300px,360px)', mainPadB: isMobile ? '96px' : '48px', footPadB: isMobile ? '96px' : '28px', toastB: isMobile ? '88px' : '28px',
+      walletLabel: wallet ? '7xQ4…f3a' : 'Connect wallet', walletIconC: wallet ? '#73DEA4' : '#E9E9ED', openWallet: () => set({ walletOpen: true }),
+      walletOpen: !!S.walletOpen, walletConnected: wallet, walletDisconnected: !wallet, walletTitle: wallet ? 'Wallet' : 'Connect wallet', walletKind: S.walletKind || 'Phantom',
+      walletOpts: [['Phantom', 'ph ph-ghost', '#B5ABFC', 'Detected'], ['Solflare', 'ph ph-sun', '#F0BE67', ''], ['Fomo wallet', 'ph ph-lightning', '#49E6D7', ''], ['Email', 'ph ph-envelope-simple', '#CFD3E5', 'Embedded wallet']].map(([label, icon, c, sub]) => ({ label, icon, c, sub,
+        on: () => { const cont = S.afterConnect === 'deposit'; set({ wallet: true, walletKind: label, walletOpen: false, holdings, hist, pend }); this.flash(`${label} connected`); if (cont) setTimeout(() => doDeposit(true), 0); } })),
+      disconnect: () => { set({ wallet: false, walletOpen: false }); this.flash('Wallet disconnected'); },
+      closeWallet: () => set({ walletOpen: false, afterConnect: null }), closeWalletBg: e => { if (e.target === e.currentTarget) set({ walletOpen: false, afterConnect: null }); }, stop: () => {},
+      hasToast: !!S.toast, toast: S.toast || '',
+    };
+  }
+}
+</script>
+</body>
+</html>

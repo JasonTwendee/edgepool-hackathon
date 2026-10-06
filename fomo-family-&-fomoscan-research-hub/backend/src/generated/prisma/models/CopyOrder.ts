@@ -39,6 +39,7 @@ export type CopyOrderAvgAggregateOutputType = {
   peakPriceUsd: runtime.Decimal | null
   exitPriceUsd: runtime.Decimal | null
   realizedPnlUsd: runtime.Decimal | null
+  vaultId: number | null
 }
 
 export type CopyOrderSumAggregateOutputType = {
@@ -54,6 +55,7 @@ export type CopyOrderSumAggregateOutputType = {
   peakPriceUsd: runtime.Decimal | null
   exitPriceUsd: runtime.Decimal | null
   realizedPnlUsd: runtime.Decimal | null
+  vaultId: number | null
 }
 
 export type CopyOrderMinAggregateOutputType = {
@@ -83,6 +85,7 @@ export type CopyOrderMinAggregateOutputType = {
   closeReason: string | null
   closedAt: Date | null
   realizedPnlUsd: runtime.Decimal | null
+  vaultId: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -114,6 +117,7 @@ export type CopyOrderMaxAggregateOutputType = {
   closeReason: string | null
   closedAt: Date | null
   realizedPnlUsd: runtime.Decimal | null
+  vaultId: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -146,6 +150,7 @@ export type CopyOrderCountAggregateOutputType = {
   closeReason: number
   closedAt: number
   realizedPnlUsd: number
+  vaultId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -165,6 +170,7 @@ export type CopyOrderAvgAggregateInputType = {
   peakPriceUsd?: true
   exitPriceUsd?: true
   realizedPnlUsd?: true
+  vaultId?: true
 }
 
 export type CopyOrderSumAggregateInputType = {
@@ -180,6 +186,7 @@ export type CopyOrderSumAggregateInputType = {
   peakPriceUsd?: true
   exitPriceUsd?: true
   realizedPnlUsd?: true
+  vaultId?: true
 }
 
 export type CopyOrderMinAggregateInputType = {
@@ -209,6 +216,7 @@ export type CopyOrderMinAggregateInputType = {
   closeReason?: true
   closedAt?: true
   realizedPnlUsd?: true
+  vaultId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -240,6 +248,7 @@ export type CopyOrderMaxAggregateInputType = {
   closeReason?: true
   closedAt?: true
   realizedPnlUsd?: true
+  vaultId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -272,6 +281,7 @@ export type CopyOrderCountAggregateInputType = {
   closeReason?: true
   closedAt?: true
   realizedPnlUsd?: true
+  vaultId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -391,6 +401,7 @@ export type CopyOrderGroupByOutputType = {
   closeReason: string | null
   closedAt: Date | null
   realizedPnlUsd: runtime.Decimal | null
+  vaultId: number | null
   createdAt: Date
   updatedAt: Date
   _count: CopyOrderCountAggregateOutputType | null
@@ -446,6 +457,7 @@ export type CopyOrderWhereInput = {
   closeReason?: Prisma.StringNullableFilter<"CopyOrder"> | string | null
   closedAt?: Prisma.DateTimeNullableFilter<"CopyOrder"> | Date | string | null
   realizedPnlUsd?: Prisma.DecimalNullableFilter<"CopyOrder"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.IntNullableFilter<"CopyOrder"> | number | null
   createdAt?: Prisma.DateTimeFilter<"CopyOrder"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CopyOrder"> | Date | string
   legs?: Prisma.CopyOrderLegListRelationFilter
@@ -479,6 +491,7 @@ export type CopyOrderOrderByWithRelationInput = {
   closeReason?: Prisma.SortOrderInput | Prisma.SortOrder
   closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrderInput | Prisma.SortOrder
+  vaultId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   legs?: Prisma.CopyOrderLegOrderByRelationAggregateInput
@@ -515,6 +528,7 @@ export type CopyOrderWhereUniqueInput = Prisma.AtLeast<{
   closeReason?: Prisma.StringNullableFilter<"CopyOrder"> | string | null
   closedAt?: Prisma.DateTimeNullableFilter<"CopyOrder"> | Date | string | null
   realizedPnlUsd?: Prisma.DecimalNullableFilter<"CopyOrder"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.IntNullableFilter<"CopyOrder"> | number | null
   createdAt?: Prisma.DateTimeFilter<"CopyOrder"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CopyOrder"> | Date | string
   legs?: Prisma.CopyOrderLegListRelationFilter
@@ -548,6 +562,7 @@ export type CopyOrderOrderByWithAggregationInput = {
   closeReason?: Prisma.SortOrderInput | Prisma.SortOrder
   closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrderInput | Prisma.SortOrder
+  vaultId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.CopyOrderCountOrderByAggregateInput
@@ -588,6 +603,7 @@ export type CopyOrderScalarWhereWithAggregatesInput = {
   closeReason?: Prisma.StringNullableWithAggregatesFilter<"CopyOrder"> | string | null
   closedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"CopyOrder"> | Date | string | null
   realizedPnlUsd?: Prisma.DecimalNullableWithAggregatesFilter<"CopyOrder"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.IntNullableWithAggregatesFilter<"CopyOrder"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CopyOrder"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CopyOrder"> | Date | string
 }
@@ -619,6 +635,7 @@ export type CopyOrderCreateInput = {
   closeReason?: string | null
   closedAt?: Date | string | null
   realizedPnlUsd?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   legs?: Prisma.CopyOrderLegCreateNestedManyWithoutOrderInput
@@ -652,6 +669,7 @@ export type CopyOrderUncheckedCreateInput = {
   closeReason?: string | null
   closedAt?: Date | string | null
   realizedPnlUsd?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   legs?: Prisma.CopyOrderLegUncheckedCreateNestedManyWithoutOrderInput
@@ -684,6 +702,7 @@ export type CopyOrderUpdateInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   legs?: Prisma.CopyOrderLegUpdateManyWithoutOrderNestedInput
@@ -717,6 +736,7 @@ export type CopyOrderUncheckedUpdateInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   legs?: Prisma.CopyOrderLegUncheckedUpdateManyWithoutOrderNestedInput
@@ -750,6 +770,7 @@ export type CopyOrderCreateManyInput = {
   closeReason?: string | null
   closedAt?: Date | string | null
   realizedPnlUsd?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -781,6 +802,7 @@ export type CopyOrderUpdateManyMutationInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -813,6 +835,7 @@ export type CopyOrderUncheckedUpdateManyInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -845,6 +868,7 @@ export type CopyOrderCountOrderByAggregateInput = {
   closeReason?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrder
+  vaultId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -862,6 +886,7 @@ export type CopyOrderAvgOrderByAggregateInput = {
   peakPriceUsd?: Prisma.SortOrder
   exitPriceUsd?: Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrder
+  vaultId?: Prisma.SortOrder
 }
 
 export type CopyOrderMaxOrderByAggregateInput = {
@@ -891,6 +916,7 @@ export type CopyOrderMaxOrderByAggregateInput = {
   closeReason?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrder
+  vaultId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -922,6 +948,7 @@ export type CopyOrderMinOrderByAggregateInput = {
   closeReason?: Prisma.SortOrder
   closedAt?: Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrder
+  vaultId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -939,6 +966,7 @@ export type CopyOrderSumOrderByAggregateInput = {
   peakPriceUsd?: Prisma.SortOrder
   exitPriceUsd?: Prisma.SortOrder
   realizedPnlUsd?: Prisma.SortOrder
+  vaultId?: Prisma.SortOrder
 }
 
 export type CopyOrderScalarRelationFilter = {
@@ -987,6 +1015,7 @@ export type CopyOrderCreateWithoutLegsInput = {
   closeReason?: string | null
   closedAt?: Date | string | null
   realizedPnlUsd?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1019,6 +1048,7 @@ export type CopyOrderUncheckedCreateWithoutLegsInput = {
   closeReason?: string | null
   closedAt?: Date | string | null
   realizedPnlUsd?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1066,6 +1096,7 @@ export type CopyOrderUpdateWithoutLegsInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1098,6 +1129,7 @@ export type CopyOrderUncheckedUpdateWithoutLegsInput = {
   closeReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   realizedPnlUsd?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  vaultId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1161,6 +1193,7 @@ export type CopyOrderSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   closeReason?: boolean
   closedAt?: boolean
   realizedPnlUsd?: boolean
+  vaultId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   legs?: boolean | Prisma.CopyOrder$legsArgs<ExtArgs>
@@ -1195,6 +1228,7 @@ export type CopyOrderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   closeReason?: boolean
   closedAt?: boolean
   realizedPnlUsd?: boolean
+  vaultId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["copyOrder"]>
@@ -1227,6 +1261,7 @@ export type CopyOrderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   closeReason?: boolean
   closedAt?: boolean
   realizedPnlUsd?: boolean
+  vaultId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["copyOrder"]>
@@ -1259,11 +1294,12 @@ export type CopyOrderSelectScalar = {
   closeReason?: boolean
   closedAt?: boolean
   realizedPnlUsd?: boolean
+  vaultId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CopyOrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "masterWallet" | "masterHandle" | "masterTxHash" | "symbol" | "action" | "tokenMint" | "amountUsd" | "venue" | "mode" | "status" | "devnetSignature" | "quoteJson" | "error" | "entryMode" | "delayDragPct" | "tp1Pct" | "stopPct" | "tp1ShareBps" | "trailPct" | "tp2MultPct" | "entryPriceUsd" | "peakPriceUsd" | "exitPriceUsd" | "closeReason" | "closedAt" | "realizedPnlUsd" | "createdAt" | "updatedAt", ExtArgs["result"]["copyOrder"]>
+export type CopyOrderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "masterWallet" | "masterHandle" | "masterTxHash" | "symbol" | "action" | "tokenMint" | "amountUsd" | "venue" | "mode" | "status" | "devnetSignature" | "quoteJson" | "error" | "entryMode" | "delayDragPct" | "tp1Pct" | "stopPct" | "tp1ShareBps" | "trailPct" | "tp2MultPct" | "entryPriceUsd" | "peakPriceUsd" | "exitPriceUsd" | "closeReason" | "closedAt" | "realizedPnlUsd" | "vaultId" | "createdAt" | "updatedAt", ExtArgs["result"]["copyOrder"]>
 export type CopyOrderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   legs?: boolean | Prisma.CopyOrder$legsArgs<ExtArgs>
   _count?: boolean | Prisma.CopyOrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -1304,6 +1340,7 @@ export type $CopyOrderPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     closeReason: string | null
     closedAt: Date | null
     realizedPnlUsd: runtime.Decimal | null
+    vaultId: number | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["copyOrder"]>
@@ -1757,6 +1794,7 @@ export interface CopyOrderFieldRefs {
   readonly closeReason: Prisma.FieldRef<"CopyOrder", 'String'>
   readonly closedAt: Prisma.FieldRef<"CopyOrder", 'DateTime'>
   readonly realizedPnlUsd: Prisma.FieldRef<"CopyOrder", 'Decimal'>
+  readonly vaultId: Prisma.FieldRef<"CopyOrder", 'Int'>
   readonly createdAt: Prisma.FieldRef<"CopyOrder", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CopyOrder", 'DateTime'>
 }

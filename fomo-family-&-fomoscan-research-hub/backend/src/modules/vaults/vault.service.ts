@@ -1,6 +1,7 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
+import { DataStreamService } from '../../common/market/datastream.service.js';
 
 export interface VaultStatus {
   id: number;
@@ -109,7 +110,10 @@ export function windowState(
  */
 @Injectable()
 export class VaultService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Optional() @Inject(DataStreamService) private readonly prices?: DataStreamService,
+  ) {}
 
   async getOrCreateVault(name = 'paper'): Promise<{ id: number; feeBps: number }> {
     const existing = await this.prisma.vault.findFirst({ where: { name } });
@@ -227,10 +231,16 @@ export class VaultService {
     return { id: row.id, status: row.status };
   }
 
-  async settleEpoch(vaultId: number, navSol: number): Promise<SettleResult> {
-    if (!Number.isFinite(navSol) || navSol < 0) fail('navSol must be non-negative.');
+  async settleEpoch(vaultId: number, navSol?: number): Promise<SettleResult> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
+    // P1 NAV engine: omitted navSol = mark-to-market from open positions +
+    // realized since last epoch. Explicit navSol keeps legacy/manual behavior.
+    if (navSol === undefined || navSol === null) {
+      navSol = await this.computeNav(vaultId);
+    }
+    if (!Number.isFinite(navSol) || (navSol as number) < 0) fail('navSol must be non-negative.');
+    navSol = navSol as number;
     const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
     if (!vault) fail(`Vault ${vaultId} not found.`);
     // W gate: settle runs only inside an open window (requests still queue anytime).
@@ -409,6 +419,49 @@ export class VaultService {
     };
   }
 
+  /**
+   * Pool app P1 — NAV engine. NAV = last settled NAV
+   * + unrealized of open pool orders (mark-to-market via DataStream)
+   * + realized gains closed since the last epoch.
+   * Orders without vaultId (legacy) are pool-agnostic and excluded.
+   */
+  async computeNav(vaultId: number): Promise<number> {
+    const { id } = await this.resolveVault(vaultId);
+    vaultId = id;
+    const [last, opens] = await Promise.all([
+      this.prisma.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } }),
+      this.prisma.copyOrder.findMany({ where: { vaultId, closedAt: null } }),
+    ]);
+    const base = last ? num(last.navSol) : 0;
+    const since = last ? new Date(last.createdAt as unknown as string) : new Date(0);
+    const closed = await this.prisma.copyOrder.findMany({
+      where: { vaultId, closedAt: { not: null } },
+    });
+    const realized = closed
+      .filter((o) => new Date(o.closedAt as unknown as string) >= since)
+      .reduce((s, o) => s + num(o.realizedPnlUsd), 0);
+    // Mark-to-market only BUY positions with known entry + mint.
+    const pricable = opens.filter(
+      (o) => (o.action ?? 'BUY') === 'BUY' && o.tokenMint && num(o.entryPriceUsd) > 0 && num(o.amountUsd) > 0,
+    );
+    let unrealized = 0;
+    if (pricable.length > 0) {
+      let px: Record<string, number> = {};
+      try {
+        px = this.prices ? await this.prices.bulkPrices([...new Set(pricable.map((o) => o.tokenMint as string))]) : {};
+      } catch {
+        px = {};
+      }
+      for (const o of pricable) {
+        const live = px[o.tokenMint as string];
+        if (!Number.isFinite(live)) continue;
+        const qty = num(o.amountUsd) / num(o.entryPriceUsd);
+        unrealized += qty * live - num(o.amountUsd);
+      }
+    }
+    return r9(Math.max(0, base + unrealized + realized));
+  }
+
   async status(vaultId: number): Promise<VaultStatus> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
@@ -539,6 +592,76 @@ export class VaultService {
       totalShares: num(v.totalShares),
       traders: traders.filter((t) => t.vaultId === v.id),
     }));
+  }
+
+  /**
+   * Pool app P1 — pools index (design: pools > detail > partner).
+   * One pool = one vault + its bot scope + trader basket. Enriches each vault
+   * with kind/status/listing, slots, NAV/sharePrice/HWM, per-period PnL (from
+   * epoch checkpoints), trader basket (handle + rank), and optional myHolding.
+   */
+  async pools(user?: { id: number; wallet: string }): Promise<unknown[]> {
+    const vaults = await this.prisma.vault.findMany({ orderBy: { id: 'asc' } });
+    const traders = await this.prisma.vaultTrader.findMany({
+      where: { vaultId: { in: vaults.map((v) => v.id) }, isActive: true },
+      orderBy: { id: 'asc' },
+    });
+    const [tracked, epochs, deposits] = await Promise.all([
+      this.prisma.trackedWallet.findMany({
+        where: { address: { in: [...new Set(traders.map((t) => t.wallet))] } },
+      }),
+      this.prisma.epochCheckpoint.findMany({
+        where: { vaultId: { in: vaults.map((v) => v.id) } },
+        orderBy: { id: 'asc' },
+      }),
+      this.prisma.deposit.findMany({
+        where: { vaultId: { in: vaults.map((v) => v.id) }, status: 'SETTLED' },
+      }),
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const byId = new Map<string, any>(tracked.map((t) => [t.address, t]));
+    const out: unknown[] = [];
+    for (const v of vaults) {
+      const eps = epochs.filter((e) => e.vaultId === v.id);
+      const last = eps[eps.length - 1];
+      const pnl: Record<string, { sol: number; pct: number }> = {};
+      for (const [key, days] of [['day', 1], ['week', 7], ['month', 30], ['all', 36500]] as const) {
+        const cut = Date.now() - days * 86400000;
+        // Value at window start = last checkpoint before the cutoff
+        // (fallback: oldest checkpoint when the pool is younger than the window).
+        const base = [...eps].reverse().find((e) => new Date(e.createdAt as unknown as string).getTime() < cut) ?? eps[0];
+        const navNow = last ? num(last.navSol) : 0;
+        const navBase = base ? num(base.navSol) : navNow;
+        const sol = r9(navNow - navBase);
+        pnl[key] = { sol, pct: navBase > 0 ? r9((sol / navBase) * 100) : 0 };
+      }
+      const used = new Set(deposits.filter((d) => d.vaultId === v.id).map((d) => d.depositor)).size;
+      const basket = traders
+        .filter((t) => t.vaultId === v.id)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((t) => ({ wallet: t.wallet, handle: (byId.get(t.wallet)?.handle as string) ?? t.wallet.slice(0, 6), rank: (byId.get(t.wallet)?.fomoRank as number | null) ?? null }));
+      const row: Record<string, unknown> = {
+        id: v.id,
+        name: v.name,
+        kind: (v.kind as string) ?? 'basket',
+        status: (v.status as string) ?? 'live',
+        listing: (v.listing as string) ?? 'public',
+        navSol: last ? num(last.navSol) : 0,
+        navPerShare: last ? num(last.sharePrice) : 1,
+        hwmNavPerShare: num(v.hwmSharePrice),
+        totalShares: num(v.totalShares),
+        slots: { used, max: (v.maxSlots as number) ?? 100 },
+        maxTraders: (v.maxTraders as number) ?? 5,
+        traders: basket,
+        pnl,
+      };
+      if (user) {
+        const m = await this.mine(v.id, user);
+        row.myHolding = { shares: m.shares, valueSol: m.valueSol, returnsSol: m.returnsSol };
+      }
+      out.push(row);
+    }
+    return out;
   }
 
   async createVault(name: string, environment = 'SANDBOX'): Promise<unknown> {
