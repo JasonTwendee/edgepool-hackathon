@@ -51,6 +51,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-fomo_dev}
       # Phase 1: sync ở yên trong API. Phase 3 worker mới đọc flag này.
       ENABLE_SYNC: "true"
+      # Demo: auto-fire nhìn lại tối đa 1500' (25h) để bắt kịp BUY hôm qua của
+      # master. Production giữ mặc định code 120' (xóa dòng này là về default).
+      AUTO_FIRE_WINDOW_MAX_MIN: "1500"
       # Lantern read-path (holdings/prices) — CHỈ set khi service lantern đang chạy
       # (profile lantern). Để trống = Flux trực tiếp. Ép cứng URL chết khi lantern
       # không chạy (fetch failed cho mọi holdings call).
