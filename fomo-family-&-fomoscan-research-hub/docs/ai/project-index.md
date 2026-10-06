@@ -34,7 +34,7 @@ High-level AI-readable map of this repository.
 | BE chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global singleton) | RPC listener, poll loop, SSE fan-out |
 | API contract | `docs/api/openapi.yaml` | REST + SSE source of truth |
 | Architecture | `docs/architecture/` | System design, data-flow, ADRs |
-| Setup | `docs/setup/` | Local runbook + env |
+| Setup | `docs/setup/` | Local runbook + env; CI/CD + deploy server SSOT: `docs/setup/CICD_SERVER.md` |
 | AI nav | `docs/ai/` | Indexes + context-map + rules |
 
 ## Main Workflows
