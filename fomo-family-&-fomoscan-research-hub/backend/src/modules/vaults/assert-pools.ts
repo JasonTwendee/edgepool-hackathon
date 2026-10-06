@@ -98,8 +98,6 @@ async function main(): Promise<void> {
   assert.deepEqual(authed.myHolding, { shares: 10, valueSol: 11, returnsSol: 1 });
 
   // 3. NAV engine: last NAV + unrealized MTM + realized since last epoch.
-  // Epoch NAV 10 (9d ago). Open BUY: $5 @ $1 → live $2 ⇒ +$5 unrealized.
-  // Closed after epoch: +$2 realized. Expect 17.
   const db3 = {
     vault: [{ id: 9, name: 'nav', kind: 'basket', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, environment: 'SANDBOX', createdAt: new Date(now - 30 * 86400000) }],
     orders: [
@@ -131,6 +129,73 @@ async function main(): Promise<void> {
   // No prices provider → unrealized skipped, base + realized only.
   const navSvc2 = new VaultService(prisma3);
   assert.equal(await navSvc2.computeNav(9), 12);
+
+  // 4. Deposit gates: min 0.5 SOL + slots (full blocks newcomers only).
+  const gateDb: { vault: Row[]; deposits: Row[] } = {
+    vault: [{ id: 5, maxSlots: 1 }],
+    deposits: [{ depositor: 'holder', status: 'SETTLED' }],
+  };
+  const gatePrisma = {
+    vault: {
+      findUnique: async (_w: never) => gateDb.vault[0],
+    },
+    deposit: {
+      findMany: async (_w?: never) => [...gateDb.deposits],
+      create: async ({ data }: { data: Row }) => {
+        const r = { id: gateDb.deposits.length + 1, ...data };
+        gateDb.deposits.push(r);
+        return r;
+      },
+    },
+  } as never;
+  const gateSvc = new VaultService(gatePrisma);
+  // resolveVault needs findUnique — id 5 exists.
+  await assert.rejects(() => gateSvc.deposit(5, 'newcomer', 0.4), /Minimum deposit/);
+  await assert.rejects(() => gateSvc.deposit(5, 'newcomer', 1), /full/);
+  const ok = await gateSvc.deposit(5, 'holder', 1);
+  assert.equal(ok.status, 'QUEUED');
+
+  // 5. poolDetail: masked when holding < 0.5; positions/signals/log/exposure present.
+  const dFake = {
+    vault: { findMany: async () => [], findUnique: async () => null },
+    vaultTrader: { findMany: async () => [] },
+    trackedWallet: { findMany: async () => [] },
+    epochCheckpoint: {
+      findFirst: async () => null,
+      findMany: async () => [{ id: 1, vaultId: 9, navSol: 10, sharePrice: 1, createdAt: new Date(now - 86400000) }],
+    },
+    deposit: { findMany: async () => [] },
+    withdrawal: { findMany: async () => [] },
+    partnerPayout: { aggregate: async () => ({ _sum: { amountSol: null } }) },
+    copyOrder: {
+      findMany: async ({ where }: { where: Row }) =>
+        !where || (where as Row).vaultId === 9
+          ? [
+              { id: 1, vaultId: 9, status: 'CONFIRMED', symbol: 'T1', masterHandle: 't1', masterWallet: 'W1', tokenMint: 'M1', amountUsd: 10, entryPriceUsd: 1, closeReason: null, closedAt: null, quoteJson: { qualify: true }, error: null, createdAt: new Date(now - 3600000) },
+              { id: 2, vaultId: 9, status: 'FAILED', symbol: 'T2', masterHandle: 't2', masterWallet: 'W2', tokenMint: null, amountUsd: 5, entryPriceUsd: null, closeReason: null, closedAt: null, quoteJson: {}, error: 'gate', createdAt: new Date(now - 7200000) },
+            ]
+          : [],
+    },
+    copyOrderLeg: { findMany: async () => [{ orderId: 1, leg: 'TP1' }] },
+  } as never;
+  // minimal pools() stub path: reuse real pools() via tiny vault row
+  const dSvc = new VaultService(dFake, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  // resolveVault(1) fails (no vault) — point at vault id through stub:
+  const dFake2 = {
+    ...(dFake as unknown as Record<string, unknown>),
+    vault: {
+      findMany: async () => [{ id: 9, name: 'd', kind: 'basket', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, environment: 'SANDBOX', createdAt: new Date(now - 30 * 86400000) }],
+      findUnique: async () => ({ id: 9, name: 'd', kind: 'basket', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, environment: 'SANDBOX', createdAt: new Date(now - 30 * 86400000) }),
+    },
+  } as never;
+  const dSvc2 = new VaultService(dFake2, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const det = (await dSvc2.poolDetail(9)) as Row;
+  assert.equal((det.openPositions as Row[]).length, 1);
+  assert.equal((((det.openPositions as Row[])[0] as Row).unrealizedPct as number), 100); // 10→20 on $10
+  assert.equal((det.signals as Row[]).length, 2);
+  assert.equal(det.masked, true); // no user → masked
+  assert.ok(Array.isArray(det.navSeries) && (det.navSeries as Row[]).length === 1);
+  void dSvc;
 
   console.log('pools asserts: ALL GREEN');
 }

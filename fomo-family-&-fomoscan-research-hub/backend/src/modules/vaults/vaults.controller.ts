@@ -97,6 +97,17 @@ export class VaultsController {
     return { success: true, data: { ...data, environment: 'sandbox' } };
   }
 
+  @Get(':id/pool')
+  @UseGuards(OptionalAuthGuard)
+  async poolDetail(
+    @Param('id') id: string,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const data = await this.vaults.poolDetail(Number.isFinite(parsed) ? parsed : -1, req.user ?? undefined);
+    return { success: true, data };
+  }
+
   @Get(':id/earnings')
   async earnings(
     @Param('id') id: string,

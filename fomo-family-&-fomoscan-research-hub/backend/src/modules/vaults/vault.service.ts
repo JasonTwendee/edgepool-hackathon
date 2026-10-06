@@ -67,6 +67,13 @@ export const PARTNER_FEE_SHARE = 0.75;
 const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
 const f9 = (v: number): number => Math.floor(v * 1e9) / 1e9;
 
+/** Latest NAV across epoch checkpoints (0 when the pool never settled). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function lastNav(epochs: { navSol: any }[]): number {
+  const last = epochs[epochs.length - 1];
+  return last ? num(last.navSol) : 0;
+}
+
 export interface WindowState {
   open: boolean;
   nextOpensAt: string;
@@ -141,7 +148,22 @@ export class VaultService {
   ): Promise<{ id: number; status: string }> {
     if (!depositor?.trim()) fail('Depositor is required.');
     if (!Number.isFinite(amountSol) || amountSol <= 0) fail('amountSol must be positive.');
+    // Pool app P2 (pool-math.ts): minimum 0.5 SOL per deposit.
+    if (amountSol < 0.5) fail('Minimum deposit is 0.5 SOL.');
     const { id } = await this.resolveVault(vaultId);
+    const vault = await this.prisma.vault.findUnique({ where: { id } });
+    if (!vault) fail(`Vault ${id} not found.`);
+    // Slots: a full pool blocks NEW depositors; existing holders add freely.
+    const maxSlots = (vault.maxSlots as number | null) ?? 100;
+    const holders = await this.prisma.deposit.findMany({
+      where: { vaultId: id, status: 'SETTLED' },
+      select: { depositor: true },
+    });
+    const isHolder = holders.some((h) => h.depositor === depositor.trim());
+    const used = new Set(holders.map((h) => h.depositor)).size;
+    if (!isHolder && used >= maxSlots) {
+      fail(`Pool is full (${used}/${maxSlots} slots). Existing holders can still add.`);
+    }
     const row = await this.prisma.deposit.create({
       data: {
         vaultId: id,
@@ -460,6 +482,119 @@ export class VaultService {
       }
     }
     return r9(Math.max(0, base + unrealized + realized));
+  }
+
+  /**
+   * Pool app P2 — pool detail (Calm). Base row (pools) + NAV series + open
+   * positions (MTM) + signal pipeline + execution log + exposure + myHolding
+   * + masked flag (<0.5 SOL hides tokens/traders/sizes per pool-math.ts).
+   */
+  async poolDetail(vaultId: number, user?: { id: number; wallet: string }): Promise<Record<string, unknown>> {
+    const { id } = await this.resolveVault(vaultId);
+    vaultId = id;
+    const base = ((await this.pools(user)) as Record<string, unknown>[]).find((p) => p.id === vaultId);
+    if (!base) fail(`Vault ${vaultId} not found.`);
+    const [epochs, orders] = await Promise.all([
+      this.prisma.epochCheckpoint.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
+      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100 }),
+    ]);
+    const nav = lastNav(epochs);
+    const mints = [...new Set(orders.filter((o) => o.tokenMint).map((o) => o.tokenMint as string))];
+    let px: Record<string, number> = {};
+    try {
+      px = this.prices && mints.length > 0 ? await this.prices.bulkPrices(mints) : {};
+    } catch {
+      px = {};
+    }
+    const liveOf = (o: { tokenMint: unknown; entryPriceUsd: unknown }): number | null => {
+      const p = o.tokenMint ? px[o.tokenMint as string] : undefined;
+      return typeof p === 'number' && p > 0 ? p : null;
+    };
+    const positions = orders
+      .filter((o) => !o.closedAt && o.status === 'CONFIRMED')
+      .map((o) => {
+        const entry = num(o.entryPriceUsd);
+        const live = liveOf(o);
+        const qty = entry > 0 ? num(o.amountUsd) / entry : 0;
+        const unreal = live !== null && entry > 0 ? r9(qty * live - num(o.amountUsd)) : null;
+        return {
+          token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+          trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+          sizeSol: null,
+          unrealizedPct: unreal !== null && num(o.amountUsd) > 0 ? r9((unreal / num(o.amountUsd)) * 100) : null,
+          stage: o.closeReason ?? 'OPEN',
+          entryPriceUsd: entry > 0 ? entry : null,
+          livePriceUsd: live,
+        };
+      });
+    const stepsOf = (o: { status: string; quoteJson: unknown; legs?: unknown }): { label: string; state: string }[] => {
+      const q = (o.quoteJson ?? {}) as Record<string, unknown>;
+      const has = (k: string): boolean => !!q[k];
+      const legs = ((o as { legs?: { leg: string }[] }).legs ?? []).map((l) => l.leg);
+      const done = (c: boolean): string => (c ? 'done' : 'waiting');
+      const steps = [
+        { label: 'Detect', state: 'done' as string },
+        { label: 'Qualify', state: o.status === 'FAILED' && !has('qualify') ? 'skipped' : done(o.status !== 'PENDING') },
+        { label: 'Enter 50%', state: done(['QUATED', 'SENT', 'CONFIRMED'].includes(o.status)) },
+        { label: 'Limit −10%', state: done(o.status === 'CONFIRMED') },
+      ];
+      if (o.status === 'FAILED') steps.push({ label: 'Skipped', state: 'skipped' });
+      if (legs.includes('TP1')) steps.push({ label: 'TP', state: 'tp' });
+      if (legs.includes('STOP')) steps.push({ label: 'Stop', state: 'stopped' });
+      return steps;
+    };
+    const withLegs = await this.prisma.copyOrderLeg.findMany({
+      where: { orderId: { in: orders.slice(0, 20).map((o) => o.id) } },
+    });
+    const signals = orders.slice(0, 20).map((o) => ({
+      token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+      trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+      ageSec: Math.max(0, Math.floor((Date.now() - new Date(o.createdAt as unknown as string).getTime()) / 1000)),
+      note: (o.error as string | null) ?? '',
+      steps: stepsOf({ status: o.status, quoteJson: o.quoteJson, legs: withLegs.filter((l) => l.orderId === o.id) }),
+    }));
+    const log = orders
+      .filter((o) => o.closedAt || o.status === 'FAILED')
+      .slice(0, 20)
+      .map((o) => ({
+        at: new Date((o.closedAt ?? o.createdAt) as unknown as string).toISOString(),
+        token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+        trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+        event: o.status === 'FAILED' ? 'skip' : 'exit',
+        detail: ((o.closeReason as string | null) ?? o.error ?? '') as string,
+        kind: o.status === 'FAILED' ? 'skip' : 'exit',
+      }));
+    const exp = new Map<string, number>();
+    for (const o of orders.filter((o) => !o.closedAt && o.status === 'CONFIRMED')) {
+      const k = (o.masterWallet as string) ?? '—';
+      exp.set(k, (exp.get(k) ?? 0) + num(o.amountUsd));
+    }
+    // USD→SOL approx via wSOL price for %NAV exposure.
+    let solPx = 0;
+    try {
+      const w = 'So11111111111111111111111111111111111111112';
+      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
+    } catch {
+      solPx = 0;
+    }
+    const exposure = [...exp.entries()].map(([trader, usd]) => ({
+      trader,
+      pctNav: nav > 0 && solPx > 0 ? r9(((usd / solPx) / nav) * 100) : 0,
+      pnlSol: 0,
+    }));
+    const holding = user ? await this.mine(vaultId, user) : null;
+    const masked = !holding || holding.valueSol < 0.5;
+    return {
+      ...base,
+      navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
+      openPositions: positions,
+      openCount: positions.length,
+      signals,
+      log,
+      exposure,
+      myHolding: holding,
+      masked,
+    };
   }
 
   async status(vaultId: number): Promise<VaultStatus> {
