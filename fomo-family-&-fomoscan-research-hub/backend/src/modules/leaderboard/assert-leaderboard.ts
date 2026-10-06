@@ -111,9 +111,29 @@ const noopTransport = {
   unwatch: async () => undefined,
 } as never;
 
-function svcWith(prisma: never, fomoscan: never, audit?: never): LeaderboardService {
+/** Spy transport: records removals/unwatches for prune-pipeline asserts. */
+function spyTransport(): never & { removed: string[]; unwatched: string[] } {
+  const removed: string[] = [];
+  const unwatched: string[] = [];
+  return {
+    addTrackedWallet: () => undefined,
+    removeTrackedWallet: (address: string) => {
+      removed.push(address);
+      return true;
+    },
+    watch: async () => undefined,
+    unwatch: async (address: string) => {
+      unwatched.push(address);
+    },
+    removed,
+    unwatched,
+  } as never;
+}
+
+function svcWith(prisma: never, fomoscan: never, audit?: never, transport?: never): LeaderboardService {
   const auditStub = (audit ?? { record: async () => ({ id: 1 }) }) as never;
-  return new LeaderboardService(prisma, fomoscan, noopTransport, noopTransport, auditStub);
+  const t = (transport ?? noopTransport) as never;
+  return new LeaderboardService(prisma, fomoscan, t, t, auditStub);
 }
 
 function env(vars: Record<string, string | undefined>): () => void {
@@ -261,13 +281,23 @@ async function main(): Promise<void> {
       winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
     });
     db.wallet.push(oldRow(101, 'OLD1'), oldRow(102, 'OLD2'), oldRow(103, 'OLD3'));
-    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit);
+    const transport = spyTransport();
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit, transport);
     const s = await svc.tick();
     assert.equal(s.pruned, 1);
     assert.ok(!db.wallet.some((r) => r.address === 'OLD1'));
     const row = audits.find((a) => a.action === 'wallet.rotation_prune');
     assert.ok(row, 'prune audit row written');
     assert.ok(((row as Row).target as string).includes('OLD1'));
+    // Pruned victims leave the live pipeline (no ghost subs/polls).
+    assert.ok(
+      (transport as { removed: string[] }).removed.includes('OLD1'),
+      'listener unwatched pruned wallet',
+    );
+    assert.ok(
+      (transport as { unwatched: string[] }).unwatched.includes('OLD1'),
+      'stream unsubscribed pruned wallet',
+    );
     restore();
   }
 
