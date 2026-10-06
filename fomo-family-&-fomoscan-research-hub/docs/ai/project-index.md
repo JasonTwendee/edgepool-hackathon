@@ -11,7 +11,7 @@ High-level AI-readable map of this repository.
 - Detected stack: `@nestjs/*`, `next@16`, `react@19`, `@solana/web3.js@1`, `tailwindcss@4`
 - Active profile: generic + dual-stack override (see `stack-profile.md`)
 - Main app entry: `backend/src/main.ts` (BE :3000) + `frontend/app/page.tsx` (FE :3001)
-- Test command: `npx tsx src/modules/**/assert-*.ts` from `backend/` (22 suites, mocked; CI runs all) — see `docs/ai/test-index.md`
+- Test command: `npx tsx src/modules/**/assert-*.ts` from `backend/` (23 suites, mocked; CI runs all) — see `docs/ai/test-index.md`
 - Lint command: `npm run typecheck` (root = BE + FE `tsc --noEmit -p`)
 - Build command: `npm run build` (BE `tsc -p tsconfig.build.json` + FE `next build`)
 - Typecheck command: `npm run typecheck`

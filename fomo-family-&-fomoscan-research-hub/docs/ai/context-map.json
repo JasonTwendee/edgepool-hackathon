@@ -172,7 +172,7 @@
     "packageManager": "npm",
     "smokeCommand": "curl -s http://localhost:3000/api/health",
     "stackProfile": "generic+dual-stack-override",
-    "testCommand": "npx tsx src/modules/**/assert-*.ts (22 suites, CI runs all)",
+    "testCommand": "npx tsx src/modules/**/assert-*.ts (23 suites, CI runs all)",
     "typecheckCommand": "npm run typecheck"
   },
   "protectedPaths": {
@@ -231,6 +231,7 @@
     "GET /api/vaults/mine": "backend/src/modules/vaults/vaults.controller.ts (AuthGuard, my positions)",
     "GET /api/vaults/portfolio": "backend/src/modules/vaults/vaults.controller.ts (AuthGuard, overview)",
     "GET /api/vaults/:id/pool": "backend/src/modules/vaults/vaults.controller.ts (pool detail + advanced)",
+    "GET /api/vaults/:id/signals/stream": "backend/src/modules/vaults/vaults.controller.ts (SSE: CONNECTED, REPLAY, live SIGNAL via signal-bus)",
     "GET /api/vaults/:id/earnings": "backend/src/modules/vaults/vaults.controller.ts (KOL-gated partner fees)",
     "GET /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts",
     "POST /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN+Audit)",
@@ -282,6 +283,7 @@
   "surfaces": {
     "poolIndex": "frontend/app/page.tsx (pool cards: NAV, PnL Day/Week/Month/All, slots, traders)",
     "poolDetail": "frontend/app/pools/[id]/page.tsx (Calm default + ?view=advanced: KPIs, risk bars, ladder, exposure)",
+    "poolTerminal": "frontend/components/SignalStream.tsx (SSE terminal log: replay + live SKIP/ENTER/EXIT, filter, pause)",
     "portfolio": "frontend/app/portfolio/page.tsx (totals, Value/PnL chart, my pools, exposures, pending, history)",
     "traderPortal": "frontend/app/trader/page.tsx (KOL fees pending/claimable/paid, payout wallet, pool settings)",
     "terminal": "frontend/app/terminal/page.tsx (admin: leaderboard, chart, copy-trade, vaults, audit; login wall)",
@@ -298,6 +300,7 @@
     "assert-alloc": "backend/src/modules/copy-trade/assert-alloc.ts",
     "assert-autofire": "backend/src/modules/copy-trade/assert-autofire.ts",
     "assert-manage": "backend/src/modules/copy-trade/assert-manage.ts (TP ladder + trailing, 11 cases)",
+    "assert-signals": "backend/src/modules/copy-trade/assert-signals.ts (bus ring/isolate + DB replay mapping)",
     "assert-paper-executor": "backend/src/modules/copy-trade/assert-paper-executor.ts (devnet genesis gate)",
     "assert-demo": "backend/src/modules/demo/assert-demo.ts",
     "assert-leaderboard": "backend/src/modules/leaderboard/assert-leaderboard.ts (rotation topN/cap)",

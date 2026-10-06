@@ -2,7 +2,7 @@
 
 ## Current state (2026-10-06)
 
-- No `jest`/`vitest` runner. Verification = **22 `assert-*.ts` suites** run with `tsx`
+- No `jest`/`vitest` runner. Verification = **23 `assert-*.ts` suites** run with `tsx`
   (mocked Prisma — no network/secrets), plus typecheck + FE build + live smoke.
 - CI (`ci.yml`) runs every suite: `for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do npx tsx "$f" || exit 1; done`
 - Run one suite: `cd backend && npx tsx src/modules/vaults/assert-pools.ts` → `… asserts: ALL GREEN`
@@ -19,6 +19,7 @@
 | `modules/copy-trade/assert-autofire.ts` | auto-fire qualify→size→enter |
 | `modules/copy-trade/assert-alloc.ts` | allocation/rebalance math |
 | `modules/copy-trade/assert-manage.ts` | TP ladder + trailing (11 cases) |
+| `modules/copy-trade/assert-signals.ts` | signal bus (ring/isolate/unsub) + DB replay mapping |
 | `modules/copy-trade/assert-paper-executor.ts` | devnet genesis gate (never mainnet) |
 | `modules/demo/assert-demo.ts` | seed/replay/reset |
 | `modules/leaderboard/assert-leaderboard.ts` | rotation topN=30 cap=50 reconcile |

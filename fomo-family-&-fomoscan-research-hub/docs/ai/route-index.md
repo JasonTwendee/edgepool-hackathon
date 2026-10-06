@@ -100,6 +100,7 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
 | GET | `/api/onchain/stream` | `onchain.controller.ts` → `stream` | `lib/sse.ts`, `hooks/useOnchainStream.ts` | `CONNECTED` then `ONCHAIN_SWAP_EVENT`, 15s `PING` |
+| GET | `/api/vaults/:id/signals/stream` | `vaults.controller.ts` → `signalStream` | `components/SignalStream.tsx` | `CONNECTED`, `REPLAY` (30 order events), live `SIGNAL` (SKIP/ENTER/EXIT), heartbeat |
 
 ## Frontend routes (Next.js App Router)
 
