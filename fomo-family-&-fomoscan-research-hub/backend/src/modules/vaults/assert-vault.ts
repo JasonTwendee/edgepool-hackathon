@@ -141,6 +141,20 @@ async function main(): Promise<void> {
   assert.equal(stranger.shares, 0);
   assert.equal(stranger.depositedSol, 0);
 
+  // 7. Prod guard: test-like pool names are refused in production, allowed elsewhere.
+  const prevEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  const svc4 = new VaultService(makeFake());
+  await assert.rejects(() => svc4.createVault('edgepool-smoke-1'), /test-like pool name/);
+  await assert.rejects(() => svc4.createVault('fee-e2e'), /test-like pool name/);
+  await assert.rejects(() => svc4.createVault('demo-fund-x'), /test-like pool name/);
+  const legit = (await svc4.createVault('Kestrel Collective 2')) as Row;
+  assert.equal(legit.name, 'Kestrel Collective 2');
+  process.env.NODE_ENV = prevEnv;
+  const svc5 = new VaultService(makeFake());
+  const allowed = (await svc5.createVault('edgepool-smoke-1')) as Row;
+  assert.equal(allowed.name, 'edgepool-smoke-1');
+
   console.log('vault asserts: ALL GREEN');
 }
 
