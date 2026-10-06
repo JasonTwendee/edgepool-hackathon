@@ -143,10 +143,10 @@ export function FomoLeftSidebar({
         {/* Tracked wallets (auto-rotated from the verified leaderboard) */}
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-[#E9E9ED]">
-            Tracked Wallets{' '}
-            <span className="ml-1 text-[11px] font-semibold text-[#9397AB]">{wallets.length}</span>
+            Top traders{' '}
+            <span className="ml-1 text-[11px] font-semibold text-[#9397AB]">{sorted.length}</span>
           </h2>
-          <span className="text-[10px] text-[#595D6C] font-medium" title="Top traders rotate in automatically">
+          <span className="text-[10px] text-[#595D6C] font-medium" title="Official FOMO ranks — gaps are non-Solana entries filtered out">
             auto top
           </span>
         </div>

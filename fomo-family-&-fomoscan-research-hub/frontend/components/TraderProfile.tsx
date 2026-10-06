@@ -231,8 +231,8 @@ export function TraderProfile({
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-black text-[#E9E9ED] flex items-center gap-2 flex-wrap">
               {wallet.label}
-              {wallet.isCopyEnabled && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#73DEA4]/10 text-[#73DEA4] border border-[#73DEA4]/30">
+              {isAdmin && wallet.isCopyEnabled && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#73DEA4]/10 text-[#73DEA4] border border-[#73DEA4]/30" title="Copy-engine is following this trader">
                   Following
                 </span>
               )}
