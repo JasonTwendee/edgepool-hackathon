@@ -59,11 +59,17 @@ export function FomoLeftSidebar({
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [compact, setCompact] = useState(false);
 
+  // Leaderboard order = official FomoScan rank first (nulls last, then by
+  // displayed PnL). The badge always shows the same source as the sort, so
+  // numbers are dense and never a mix of two ranking systems.
   const sorted = [...wallets]
     .filter((w) => w.isActive !== false)
-    .sort(
-      (a, b) => (displayPnl(b, pnlMap).value ?? 0) - (displayPnl(a, pnlMap).value ?? 0),
-    );
+    .sort((a, b) => {
+      const ra = a.fomoRank ?? Number.MAX_SAFE_INTEGER;
+      const rb = b.fomoRank ?? Number.MAX_SAFE_INTEGER;
+      if (ra !== rb) return ra - rb;
+      return (displayPnl(b, pnlMap).value ?? 0) - (displayPnl(a, pnlMap).value ?? 0);
+    });
   const selectedRank = selectedAddress ? sorted.findIndex((w) => w.address === selectedAddress) : -1;
   const selectedShown = selectedAddress ? sorted[selectedRank] : undefined;
   const selectedPnl = selectedShown ? displayPnl(selectedShown, pnlMap) : undefined;
@@ -161,11 +167,11 @@ export function FomoLeftSidebar({
                         : 'bg-[#232532]/60 border-[#3F424D] hover:border-[#3F424D] hover:bg-[#232532]/60'
                     }`}
                   >
-                    <span className="w-5 flex justify-center shrink-0" title={shown.fomoRank ? `FomoScan rank #${shown.fomoRank}` : undefined}>
+                    <span className="w-5 flex justify-center shrink-0" title={shown.fomoRank ? `FomoScan rank #${shown.fomoRank}` : 'Unranked this period'}>
                       {shown.fomoRank ? (
                         <span className="text-[10px] font-mono font-bold text-[#49E6D7]">#{shown.fomoRank}</span>
                       ) : (
-                        rankBadge(i)
+                        <span className="text-xs font-mono font-bold text-[#595D6C]">•</span>
                       )}
                     </span>
                     <WalletAvatar label={w.label} avatarUrl={w.avatar} address={w.address} size="sm" />

@@ -80,7 +80,10 @@ export class LeaderboardService implements OnModuleInit {
     const period = process.env.LEADERBOARD_PERIOD || DEFAULT_PERIOD;
     const topN = Math.max(intEnv('LEADERBOARD_TOP_N', DEFAULT_TOP_N), 1);
     const cap = Math.max(intEnv('LEADERBOARD_CAP', DEFAULT_CAP), topN);
-    const lb = await this.fomoscan.leaderboard(cap, period as 'daily' | 'weekly' | 'monthly');
+    // Over-fetch, then filter, then slice: guarantees topN *Solana* traders
+    // even when the raw board mixes chains/unverified entries.
+    const fetchN = Math.min(100, Math.max(cap, topN * 3));
+    const lb = await this.fomoscan.leaderboard(fetchN, period as 'daily' | 'weekly' | 'monthly');
     // Solana-only: the pump leaderboard should be Solana wallets, but guard
     // anyway — skip entries without a valid 32-byte Solana address or unverified.
     const usable = lb.entries.filter((e) => {

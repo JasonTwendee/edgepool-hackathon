@@ -173,6 +173,8 @@ export class FomoscanService {
   ): Promise<{ period?: string; entries: LeaderboardEntry[] }> {
     const n = Math.min(Math.max(limit | 0, 1), 100);
     const p = ['daily', 'weekly', 'monthly'].includes(period) ? period : 'weekly';
+    // Fetch deep (up to 100): callers filter (Solana-only, verified) FIRST and
+    // only then slice top-N — never slice-then-filter (which underfills).
     return this.call('GET', `/v2/pump/leaderboard/traders?period=${p}&limit=${n}`, undefined, 600_000, fetcher);
   }
 
