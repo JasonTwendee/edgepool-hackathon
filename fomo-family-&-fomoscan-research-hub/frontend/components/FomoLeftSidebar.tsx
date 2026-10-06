@@ -19,11 +19,14 @@ interface Props {
   onToggleTicker: () => void;
 }
 
-/** Live value first (realized pairs), otherwise FOMO leaderboard seed. */
-function displayPnl(w: TrackedWallet, pnlMap: Record<string, WalletPnl>): { value?: number; winRate?: number; live: boolean } {
+/** Live value first (realized pairs), then leaderboard snapshot, then local seed. */
+function displayPnl(w: TrackedWallet, pnlMap: Record<string, WalletPnl>): { value?: number; winRate?: number; live: boolean; fomoRank?: number } {
   const p = pnlMap[w.address];
   if (p && p.pairs > 0) {
-    return { value: p.realizedPnlUsd, winRate: p.winRate ?? undefined, live: true };
+    return { value: p.realizedPnlUsd, winRate: p.winRate ?? undefined, live: true, fomoRank: w.fomoRank ?? undefined };
+  }
+  if (w.fomoPnlUsd !== null && w.fomoPnlUsd !== undefined) {
+    return { value: w.fomoPnlUsd, winRate: w.winRate, live: false, fomoRank: w.fomoRank ?? undefined };
   }
   return { value: w.totalPnlUsd, winRate: w.winRate, live: false };
 }
@@ -158,8 +161,14 @@ export function FomoLeftSidebar({
                         : 'bg-[#232532]/60 border-[#3F424D] hover:border-[#3F424D] hover:bg-[#232532]/60'
                     }`}
                   >
-                    <span className="w-5 flex justify-center shrink-0">{rankBadge(i)}</span>
-                    <WalletAvatar label={w.label} avatarUrl={w.avatar} size="sm" />
+                    <span className="w-5 flex justify-center shrink-0" title={shown.fomoRank ? `FomoScan rank #${shown.fomoRank}` : undefined}>
+                      {shown.fomoRank ? (
+                        <span className="text-[10px] font-mono font-bold text-[#49E6D7]">#{shown.fomoRank}</span>
+                      ) : (
+                        rankBadge(i)
+                      )}
+                    </span>
+                    <WalletAvatar label={w.label} avatarUrl={w.avatar} address={w.address} size="sm" />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-bold text-[#E9E9ED] truncate">{w.label}</div>
                       <div className="text-[11px] text-[#75798C] font-mono truncate">

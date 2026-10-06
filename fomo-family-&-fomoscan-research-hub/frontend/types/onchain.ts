@@ -9,6 +9,10 @@ export interface TrackedWallet {
   winRate?: number;
   isCopyEnabled: boolean;
   isActive?: boolean;
+  bio?: string | null;
+  evmAddress?: string | null;
+  fomoPnlUsd?: number | null;
+  fomoRank?: number | null;
   allocationWeight: number;
   addedAt: string;
 }

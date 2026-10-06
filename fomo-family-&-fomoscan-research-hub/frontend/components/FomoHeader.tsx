@@ -148,7 +148,7 @@ export function FomoHeader({
                         }}
                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-[#232532] transition-colors text-left"
                       >
-                        <WalletAvatar label={w.label} avatarUrl={w.avatar} size="sm" />
+                        <WalletAvatar label={w.label} avatarUrl={w.avatar} address={w.address} size="sm" />
                         <span className="flex-1 min-w-0">
                           <span className="block text-xs font-bold text-[#E9E9ED] truncate">{w.label}</span>
                           <span className="block text-[11px] text-[#75798C] font-mono truncate">@{w.handle}</span>
