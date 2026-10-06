@@ -3,19 +3,33 @@
  * Run: `npx tsx src/modules/partner/assert-partner.ts` (mocked DB, no network).
  */
 import assert from 'node:assert/strict';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { PartnerService } from './partner.service.js';
+import { payoutChallengeMessage } from './partner.service.js';
 import { base58Encode } from '../../common/auth/solana-verify.js';
 
 const W = (n: number): string => base58Encode(Buffer.alloc(32, n & 0xff));
+
+/** In-test ed25519 fixture: fresh keypair + base58 pubkey + message signer. */
+function fixtureKey(): { pubkey: string; signMsg: (message: string) => string } {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const raw = publicKey.export({ format: 'der', type: 'spki' }).subarray(-32);
+  const pubkey = base58Encode(Buffer.from(raw));
+  return {
+    pubkey,
+    signMsg: (message: string) => base58Encode(sign(null, Buffer.from(message, 'utf8'), privateKey)),
+  };
+}
 
 type Row = Record<string, unknown>;
 
 function makeFake() {
   const db = {
     user: [
-      { id: 7, wallet: 'cred:kol', username: 'kol', role: 'KOL', payoutWallet: null },
-      { id: 1, wallet: 'adminw', username: null, role: 'ADMIN', payoutWallet: null },
+      { id: 7, wallet: 'cred:kol', username: 'kol', role: 'KOL', payoutWallet: null, payoutWalletVerifiedAt: null },
+      { id: 1, wallet: 'adminw', username: null, role: 'ADMIN', payoutWallet: null, payoutWalletVerifiedAt: null },
     ] as Row[],
+    challenges: [] as Row[],
     vault: [
       { id: 1, name: 'p1', kind: 'basket', status: 'live', listing: 'public', feeBps: 2000, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, ownerUserId: 7, environment: 'SANDBOX', createdAt: new Date('2026-01-01') },
       { id: 2, name: 'other', kind: 'partner', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 0, maxSlots: 10, maxTraders: 3, ownerUserId: null, environment: 'SANDBOX', createdAt: new Date('2026-01-01') },
@@ -102,22 +116,39 @@ function makeFake() {
     epochCheckpoint: {
       findFirst: async () => null,
     },
+    payoutWalletChallenge: {
+      create: async ({ data }: { data: Row }) => {
+        const r = { id: db.challenges.length + 1, consumedAt: null, createdAt: new Date(), ...data };
+        db.challenges.push(r);
+        return r;
+      },
+      findFirst: async ({ where }: { where: Row }) => {
+        const rows = db.challenges.filter((r) => match(r, where)).sort((a, b) => (b.id as number) - (a.id as number));
+        return rows[0] ?? null;
+      },
+      update: async ({ where, data }: { where: Row; data: Row }) => {
+        const r = db.challenges.find((x) => match(x, where)) as Row;
+        Object.assign(r, data);
+        return r;
+      },
+    },
   } as never;
+  const audit = { record: async () => ({ id: 1 }) } as never;
   const vaults = {
     status: async () => ({ window: null, totalShares: 10 }),
     assignTrader: async (vaultId: number, wallet: string) => ({ vaultId, wallet, isActive: true }),
     removeTrader: async (vaultId: number, wallet: string) => ({ vaultId, wallet, isActive: false }),
   } as never;
   const prices = { bulkPrices: async () => ({}) } as never;
-  return { prisma, vaults, prices, db };
+  return { prisma, vaults, prices, audit, db };
 }
 
 const KOL = { id: 7, wallet: 'cred:kol', role: 'KOL' };
 const ADMIN = { id: 1, wallet: 'adminw', role: 'ADMIN' };
 
 async function main(): Promise<void> {
-  const { prisma, vaults, prices } = makeFake();
-  const svc = new PartnerService(prisma, vaults, prices);
+  const { prisma, vaults, prices, audit, db } = makeFake();
+  const svc = new PartnerService(prisma, vaults, prices, audit);
 
   // 1. Public apply → pending (bad wallet rejected).
   const app = (await svc.apply({ fomoHandle: '@newtrader', wallet: W(11), contact: 't@x.io' })) as Row;
@@ -131,10 +162,26 @@ async function main(): Promise<void> {
   assert.equal(((me.fees as Row).paidSol as number), 0);
   assert.equal((((me.basket as Row[])[0] as Row).inBasket as boolean), true);
 
-  // 3. Claim requires payout wallet; then ACCRUED→PAID.
+  // 3. Claim requires a VERIFIED payout wallet (fix 7: signature challenge).
   await assert.rejects(() => svc.claim(KOL), /payout wallet/);
-  await svc.setPayoutWallet(KOL, W(22));
-  await assert.rejects(() => svc.setPayoutWallet(KOL, 'bad'), /Invalid Solana/);
+  await assert.rejects(() => svc.issuePayoutChallenge(KOL, 'bad'), /Invalid Solana/);
+  // No challenge → set refused (attacker with no key can't proceed).
+  await assert.rejects(() => svc.setPayoutWallet(KOL, W(22), 'anysignature'), /Challenge expired or missing/);
+  const key = fixtureKey();
+  const ch = (await svc.issuePayoutChallenge(KOL, key.pubkey)) as { wallet: string; nonce: string; message: string; expiresAt: string };
+  assert.equal(ch.wallet, key.pubkey);
+  assert.equal(ch.message, payoutChallengeMessage(key.pubkey, KOL.wallet, ch.nonce, new Date(ch.expiresAt)));
+  // Wrong-key signature refused.
+  const other = fixtureKey();
+  await assert.rejects(() => svc.setPayoutWallet(KOL, key.pubkey, other.signMsg(ch.message)), /Invalid signature/);
+  // Expired challenge refused.
+  (db.challenges[db.challenges.length - 1] as Row).expiresAt = new Date(Date.now() - 1000);
+  await assert.rejects(() => svc.setPayoutWallet(KOL, key.pubkey, key.signMsg(ch.message)), /expired or missing/);
+  // Fresh challenge + owner signature → verified; claim flows.
+  const ch2 = (await svc.issuePayoutChallenge(KOL, key.pubkey)) as { message: string };
+  await svc.setPayoutWallet(KOL, key.pubkey, key.signMsg(ch2.message));
+  const meAfter = (await svc.me(KOL)) as Row;
+  assert.equal(meAfter.payoutWalletVerified, true);
   const claimed = await svc.claim(KOL);
   assert.equal(claimed.claimedSol, 0.15);
   assert.equal(claimed.rows, 1);

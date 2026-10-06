@@ -4,6 +4,7 @@ import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { SolanaOnChainListenerService } from '../../server/solana.service.js';
 import { SolanaStreamService } from '../../server/solana-stream.service.js';
+import { AuditService } from '../audit/audit.service.js';
 import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
 
 /**
@@ -18,7 +19,8 @@ import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
  * production path (LEADERBOARD_SYNC_INTERVAL_MS, default 24h, `0` = manual only).
  */
 export const DEFAULT_TOP_N = 20;
-export const DEFAULT_CAP = 50;
+/** Unified 20-wallet universe (user-confirmed 2026-10-06): top 20 active, max 20 rows. */
+export const DEFAULT_CAP = 20;
 export const DEFAULT_PERIOD = 'weekly';
 export const DEFAULT_INTERVAL_MS = 86400000;
 
@@ -49,10 +51,21 @@ export class LeaderboardService implements OnModuleInit {
     @Inject(FomoscanService) private readonly fomoscan: FomoscanService,
     @Inject(SolanaOnChainListenerService) private readonly listener: SolanaOnChainListenerService,
     @Inject(SolanaStreamService) private readonly stream: SolanaStreamService,
+    @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
   onModuleInit(): void {
     const ms = Number(process.env.LEADERBOARD_SYNC_INTERVAL_MS ?? DEFAULT_INTERVAL_MS);
+    // Boot tick (non-blocking): fill the 20-wallet universe immediately instead
+    // of waiting up to 24h for the first interval fire. Never crashes boot.
+    void this.tick()
+      .then((s) => {
+        // eslint-disable-next-line no-console
+        console.log(`[leaderboard] boot tick: added=${s.added} active=${s.active} total=${s.total}`);
+      })
+      .catch((e: unknown) => {
+        console.warn('[leaderboard] boot tick failed:', (e as Error).message);
+      });
     if (!Number.isFinite(ms) || ms <= 0) return;
     this.timer = setInterval(() => {
       void this.tick().catch((e: unknown) => {
@@ -167,19 +180,46 @@ export class LeaderboardService implements OnModuleInit {
       }
     }
 
+    // Fix 11 — guarded cap prune. Victims are INACTIVE only (existing rule)
+    // AND carry no live references: no open copy orders (CopyOrder keeps a
+    // plain-string masterWallet, so deleting the wallet would silently orphan
+    // join context) and no ACTIVE vaultTrader membership (cascade would also
+    // wipe the wallet's transactions + realtime events via FK). One audit row
+    // per tick names the victims; audit failure never blocks rotation.
     let pruned = 0;
     const total = await this.prisma.trackedWallet.count();
     if (total > cap) {
-      const victims = await this.prisma.trackedWallet.findMany({
+      const candidates = await this.prisma.trackedWallet.findMany({
         where: { isActive: false },
         orderBy: { id: 'asc' },
         take: total - cap,
       });
+      const [openOrders, activeTraders] = await Promise.all([
+        this.prisma.copyOrder.findMany({ where: { closedAt: null }, select: { masterWallet: true } }),
+        this.prisma.vaultTrader.findMany({ where: { isActive: true }, select: { wallet: true } }),
+      ]);
+      const liveWallets = new Set([
+        ...openOrders.map((o) => o.masterWallet as string),
+        ...activeTraders.map((t) => t.wallet as string),
+      ]);
+      const victims = candidates.filter((v) => !liveWallets.has(v.address));
       if (victims.length > 0) {
         const gone = await this.prisma.trackedWallet.deleteMany({
           where: { id: { in: victims.map((v) => v.id) } },
         });
         pruned = gone.count;
+        await this.audit
+          .record({
+            actor: 'system:rotation',
+            action: 'wallet.rotation_prune',
+            target: victims.map((v) => v.address).join(',').slice(0, 200),
+            reason: `cap ${cap}/${total}: pruned ${pruned} inactive unreferenced wallets`,
+          })
+          .catch((e: unknown) => {
+            console.warn('[leaderboard] prune audit failed:', (e as Error).message);
+          });
+      } else if (candidates.length > 0) {
+        console.warn(`[leaderboard] cap ${cap}/${total}: ${candidates.length} excess wallets all live-referenced, pruned 0`);
       }
     }
 

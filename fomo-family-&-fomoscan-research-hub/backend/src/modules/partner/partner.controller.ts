@@ -3,7 +3,7 @@ import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { PartnerService } from './partner.service.js';
-import { ApplyDto, PayoutWalletDto, PoolSettingsDto, RequestTraderDto, ReviewApplicationDto } from './dto/partner.dto.js';
+import { ApplyDto, PayoutChallengeDto, PayoutWalletDto, PoolSettingsDto, RequestTraderDto, ReviewApplicationDto } from './dto/partner.dto.js';
 
 @Controller('api/partner')
 export class PartnerController {
@@ -24,6 +24,18 @@ export class PartnerController {
     return { success: true, data };
   }
 
+  @Post('payout-wallet/challenge')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('KOL', 'ADMIN')
+  async payoutChallenge(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(PayoutChallengeDto, body);
+    const data = await this.partner.issuePayoutChallenge(req.user as AuthedUser, dto.wallet);
+    return { success: true, data };
+  }
+
   @Post('payout-wallet')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('KOL', 'ADMIN')
@@ -32,7 +44,7 @@ export class PartnerController {
     @Req() req: { user?: AuthedUser },
   ): Promise<{ success: boolean; data: unknown }> {
     const dto = await validateDto(PayoutWalletDto, body);
-    const data = await this.partner.setPayoutWallet(req.user as AuthedUser, dto.wallet);
+    const data = await this.partner.setPayoutWallet(req.user as AuthedUser, dto.wallet, dto.signature);
     return { success: true, data };
   }
 

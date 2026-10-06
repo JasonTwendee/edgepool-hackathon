@@ -17,8 +17,9 @@ function entry(wallet: string, username: string, verified = true): Row {
   return { rank: 1, wallet, username, isVerified: verified, pnlSol: 1, pnlUsd: 2, pnlPercent: 3, realizedPnlUsd: 4, unrealizedPnlUsd: 5 };
 }
 
-function makeFake() {
+function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {}) {
   const db = { wallet: [] as Row[] };
+  const audits: Row[] = [];
   let seq = 0;
   const match = (r: Row, w: Row): boolean =>
     Object.entries(w).every(([k, v]) => {
@@ -45,13 +46,21 @@ function makeFake() {
           ...data,
           // mimic Prisma Decimal
           allocationWeight: { toNumber: () => Number(data.allocationWeight ?? 1) },
+          fomoPnlUsd:
+            data.fomoPnlUsd === null || data.fomoPnlUsd === undefined
+              ? null
+              : { toNumber: () => Number(data.fomoPnlUsd as number) },
         };
         db.wallet.push(r);
         return r;
       },
       update: async ({ where, data }: { where: Row; data: Row }) => {
         const r = db.wallet.find((x) => match(x, where)) as Row;
-        Object.assign(r, data);
+        const normalized = { ...data };
+        if ('fomoPnlUsd' in normalized && normalized.fomoPnlUsd !== null && normalized.fomoPnlUsd !== undefined) {
+          normalized.fomoPnlUsd = { toNumber: () => Number(normalized.fomoPnlUsd as number) };
+        }
+        Object.assign(r, normalized);
         return r;
       },
       count: async ({ where }: { where?: Row } = {}) =>
@@ -63,8 +72,26 @@ function makeFake() {
         return { count: before - db.wallet.length };
       },
     },
+    copyOrder: {
+      findMany: async () => (opts.openWallets ?? []).map((masterWallet) => ({ masterWallet })),
+    },
+    vaultTrader: {
+      findMany: async () => (opts.activeTraders ?? []).map((wallet) => ({ wallet })),
+    },
+    auditLog: {
+      create: async ({ data }: { data: Row }) => {
+        const r = { id: audits.length + 1, createdAt: new Date(), ...data };
+        audits.push(r);
+        return r;
+      },
+    },
   } as never;
-  return { prisma, db };
+  const audit = { record: async (input: Row) => {
+    const r = { id: audits.length + 1, createdAt: new Date(), ...input };
+    audits.push(r);
+    return { id: r.id };
+  } } as never;
+  return { prisma, audit, audits, db };
 }
 
 function stub(order: Row[], enrichOk = true) {
@@ -84,8 +111,9 @@ const noopTransport = {
   unwatch: async () => undefined,
 } as never;
 
-function svcWith(prisma: never, fomoscan: never): LeaderboardService {
-  return new LeaderboardService(prisma, fomoscan, noopTransport, noopTransport);
+function svcWith(prisma: never, fomoscan: never, audit?: never): LeaderboardService {
+  const auditStub = (audit ?? { record: async () => ({ id: 1 }) }) as never;
+  return new LeaderboardService(prisma, fomoscan, noopTransport, noopTransport, auditStub);
 }
 
 function env(vars: Record<string, string | undefined>): () => void {
@@ -165,14 +193,14 @@ async function main(): Promise<void> {
     restore();
   }
 
-  // 6. Status reflects config + counts.
+  // 6. Status reflects config + counts (defaults: top 20, cap 20).
   {
-    const restore = env({ LEADERBOARD_TOP_N: '20', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const restore = env({ LEADERBOARD_TOP_N: '20', LEADERBOARD_CAP: '20', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
     const { prisma } = makeFake();
     const svc = svcWith(prisma, stub([]));
     const st = await svc.status();
     assert.equal(st.topN, 20);
-    assert.equal(st.cap, 50);
+    assert.equal(st.cap, 20);
     assert.equal(st.total, 0);
     restore();
   }
@@ -185,6 +213,61 @@ async function main(): Promise<void> {
     const s = await svc.tick();
     assert.equal(s.added, 1);
     assert.equal(s.active, 1);
+    restore();
+  }
+
+  // 8. Fix 11: INACTIVE wallet with an open order survives cap pressure.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '3', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const oldAddr = base58Encode(Buffer.alloc(32, 77));
+    const { prisma, audit, audits, db } = makeFake({ openWallets: [oldAddr] });
+    db.wallet.push({
+      id: 201, address: oldAddr, label: 'o', handle: 'o', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit);
+    const s = await svc.tick();
+    assert.equal(s.pruned, 0);
+    assert.ok(db.wallet.some((r) => r.address === oldAddr)); // kept: open order references it
+    assert.ok(!audits.some((a) => a.action === 'wallet.rotation_prune'));
+    restore();
+  }
+
+  // 9. Fix 11: INACTIVE wallet in an ACTIVE trader set survives cap pressure.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '3', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const oldAddr = base58Encode(Buffer.alloc(32, 78));
+    const { prisma, audit, db } = makeFake({ activeTraders: [oldAddr] });
+    db.wallet.push({
+      id: 202, address: oldAddr, label: 'o', handle: 'o', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit);
+    const s = await svc.tick();
+    assert.equal(s.pruned, 0);
+    assert.ok(db.wallet.some((r) => r.address === oldAddr)); // kept: pool still copies it
+    restore();
+  }
+
+  // 10. Fix 11: real prune writes an audit row naming victims.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '4', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const { prisma, audit, audits, db } = makeFake();
+    const oldRow = (id: number, address: string): Row => ({
+      id, address, label: 'o', handle: 'o', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    db.wallet.push(oldRow(101, 'OLD1'), oldRow(102, 'OLD2'), oldRow(103, 'OLD3'));
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]), audit);
+    const s = await svc.tick();
+    assert.equal(s.pruned, 1);
+    assert.ok(!db.wallet.some((r) => r.address === 'OLD1'));
+    const row = audits.find((a) => a.action === 'wallet.rotation_prune');
+    assert.ok(row, 'prune audit row written');
+    assert.ok(((row as Row).target as string).includes('OLD1'));
     restore();
   }
 

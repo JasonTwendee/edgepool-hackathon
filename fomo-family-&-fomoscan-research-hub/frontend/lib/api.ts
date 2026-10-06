@@ -249,6 +249,7 @@ export function cancelWithdrawal(id: number, token: string): Promise<{ success: 
 export interface PartnerMe {
   handle: string;
   payoutWallet: string | null;
+  payoutWalletVerified: boolean;
   pools: { id: number; name: string; kind: string; status: string; listing: string; navSol: number }[];
   fees: { pendingSol: number; claimableSol: number; paidSol: number; nextCheckpointAt: string | null; byPool: { vaultId: number; kind: string; claimableSol: number; paidSol: number }[] };
   basket: { wallet: string; handle: string; rank: number | null; inBasket: boolean; note: string }[];
@@ -263,8 +264,12 @@ export function partnerMe(token: string): Promise<{ success: boolean; data: Part
   return fetchJsonAuth('/api/partner/me', token);
 }
 
-export function partnerSetPayoutWallet(token: string, wallet: string): Promise<{ success: boolean; data: { payoutWallet: string } }> {
-  return fetchJsonAuth('/api/partner/payout-wallet', token, { method: 'POST', body: JSON.stringify({ wallet }) });
+export function partnerPayoutChallenge(token: string, wallet: string): Promise<{ success: boolean; data: { wallet: string; nonce: string; message: string; expiresAt: string } }> {
+  return fetchJsonAuth('/api/partner/payout-wallet/challenge', token, { method: 'POST', body: JSON.stringify({ wallet }) });
+}
+
+export function partnerSetPayoutWallet(token: string, wallet: string, signature: string): Promise<{ success: boolean; data: { payoutWallet: string } }> {
+  return fetchJsonAuth('/api/partner/payout-wallet', token, { method: 'POST', body: JSON.stringify({ wallet, signature }) });
 }
 
 export function partnerClaim(token: string): Promise<{ success: boolean; data: { claimedSol: number; rows: number } }> {
@@ -296,21 +301,21 @@ export function partnerPayouts(token: string): Promise<{ success: boolean; total
 }
 
 export function queueVaultDeposit(input: {
-  depositor: string;
+  depositor?: string;
   amountSol: number;
   vaultId?: number;
-}, token?: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  return token ? fetchJsonAuth('/api/vaults/deposit', token, init) : fetchJson('/api/vaults/deposit', init);
+  return fetchJsonAuth('/api/vaults/deposit', token, init);
 }
 
 export function requestVaultWithdraw(input: {
-  depositor: string;
+  depositor?: string;
   shares: number;
   vaultId?: number;
-}, token?: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  return token ? fetchJsonAuth('/api/vaults/withdraw', token, init) : fetchJson('/api/vaults/withdraw', init);
+  return fetchJsonAuth('/api/vaults/withdraw', token, init);
 }
 
 export interface WalletPnl {

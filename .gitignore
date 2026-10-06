@@ -31,3 +31,6 @@ Thumbs.db
 # Misc
 .cache/
 tmp/
+
+# Prune evidence archive (local JSONL, volume-mounted in prod)
+fomo-family-&-fomoscan-research-hub/backend/data/

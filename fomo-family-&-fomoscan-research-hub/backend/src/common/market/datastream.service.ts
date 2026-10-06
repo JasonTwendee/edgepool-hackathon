@@ -7,6 +7,13 @@ import { Injectable } from '@nestjs/common';
  */
 export const DATASTREAM_BASE_URL = 'https://data.fluxbeam.xyz';
 
+/** Server TTL caches (G1 resource audit 2026-10-06): every page view fans out
+ * several price/candle calls with zero cache. Env-overridable, 0 = disabled. */
+export const PRICES_TTL_MS =
+  process.env.DATASTREAM_PRICES_TTL_MS !== undefined ? Number(process.env.DATASTREAM_PRICES_TTL_MS) : 45000;
+export const CANDLES_TTL_MS =
+  process.env.DATASTREAM_CANDLES_TTL_MS !== undefined ? Number(process.env.DATASTREAM_CANDLES_TTL_MS) : 120000;
+
 export interface Candle {
   open: number;
   high: number;
@@ -28,11 +35,49 @@ const netFetch: FetchLike = (url, init) =>
 export class DataStreamService {
   private base: string;
   private apiKey?: string;
+  /** Default fetch impl (G1 test seam: override in asserts to avoid network). */
+  public defaultFetch: FetchLike = netFetch;
+  // TTL cache + single-flight dedupe (G1): concurrent identical calls share
+  // one fetch; fresh results are reused until TTL. Bypassed whenever a caller
+  // passes an explicit fetcher (test seam / forced refresh).
+  private readonly cache = new Map<string, { at: number; data: unknown }>();
+  private readonly inflight = new Map<string, Promise<unknown>>();
 
   // NOTE: no-arg constructor (tsx-safe DI). Use configure() in tests.
   constructor() {
     this.base = (process.env.DATASTREAM_BASE_URL || DATASTREAM_BASE_URL).replace(/\/$/, '');
     this.apiKey = process.env.DATASTREAM_API_KEY || undefined;
+  }
+
+  /** Test seam: drop all cached entries. */
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  /**
+   * TTL read-through + single-flight: concurrent callers with the same key
+   * share one in-flight fetch; settled results are reused until `ttlMs`.
+   * Failures are never cached (a 429 must not poison the window).
+   */
+  private async cached(key: string, ttlMs: number, run: () => Promise<unknown>): Promise<unknown> {
+    if (!(ttlMs > 0)) return run();
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.at < ttlMs) return hit.data;
+    const ongoing = this.inflight.get(key);
+    if (ongoing) return ongoing;
+    const p = run().then(
+      (data) => {
+        this.inflight.delete(key);
+        this.cache.set(key, { at: Date.now(), data });
+        return data;
+      },
+      (err) => {
+        this.inflight.delete(key);
+        throw err;
+      },
+    );
+    this.inflight.set(key, p);
+    return p;
   }
 
   configure(base?: string, apiKey?: string): this {
@@ -41,11 +86,12 @@ export class DataStreamService {
     return this;
   }
 
-  private async get<T>(path: string, fetcher: FetchLike = netFetch): Promise<T> {
+  private async get<T>(path: string, fetcher?: FetchLike): Promise<T> {
+    const impl = fetcher ?? this.defaultFetch;
     // v1: plain GET (open endpoints). Key attached as query when present.
     const sep = path.includes('?') ? '&' : '?';
     const url = this.apiKey ? `${this.base}${path}${sep}key=${this.apiKey}` : `${this.base}${path}`;
-    const res = await fetcher(url, { signal: AbortSignal.timeout(12000) });
+    const res = await impl(url, { signal: AbortSignal.timeout(12000) });
     if (!res.ok) throw new Error(`DataStream ${res.status} for ${path.split('?')[0]}`);
     return (await res.json()) as T;
   }
@@ -53,15 +99,20 @@ export class DataStreamService {
   /** Mint → USD (bulk, max 255). Returns only mints the API priced. */
   async bulkPrices(mints: string[], fetcher?: FetchLike): Promise<Record<string, number>> {
     if (mints.length === 0) return {};
-    const body = await this.get<{ data?: Record<string, number> }>(
-      `/prices?ids=${mints.map(encodeURIComponent).join(',')}`,
-      fetcher,
-    );
-    const out: Record<string, number> = {};
-    for (const [mint, price] of Object.entries(body.data ?? {})) {
-      if (typeof price === 'number' && price > 0) out[mint] = price;
-    }
-    return out;
+    const key = `prices:${[...new Set(mints)].sort().join(',')}`;
+    const run = async (): Promise<Record<string, number>> => {
+      const body = await this.get<{ data?: Record<string, number> }>(
+        `/prices?ids=${mints.map(encodeURIComponent).join(',')}`,
+        fetcher,
+      );
+      const out: Record<string, number> = {};
+      for (const [mint, price] of Object.entries(body.data ?? {})) {
+        if (typeof price === 'number' && price > 0) out[mint] = price;
+      }
+      return out;
+    };
+    if (fetcher) return run();
+    return this.cached(key, PRICES_TTL_MS, run) as Promise<Record<string, number>>;
   }
 
   async candles(
@@ -69,20 +120,28 @@ export class DataStreamService {
     opts: { interval?: string; count?: number; from?: number; to?: number } = {},
     fetcher?: FetchLike,
   ): Promise<Candle[]> {
-    const q = new URLSearchParams();
-    if (opts.interval) q.set('interval', opts.interval);
-    if (opts.count) q.set('count', String(opts.count));
-    if (opts.from) q.set('from', String(opts.from));
-    if (opts.to) q.set('to', String(opts.to));
-    const qs = q.toString();
-    const rows = await this.get<unknown[]>(`/tokens/${mint}/candles${qs ? `?${qs}` : ''}`, fetcher);
-    if (!Array.isArray(rows)) return [];
-    return rows
-      .filter(
-        (r): r is Record<string, number> =>
-          !!r && typeof r === 'object' && ['open', 'high', 'low', 'close'].every((k) => typeof (r as Record<string, number>)[k] === 'number'),
-      )
-      .map((r) => ({ open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume ?? 0, timestamp: r.timestamp ?? 0 }));
+    // `from`/`to` pin windows down to the second — caching them would poison
+    // the cache with per-call keys, so only cache coarse (window-free) queries.
+    const cacheable = opts.from === undefined && opts.to === undefined;
+    const key = `candles:${mint}:${opts.interval ?? ''}:${opts.count ?? ''}`;
+    const run = async (): Promise<Candle[]> => {
+      const q = new URLSearchParams();
+      if (opts.interval) q.set('interval', opts.interval);
+      if (opts.count) q.set('count', String(opts.count));
+      if (opts.from) q.set('from', String(opts.from));
+      if (opts.to) q.set('to', String(opts.to));
+      const qs = q.toString();
+      const rows = await this.get<unknown[]>(`/tokens/${mint}/candles${qs ? `?${qs}` : ''}`, fetcher);
+      if (!Array.isArray(rows)) return [];
+      return rows
+        .filter(
+          (r): r is Record<string, number> =>
+            !!r && typeof r === 'object' && ['open', 'high', 'low', 'close'].every((k) => typeof (r as Record<string, number>)[k] === 'number'),
+        )
+        .map((r) => ({ open: r.open, high: r.high, low: r.low, close: r.close, volume: r.volume ?? 0, timestamp: r.timestamp ?? 0 }));
+    };
+    if (fetcher || !cacheable) return run();
+    return this.cached(key, CANDLES_TTL_MS, run) as Promise<Candle[]>;
   }
 
   /** Token details (marketCap for liquidity gating). Null on any failure. */

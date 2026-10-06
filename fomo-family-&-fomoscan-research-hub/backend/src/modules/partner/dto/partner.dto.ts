@@ -19,11 +19,22 @@ export class ApplyDto {
   contact!: string;
 }
 
-/** POST /api/partner/payout-wallet body. */
+/** POST /api/partner/payout-wallet/challenge body. */
+export class PayoutChallengeDto {
+  @IsString()
+  @MinLength(32)
+  wallet!: string;
+}
+
+/** POST /api/partner/payout-wallet body (signature over the challenge message). */
 export class PayoutWalletDto {
   @IsString()
   @MinLength(32)
   wallet!: string;
+
+  @IsString()
+  @MinLength(10)
+  signature!: string;
 }
 
 /** PATCH /api/partner/pools/:id/settings body (owner or ADMIN). */

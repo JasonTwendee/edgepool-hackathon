@@ -407,6 +407,7 @@ export const ModelName = {
   Withdrawal: 'Withdrawal',
   EpochCheckpoint: 'EpochCheckpoint',
   User: 'User',
+  PayoutWalletChallenge: 'PayoutWalletChallenge',
   AuthNonce: 'AuthNonce',
   Session: 'Session',
   AuditLog: 'AuditLog',
@@ -430,7 +431,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest"
+    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1171,6 +1172,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    PayoutWalletChallenge: {
+      payload: Prisma.$PayoutWalletChallengePayload<ExtArgs>
+      fields: Prisma.PayoutWalletChallengeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PayoutWalletChallengeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PayoutWalletChallengeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        findFirst: {
+          args: Prisma.PayoutWalletChallengeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PayoutWalletChallengeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        findMany: {
+          args: Prisma.PayoutWalletChallengeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>[]
+        }
+        create: {
+          args: Prisma.PayoutWalletChallengeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        createMany: {
+          args: Prisma.PayoutWalletChallengeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PayoutWalletChallengeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>[]
+        }
+        delete: {
+          args: Prisma.PayoutWalletChallengeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        update: {
+          args: Prisma.PayoutWalletChallengeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        deleteMany: {
+          args: Prisma.PayoutWalletChallengeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PayoutWalletChallengeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PayoutWalletChallengeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>[]
+        }
+        upsert: {
+          args: Prisma.PayoutWalletChallengeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PayoutWalletChallengePayload>
+        }
+        aggregate: {
+          args: Prisma.PayoutWalletChallengeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePayoutWalletChallenge>
+        }
+        groupBy: {
+          args: Prisma.PayoutWalletChallengeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PayoutWalletChallengeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PayoutWalletChallengeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PayoutWalletChallengeCountAggregateOutputType> | number
         }
       }
     }
@@ -1995,10 +2070,24 @@ export const UserScalarFieldEnum = {
   passwordHash: 'passwordHash',
   role: 'role',
   payoutWallet: 'payoutWallet',
+  payoutWalletVerifiedAt: 'payoutWalletVerifiedAt',
   createdAt: 'createdAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const PayoutWalletChallengeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  wallet: 'wallet',
+  nonce: 'nonce',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PayoutWalletChallengeScalarFieldEnum = (typeof PayoutWalletChallengeScalarFieldEnum)[keyof typeof PayoutWalletChallengeScalarFieldEnum]
 
 
 export const AuthNonceScalarFieldEnum = {
@@ -2413,6 +2502,7 @@ export type GlobalOmitConfig = {
   withdrawal?: Prisma.WithdrawalOmit
   epochCheckpoint?: Prisma.EpochCheckpointOmit
   user?: Prisma.UserOmit
+  payoutWalletChallenge?: Prisma.PayoutWalletChallengeOmit
   authNonce?: Prisma.AuthNonceOmit
   session?: Prisma.SessionOmit
   auditLog?: Prisma.AuditLogOmit

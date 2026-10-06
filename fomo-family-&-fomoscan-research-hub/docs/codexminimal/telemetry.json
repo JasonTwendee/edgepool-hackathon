@@ -236,84 +236,126 @@
     "demo asserts ALL GREEN (7 groups)",
     "root tsc BE+FE",
     "live seed/replay/withdraw-pending/performance/reset 6/6",
-      "13/13 asserts GREEN",
-      "openapi 37 paths YAML valid",
-      "review APPROVE"
-    ]
-   },
-   {
-    "at": "2026-10-05T00:00:00Z",
-    "detail": "Accounts tk+mk A1-A3: setRole by wallet|cred|username + list username/email, seed admin/user/kol, FE username display, AuthPanel JSX fix",
-    "phase": "A1-A3",
-    "status": "done",
-    "topic": "accounts",
-    "verification": [
-     "assert-auth §13 GREEN",
-     "root tsc BE+FE",
-     "FE next build",
-     "live login x3 roles + 401 + 400 + logout/revoke + set-role username/cred + 403 + list usernames",
-     "openapi 39 paths YAML valid",
-     "review APPROVE"
-    ]
-   },
-   {
-    "at": "2026-10-05T00:00:00Z",
-    "detail": "Hardening H1-H4: purgeExpired ADMIN endpoint + failed-login audit, openapi 201/CSRF/purge, stale tracker cleanup",
-    "phase": "H1-H4",
-    "status": "done",
-    "topic": "hardening",
-    "verification": [
-     "assert-auth §14+§15 GREEN + 13/13 suites GREEN",
-     "root tsc BE+FE",
-     "live purge 21 nonces + 403/401 matrix + login_failed audit row",
-     "openapi 40 paths YAML valid",
-     "review APPROVE"
-    ]
-   },
-   {
-    "at": "2026-10-05T00:00:00Z",
-    "detail": "KOL earnings K1-K4: PartnerPayout ledger + 75/25 fee split + earnings endpoint + VaultCard block, live report-example E2E",
-    "phase": "K1-K4",
-    "status": "done",
-    "topic": "kol-earnings",
-    "verification": [
-     "assert-partner 6 groups GREEN + 14/14 suites GREEN",
-     "root tsc BE+FE + FE next build",
-     "live vault 12: fee 0.2 -> 0.1125/0.0375 partner + 0.05 treasury",
-     "openapi 41 paths YAML valid",
-     "review APPROVE"
-    ]
-   },
-   {
-    "at": "2026-10-05T00:00:00Z",
-    "detail": "FomoScan F1-F4: throttled client + wallet enrich (bio/EVM) + cross-check + flagged PnL fast-path, live 4/10 enriched",
-    "phase": "F1-F4",
-    "status": "done",
-    "topic": "fomoscan",
-    "verification": [
-     "assert-fomoscan + assert-enrich GREEN + 15/15 suites GREEN",
-     "root tsc BE+FE",
-     "live enrich 4/10 + cross-check delta documented (flag stays false)",
-     "openapi 42 paths YAML valid",
-     "review APPROVE"
-    ]
-   },
-   {
-    "at": "2026-10-05T00:00:00Z",
-    "detail": "Leaderboard rotation R1-R3: auto top-20 weekly, cap 50, manual add/remove removed, live 20 active + FE active-only",
-    "phase": "R1-R3",
-    "status": "done",
-    "topic": "leaderboard-rotation",
-    "verification": [
-     "assert-leaderboard 6 groups GREEN + 17/17 suites GREEN",
-     "root tsc BE+FE + FE next build",
-     "live tick: added 3, deactivated 10, total 30, active 20",
-     "openapi 44 paths YAML valid",
-     "review APPROVE"
-    ]
-   }
-  ],
+    "13/13 asserts GREEN",
+    "openapi 37 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-05T00:00:00Z",
+   "detail": "Accounts tk+mk A1-A3: setRole by wallet|cred|username + list username/email, seed admin/user/kol, FE username display, AuthPanel JSX fix",
+   "phase": "A1-A3",
+   "status": "done",
+   "topic": "accounts",
+   "verification": [
+    "assert-auth \u00a713 GREEN",
+    "root tsc BE+FE",
+    "FE next build",
+    "live login x3 roles + 401 + 400 + logout/revoke + set-role username/cred + 403 + list usernames",
+    "openapi 39 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-05T00:00:00Z",
+   "detail": "Hardening H1-H4: purgeExpired ADMIN endpoint + failed-login audit, openapi 201/CSRF/purge, stale tracker cleanup",
+   "phase": "H1-H4",
+   "status": "done",
+   "topic": "hardening",
+   "verification": [
+    "assert-auth \u00a714+\u00a715 GREEN + 13/13 suites GREEN",
+    "root tsc BE+FE",
+    "live purge 21 nonces + 403/401 matrix + login_failed audit row",
+    "openapi 40 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-05T00:00:00Z",
+   "detail": "KOL earnings K1-K4: PartnerPayout ledger + 75/25 fee split + earnings endpoint + VaultCard block, live report-example E2E",
+   "phase": "K1-K4",
+   "status": "done",
+   "topic": "kol-earnings",
+   "verification": [
+    "assert-partner 6 groups GREEN + 14/14 suites GREEN",
+    "root tsc BE+FE + FE next build",
+    "live vault 12: fee 0.2 -> 0.1125/0.0375 partner + 0.05 treasury",
+    "openapi 41 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-05T00:00:00Z",
+   "detail": "FomoScan F1-F4: throttled client + wallet enrich (bio/EVM) + cross-check + flagged PnL fast-path, live 4/10 enriched",
+   "phase": "F1-F4",
+   "status": "done",
+   "topic": "fomoscan",
+   "verification": [
+    "assert-fomoscan + assert-enrich GREEN + 15/15 suites GREEN",
+    "root tsc BE+FE",
+    "live enrich 4/10 + cross-check delta documented (flag stays false)",
+    "openapi 42 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-05T00:00:00Z",
+   "detail": "Leaderboard rotation R1-R3: auto top-20 weekly, cap 50, manual add/remove removed, live 20 active + FE active-only",
+   "phase": "R1-R3",
+   "status": "done",
+   "topic": "leaderboard-rotation",
+   "verification": [
+    "assert-leaderboard 6 groups GREEN + 17/17 suites GREEN",
+    "root tsc BE+FE + FE next build",
+    "live tick: added 3, deactivated 10, total 30, active 20",
+    "openapi 44 paths YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-06T00:00:00Z",
+   "topic": "vault-money-hardening-1-6",
+   "phase": "P1-P6",
+   "status": "done",
+   "detail": "Fix 1-6: settle ADMIN+audit, settle tx+advisory lock, session identity, fee split by kind, auto-fire kill-switch; BE+FE typecheck + 14/14 asserts green",
+   "verification": [
+    "npm BE typecheck PASS",
+    "npm FE typecheck PASS",
+    "14/14 asserts GREEN",
+    "openapi YAML valid",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-06T00:00:00Z",
+   "topic": "partner-payout-prune-guards",
+   "phase": "P1-P6",
+   "status": "done",
+   "detail": "Fix 7/10/11: payout challenge+verify+claim gate (migration applied), prune JSONL archive+audit fail-safe, rotation guards+audit; BE+FE typecheck + 17/17 asserts green",
+   "verification": [
+    "npm BE typecheck PASS",
+    "npm FE typecheck PASS",
+    "17/17 asserts GREEN",
+    "openapi 61 paths valid",
+    "migrate deploy clean",
+    "review APPROVE"
+   ]
+  },
+  {
+   "at": "2026-10-06T00:00:00Z",
+   "topic": "api-rpc-resource-audit-g1g2",
+   "phase": "G1-G2",
+   "status": "done",
+   "detail": "G1: DataStream bulkPrices/candles TTL cache+single-flight, CoinGecko ticks cache 90s; G2: FE slow-data polls 60s->180s (ticker stays 60s). BE+FE typecheck + asserts green (incl. new market asserts).",
+   "verification": [
+    "npm BE typecheck PASS",
+    "npm FE typecheck PASS",
+    "datastream+market asserts GREEN",
+    "full BE sweep GREEN"
+   ]
+  }
+ ],
  "sessions": [],
- "updatedAt": "2026-10-02T00:00:00Z",
+ "updatedAt": "2026-10-06T00:00:00Z",
  "version": 2
 }

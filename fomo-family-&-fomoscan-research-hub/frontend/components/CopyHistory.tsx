@@ -37,7 +37,7 @@ export function CopyHistory({ walletAddress, refreshKey }: Props) {
   }, [refresh, refreshKey]);
 
   useEffect(() => {
-    const timer = setInterval(() => void refresh(), 60000);
+    const timer = setInterval(() => void refresh(), 180000);
     return () => clearInterval(timer);
   }, [refresh]);
 

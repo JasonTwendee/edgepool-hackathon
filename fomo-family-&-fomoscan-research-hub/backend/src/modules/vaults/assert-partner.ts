@@ -45,6 +45,8 @@ function makeFake() {
     settlePeriodHours: 0,
     settleLengthMin: 0,
     treasurySol: 0,
+    kind: 'basket',
+    status: 'live',
     createdAt: new Date(),
     ...data,
   });
@@ -126,9 +128,14 @@ function makeFake() {
 
 const close = (a: number, b: number): boolean => Math.abs(a - b) < 1e-9;
 
-async function feeVault(feeBps: number): Promise<{ svc: VaultService; id: number }> {
-  const svc = new VaultService(makeFake());
-  const { id } = await svc.getOrCreateVault(`partner-${feeBps}-${Date.now()}`);
+async function feeVault(feeBps: number, kind: 'basket' | 'partner' = 'partner'): Promise<{ svc: VaultService; id: number }> {
+  const fake = makeFake();
+  const svc = new VaultService(fake);
+  const { id } = await svc.getOrCreateVault(`${kind}-${feeBps}-${Date.now()}-${Math.random()}`);
+  await (fake as unknown as { vault: { update: (a: unknown) => Promise<unknown> } }).vault.update({
+    where: { id },
+    data: { kind },
+  } as never);
   await svc.setPolicy(id, { feeBps });
   await svc.deposit(id, 'carol', 10);
   await svc.settleEpoch(id, 10); // price 1, 10 shares
@@ -215,6 +222,21 @@ async function main(): Promise<void> {
     const s = await svc.settleEpoch(id, 11);
     assert.deepEqual(s.partnerPayouts, []);
     assert.ok(close(s.edgepoolSol, 0.2));
+  }
+
+  // 7. Fix #5: basket pools split 50/50 (fee 0.2 → partner 0.1, edgepool 0.1).
+  {
+    const { svc, id } = await feeVault(2000, 'basket');
+    const t1 = walletOf(41);
+    await svc.assignTrader(id, t1, 10000);
+    const s = await svc.settleEpoch(id, 11);
+    assert.equal(s.feeSol, 0.2);
+    assert.equal(s.partnerPayouts.length, 1);
+    assert.ok(close(s.partnerPayouts[0].amountSol, 0.1), `basket partner=${s.partnerPayouts[0]?.amountSol}`);
+    assert.ok(close(s.edgepoolSol, 0.1), `basket edgepool=${s.edgepoolSol}`);
+    const parts = s.partnerPayouts.reduce((x, p) => x + p.amountSol, 0);
+    assert.ok(close(parts + s.edgepoolSol, s.feeSol));
+    assert.ok(close(parts + s.edgepoolSol + s.navSol, 11));
   }
 
   console.log('partner asserts: ALL GREEN');

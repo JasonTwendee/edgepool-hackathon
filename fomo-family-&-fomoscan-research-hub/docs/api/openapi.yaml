@@ -221,14 +221,59 @@ paths:
                   data: { type: object }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
-  /api/partner/payout-wallet:
+  /api/partner/payout-wallet/challenge:
     post:
-      summary: Set partner payout wallet (KOL/ADMIN)
-      operationId: setPayoutWallet
+      summary: Issue an ownership challenge for a payout wallet (KOL/ADMIN, 5min TTL)
+      operationId: issuePayoutChallenge
       security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet]
+              properties:
+                wallet: { type: string, description: Base58 Solana address to prove ownership of }
       responses:
         '200':
-          description: Updated
+          description: Challenge (sign `message` with the payout wallet)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    required: [wallet, nonce, message, expiresAt]
+                    properties:
+                      wallet: { type: string }
+                      nonce: { type: string }
+                      message: { type: string }
+                      expiresAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/payout-wallet:
+    post:
+      summary: Set partner payout wallet with ownership signature (KOL/ADMIN)
+      operationId: setPayoutWallet
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet, signature]
+              properties:
+                wallet: { type: string, description: Base58 Solana address }
+                signature: { type: string, description: Base58 ed25519 signature of the challenge message by the payout wallet }
+      responses:
+        '200':
+          description: Updated (verified)
           content:
             application/json:
               schema:
@@ -242,7 +287,7 @@ paths:
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/partner/claim:
     post:
-      summary: Claim ACCRUED fees to PAID (KOL/ADMIN, record-only)
+      summary: Claim ACCRUED fees to PAID (KOL/ADMIN, record-only, requires verified payout wallet)
       operationId: claimPartnerFees
       security: [{ bearerAuth: [] }]
       responses:
@@ -787,8 +832,9 @@ paths:
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/deposit:
     post:
-      summary: Queue a vault deposit (settled at epoch price)
+      summary: Queue a vault deposit (settled at epoch price, session identity)
       operationId: queueVaultDeposit
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -816,10 +862,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/withdraw:
     post:
-      summary: Request a share withdrawal (settled at epoch price)
+      summary: Request a share withdrawal (settled at epoch price, session identity)
       operationId: requestVaultWithdraw
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -847,10 +895,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/settle:
     post:
-      summary: Settle an epoch at given NAV (mints/burns, takes HWM fee)
+      summary: Settle an epoch (ADMIN only, audited; omitted NAV = engine mark-to-market)
       operationId: settleVaultEpoch
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -874,6 +924,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/status:
     get:
       summary: Vault status + last epoch + queued counts
@@ -1884,24 +1936,25 @@ components:
           items: { $ref: '#/components/schemas/CopyOrder' }
     VaultDepositDto:
       type: object
-      required: [depositor, amountSol]
+      required: [amountSol]
       properties:
         vaultId: { type: integer }
-        depositor: { type: string }
+        depositor: { type: string, description: Display-only, ignored when authed (session wallet is authoritative) }
         amountSol: { type: number }
     VaultWithdrawDto:
       type: object
-      required: [depositor, shares]
+      required: [shares]
       properties:
         vaultId: { type: integer }
-        depositor: { type: string }
+        depositor: { type: string, description: Display-only, ignored when authed }
         shares: { type: number }
     VaultSettleDto:
       type: object
       required: []
       properties:
         vaultId: { type: integer }
-        navSol: { type: number, description: Omitted = NAV engine mark-to-market }
+        navSol: { type: number, description: Omitted = NAV engine mark-to-market (ADMIN manual override is audited) }
+        reason: { type: string, description: Audit reason for manual settle }
     VaultSettleResult:
       type: object
       properties:

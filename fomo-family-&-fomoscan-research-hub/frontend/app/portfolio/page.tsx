@@ -50,7 +50,7 @@ function WithdrawModal({
     setBusy(true);
     setErr(null);
     try {
-      const res = await requestVaultWithdraw({ vaultId: poolId, depositor: 'me', shares }, token);
+      const res = await requestVaultWithdraw({ vaultId: poolId, shares }, token);
       onDone(`Withdraw #${res.data.id} ${flat ? 'settled instantly' : 'queued — settles at checkpoint'}.`);
       onClose();
     } catch (e) {
@@ -125,7 +125,7 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     void refresh();
-    const t = setInterval(() => void refresh(), 60000);
+    const t = setInterval(() => void refresh(), 180000);
     return () => clearInterval(t);
   }, [refresh]);
 

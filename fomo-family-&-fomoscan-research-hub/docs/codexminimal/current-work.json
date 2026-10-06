@@ -1,14 +1,1 @@
-{
- "blockedBy": [],
-  "currentPhase": "R1-R3",
-  "currentStage": "done",
-  "executionWorkflow": "repo-phase-orchestrator -> native execution",
-  "lastUpdated": "2026-10-05T00:00:00Z",
-  "openQuestions": [],
-  "phasePlanPath": "docs/codexminimal/idsd/2026-10-05-leaderboard-rotation-intent.md",
-  "specPath": "docs/codexminimal/idsd/2026-10-05-leaderboard-rotation-intent.md",
-  "status": "done",
-  "topic": "leaderboard-rotation",
-  "trackerPath": "docs/codexminimal/trackers/2026-10-05-leaderboard-rotation-tracker.md",
- "version": 2
-}
+{"blockedBy": [], "currentPhase": "P6-verify", "currentStage": "done", "executionWorkflow": "repo-phase-orchestrator -> native execution", "lastUpdated": "2026-10-06T00:00:00Z", "openQuestions": [], "phasePlanPath": "docs/codexminimal/plans/2026-10-06-partner-payout-prune-guards-phase-plan.md", "specPath": "docs/codexminimal/idsd/2026-10-06-partner-payout-prune-guards-intent.md", "status": "done", "topic": "partner-payout-prune-guards", "trackerPath": "docs/codexminimal/trackers/2026-10-06-partner-payout-prune-guards-tracker.md", "version": 2}

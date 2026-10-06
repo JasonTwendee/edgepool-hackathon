@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  getAuthMe,
   getPoolDetail,
   queueVaultDeposit,
   type PoolDetail,
@@ -53,7 +52,7 @@ export default function PoolDetailPage() {
 
   useEffect(() => {
     void refresh();
-    const t = setInterval(() => void refresh(), 60000);
+    const t = setInterval(() => void refresh(), 180000);
     return () => clearInterval(t);
   }, [refresh]);
 
@@ -72,8 +71,7 @@ export default function PoolDetailPage() {
     setBusy(true);
     setMsg(null);
     try {
-      const me = await getAuthMe(token);
-      const res = await queueVaultDeposit({ vaultId: pool.id, depositor: me.data.wallet, amountSol: amt }, token);
+      const res = await queueVaultDeposit({ vaultId: pool.id, amountSol: amt }, token);
       setMsg(`Deposit #${res.data.id} queued — settles at next epoch price.`);
       setAmount('');
       await refresh();

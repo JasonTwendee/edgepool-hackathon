@@ -16,7 +16,6 @@ import type { FundSession } from '../types/fund';
  */
 export function MyVault({ session }: { session: FundSession | null }) {
   const [mine, setMine] = useState<VaultMine | null>(null);
-  const [depositor, setDepositor] = useState('');
   const [amount, setAmount] = useState('');
   const [shares, setShares] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,13 +33,9 @@ export function MyVault({ session }: { session: FundSession | null }) {
 
   useEffect(() => {
     void refresh();
-    const timer = setInterval(() => void refresh(), 60000);
+    const timer = setInterval(() => void refresh(), 180000);
     return () => clearInterval(timer);
   }, [refresh]);
-
-  useEffect(() => {
-    if (session?.user.username) setDepositor(session.user.username);
-  }, [session]);
 
   async function act(kind: 'deposit' | 'withdraw') {
     if (busy || !session) return;
@@ -49,14 +44,14 @@ export function MyVault({ session }: { session: FundSession | null }) {
     try {
       if (kind === 'deposit') {
         const amt = Number(amount);
-        if (!depositor.trim() || !(amt > 0)) throw new Error('Enter a name and a positive SOL amount.');
-        const res = await queueVaultDeposit({ depositor: depositor.trim(), amountSol: amt }, session.token);
+        if (!(amt > 0)) throw new Error('Enter a positive SOL amount.');
+        const res = await queueVaultDeposit({ amountSol: amt }, session.token);
         setMsg(`Deposit #${res.data.id} queued — settles at next epoch price.`);
         setAmount('');
       } else {
         const sh = Number(shares);
-        if (!depositor.trim() || !(sh > 0)) throw new Error('Enter a name and positive shares.');
-        const res = await requestVaultWithdraw({ depositor: depositor.trim(), shares: sh }, session.token);
+        if (!(sh > 0)) throw new Error('Enter positive shares.');
+        const res = await requestVaultWithdraw({ shares: sh }, session.token);
         setMsg(`Withdraw #${res.data.id} queued — settles at next epoch price.`);
         setShares('');
       }
@@ -104,12 +99,9 @@ export function MyVault({ session }: { session: FundSession | null }) {
         </div>
       </div>
 
-      <input
-        value={depositor}
-        onChange={(e) => setDepositor(e.target.value)}
-        placeholder="Your name"
-        className="w-full text-xs px-3 py-2 rounded-lg bg-[#161826] border border-[#3F424D] text-[#E9E9ED] placeholder:text-[#75798C] outline-none focus:border-[#49E6D7]"
-      />
+      <p className="text-[11px] font-mono text-[#75798C]">
+        {session.user.wallet.slice(0, 8)}… · session identity
+      </p>
       <div className="grid grid-cols-2 gap-2">
         <div className="flex gap-1.5">
           <input
