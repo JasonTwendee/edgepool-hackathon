@@ -108,7 +108,8 @@ export class VaultSettleDto {
   @Min(1)
   vaultId?: number;
 
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  navSol!: number;
+  navSol?: number;
 }

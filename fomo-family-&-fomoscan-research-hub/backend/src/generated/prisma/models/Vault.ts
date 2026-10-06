@@ -37,6 +37,8 @@ export type VaultAvgAggregateOutputType = {
   treasurySol: runtime.Decimal | null
   settlePeriodHours: number | null
   settleLengthMin: number | null
+  maxSlots: number | null
+  maxTraders: number | null
 }
 
 export type VaultSumAggregateOutputType = {
@@ -50,6 +52,8 @@ export type VaultSumAggregateOutputType = {
   treasurySol: runtime.Decimal | null
   settlePeriodHours: number | null
   settleLengthMin: number | null
+  maxSlots: number | null
+  maxTraders: number | null
 }
 
 export type VaultMinAggregateOutputType = {
@@ -64,6 +68,11 @@ export type VaultMinAggregateOutputType = {
   treasurySol: runtime.Decimal | null
   settlePeriodHours: number | null
   settleLengthMin: number | null
+  kind: string | null
+  status: string | null
+  listing: string | null
+  maxSlots: number | null
+  maxTraders: number | null
   environment: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -81,6 +90,11 @@ export type VaultMaxAggregateOutputType = {
   treasurySol: runtime.Decimal | null
   settlePeriodHours: number | null
   settleLengthMin: number | null
+  kind: string | null
+  status: string | null
+  listing: string | null
+  maxSlots: number | null
+  maxTraders: number | null
   environment: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -98,6 +112,11 @@ export type VaultCountAggregateOutputType = {
   treasurySol: number
   settlePeriodHours: number
   settleLengthMin: number
+  kind: number
+  status: number
+  listing: number
+  maxSlots: number
+  maxTraders: number
   environment: number
   createdAt: number
   updatedAt: number
@@ -116,6 +135,8 @@ export type VaultAvgAggregateInputType = {
   treasurySol?: true
   settlePeriodHours?: true
   settleLengthMin?: true
+  maxSlots?: true
+  maxTraders?: true
 }
 
 export type VaultSumAggregateInputType = {
@@ -129,6 +150,8 @@ export type VaultSumAggregateInputType = {
   treasurySol?: true
   settlePeriodHours?: true
   settleLengthMin?: true
+  maxSlots?: true
+  maxTraders?: true
 }
 
 export type VaultMinAggregateInputType = {
@@ -143,6 +166,11 @@ export type VaultMinAggregateInputType = {
   treasurySol?: true
   settlePeriodHours?: true
   settleLengthMin?: true
+  kind?: true
+  status?: true
+  listing?: true
+  maxSlots?: true
+  maxTraders?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -160,6 +188,11 @@ export type VaultMaxAggregateInputType = {
   treasurySol?: true
   settlePeriodHours?: true
   settleLengthMin?: true
+  kind?: true
+  status?: true
+  listing?: true
+  maxSlots?: true
+  maxTraders?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -177,6 +210,11 @@ export type VaultCountAggregateInputType = {
   treasurySol?: true
   settlePeriodHours?: true
   settleLengthMin?: true
+  kind?: true
+  status?: true
+  listing?: true
+  maxSlots?: true
+  maxTraders?: true
   environment?: true
   createdAt?: true
   updatedAt?: true
@@ -281,6 +319,11 @@ export type VaultGroupByOutputType = {
   treasurySol: runtime.Decimal
   settlePeriodHours: number
   settleLengthMin: number
+  kind: string
+  status: string
+  listing: string
+  maxSlots: number
+  maxTraders: number
   environment: string
   createdAt: Date
   updatedAt: Date
@@ -321,6 +364,11 @@ export type VaultWhereInput = {
   treasurySol?: Prisma.DecimalFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFilter<"Vault"> | number
   settleLengthMin?: Prisma.IntFilter<"Vault"> | number
+  kind?: Prisma.StringFilter<"Vault"> | string
+  status?: Prisma.StringFilter<"Vault"> | string
+  listing?: Prisma.StringFilter<"Vault"> | string
+  maxSlots?: Prisma.IntFilter<"Vault"> | number
+  maxTraders?: Prisma.IntFilter<"Vault"> | number
   environment?: Prisma.StringFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
@@ -344,6 +392,11 @@ export type VaultOrderByWithRelationInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  listing?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -370,6 +423,11 @@ export type VaultWhereUniqueInput = Prisma.AtLeast<{
   treasurySol?: Prisma.DecimalFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFilter<"Vault"> | number
   settleLengthMin?: Prisma.IntFilter<"Vault"> | number
+  kind?: Prisma.StringFilter<"Vault"> | string
+  status?: Prisma.StringFilter<"Vault"> | string
+  listing?: Prisma.StringFilter<"Vault"> | string
+  maxSlots?: Prisma.IntFilter<"Vault"> | number
+  maxTraders?: Prisma.IntFilter<"Vault"> | number
   environment?: Prisma.StringFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Vault"> | Date | string
@@ -393,6 +451,11 @@ export type VaultOrderByWithAggregationInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  listing?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -418,6 +481,11 @@ export type VaultScalarWhereWithAggregatesInput = {
   treasurySol?: Prisma.DecimalWithAggregatesFilter<"Vault"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntWithAggregatesFilter<"Vault"> | number
   settleLengthMin?: Prisma.IntWithAggregatesFilter<"Vault"> | number
+  kind?: Prisma.StringWithAggregatesFilter<"Vault"> | string
+  status?: Prisma.StringWithAggregatesFilter<"Vault"> | string
+  listing?: Prisma.StringWithAggregatesFilter<"Vault"> | string
+  maxSlots?: Prisma.IntWithAggregatesFilter<"Vault"> | number
+  maxTraders?: Prisma.IntWithAggregatesFilter<"Vault"> | number
   environment?: Prisma.StringWithAggregatesFilter<"Vault"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Vault"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Vault"> | Date | string
@@ -434,6 +502,11 @@ export type VaultCreateInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -457,6 +530,11 @@ export type VaultUncheckedCreateInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -479,6 +557,11 @@ export type VaultUpdateInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -502,6 +585,11 @@ export type VaultUncheckedUpdateInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -525,6 +613,11 @@ export type VaultCreateManyInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -541,6 +634,11 @@ export type VaultUpdateManyMutationInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -558,6 +656,11 @@ export type VaultUncheckedUpdateManyInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -575,6 +678,11 @@ export type VaultCountOrderByAggregateInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  listing?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -591,6 +699,8 @@ export type VaultAvgOrderByAggregateInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
 }
 
 export type VaultMaxOrderByAggregateInput = {
@@ -605,6 +715,11 @@ export type VaultMaxOrderByAggregateInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  listing?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -622,6 +737,11 @@ export type VaultMinOrderByAggregateInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  listing?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
   environment?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -638,6 +758,8 @@ export type VaultSumOrderByAggregateInput = {
   treasurySol?: Prisma.SortOrder
   settlePeriodHours?: Prisma.SortOrder
   settleLengthMin?: Prisma.SortOrder
+  maxSlots?: Prisma.SortOrder
+  maxTraders?: Prisma.SortOrder
 }
 
 export type VaultScalarRelationFilter = {
@@ -747,6 +869,11 @@ export type VaultCreateWithoutDepositsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -769,6 +896,11 @@ export type VaultUncheckedCreateWithoutDepositsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -806,6 +938,11 @@ export type VaultUpdateWithoutDepositsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -828,6 +965,11 @@ export type VaultUncheckedUpdateWithoutDepositsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -849,6 +991,11 @@ export type VaultCreateWithoutWithdrawalsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -871,6 +1018,11 @@ export type VaultUncheckedCreateWithoutWithdrawalsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -908,6 +1060,11 @@ export type VaultUpdateWithoutWithdrawalsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -930,6 +1087,11 @@ export type VaultUncheckedUpdateWithoutWithdrawalsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -951,6 +1113,11 @@ export type VaultCreateWithoutEpochsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -973,6 +1140,11 @@ export type VaultUncheckedCreateWithoutEpochsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1010,6 +1182,11 @@ export type VaultUpdateWithoutEpochsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1032,6 +1209,11 @@ export type VaultUncheckedUpdateWithoutEpochsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1053,6 +1235,11 @@ export type VaultCreateWithoutTradersInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1075,6 +1262,11 @@ export type VaultUncheckedCreateWithoutTradersInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1112,6 +1304,11 @@ export type VaultUpdateWithoutTradersInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1134,6 +1331,11 @@ export type VaultUncheckedUpdateWithoutTradersInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1155,6 +1357,11 @@ export type VaultCreateWithoutBotsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1177,6 +1384,11 @@ export type VaultUncheckedCreateWithoutBotsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1214,6 +1426,11 @@ export type VaultUpdateWithoutBotsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1236,6 +1453,11 @@ export type VaultUncheckedUpdateWithoutBotsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1257,6 +1479,11 @@ export type VaultCreateWithoutPayoutsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1279,6 +1506,11 @@ export type VaultUncheckedCreateWithoutPayoutsInput = {
   treasurySol?: runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: number
   settleLengthMin?: number
+  kind?: string
+  status?: string
+  listing?: string
+  maxSlots?: number
+  maxTraders?: number
   environment?: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1316,6 +1548,11 @@ export type VaultUpdateWithoutPayoutsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1338,6 +1575,11 @@ export type VaultUncheckedUpdateWithoutPayoutsInput = {
   treasurySol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   settlePeriodHours?: Prisma.IntFieldUpdateOperationsInput | number
   settleLengthMin?: Prisma.IntFieldUpdateOperationsInput | number
+  kind?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  listing?: Prisma.StringFieldUpdateOperationsInput | string
+  maxSlots?: Prisma.IntFieldUpdateOperationsInput | number
+  maxTraders?: Prisma.IntFieldUpdateOperationsInput | number
   environment?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1436,6 +1678,11 @@ export type VaultSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   treasurySol?: boolean
   settlePeriodHours?: boolean
   settleLengthMin?: boolean
+  kind?: boolean
+  status?: boolean
+  listing?: boolean
+  maxSlots?: boolean
+  maxTraders?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1460,6 +1707,11 @@ export type VaultSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   treasurySol?: boolean
   settlePeriodHours?: boolean
   settleLengthMin?: boolean
+  kind?: boolean
+  status?: boolean
+  listing?: boolean
+  maxSlots?: boolean
+  maxTraders?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1477,6 +1729,11 @@ export type VaultSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   treasurySol?: boolean
   settlePeriodHours?: boolean
   settleLengthMin?: boolean
+  kind?: boolean
+  status?: boolean
+  listing?: boolean
+  maxSlots?: boolean
+  maxTraders?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1494,12 +1751,17 @@ export type VaultSelectScalar = {
   treasurySol?: boolean
   settlePeriodHours?: boolean
   settleLengthMin?: boolean
+  kind?: boolean
+  status?: boolean
+  listing?: boolean
+  maxSlots?: boolean
+  maxTraders?: boolean
   environment?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type VaultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "feeBps" | "hwmSharePrice" | "totalShares" | "reserveBps" | "withdrawFeeBps" | "lockHours" | "treasurySol" | "settlePeriodHours" | "settleLengthMin" | "environment" | "createdAt" | "updatedAt", ExtArgs["result"]["vault"]>
+export type VaultOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "feeBps" | "hwmSharePrice" | "totalShares" | "reserveBps" | "withdrawFeeBps" | "lockHours" | "treasurySol" | "settlePeriodHours" | "settleLengthMin" | "kind" | "status" | "listing" | "maxSlots" | "maxTraders" | "environment" | "createdAt" | "updatedAt", ExtArgs["result"]["vault"]>
 export type VaultInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   deposits?: boolean | Prisma.Vault$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.Vault$withdrawalsArgs<ExtArgs>
@@ -1534,6 +1796,11 @@ export type $VaultPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     treasurySol: runtime.Decimal
     settlePeriodHours: number
     settleLengthMin: number
+    kind: string
+    status: string
+    listing: string
+    maxSlots: number
+    maxTraders: number
     environment: string
     createdAt: Date
     updatedAt: Date
@@ -1977,6 +2244,11 @@ export interface VaultFieldRefs {
   readonly treasurySol: Prisma.FieldRef<"Vault", 'Decimal'>
   readonly settlePeriodHours: Prisma.FieldRef<"Vault", 'Int'>
   readonly settleLengthMin: Prisma.FieldRef<"Vault", 'Int'>
+  readonly kind: Prisma.FieldRef<"Vault", 'String'>
+  readonly status: Prisma.FieldRef<"Vault", 'String'>
+  readonly listing: Prisma.FieldRef<"Vault", 'String'>
+  readonly maxSlots: Prisma.FieldRef<"Vault", 'Int'>
+  readonly maxTraders: Prisma.FieldRef<"Vault", 'Int'>
   readonly environment: Prisma.FieldRef<"Vault", 'String'>
   readonly createdAt: Prisma.FieldRef<"Vault", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Vault", 'DateTime'>

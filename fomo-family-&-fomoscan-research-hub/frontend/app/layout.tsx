@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import '../globals.css';
+import '../styles/edgepool-tokens.css';
 
 export const metadata: Metadata = {
   title: 'edgepool — Automated Solana vaults',

@@ -15,6 +15,13 @@ export class VaultsController {
     return { success: true, total: data.length, data };
   }
 
+  @Get('pools')
+  @UseGuards(OptionalAuthGuard)
+  async pools(@Req() req: { user?: AuthedUser }): Promise<{ success: boolean; total: number; data: unknown }> {
+    const data = (await this.vaults.pools(req.user ?? undefined)) as unknown[];
+    return { success: true, total: data.length, data };
+  }
+
   @Post()
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN')
