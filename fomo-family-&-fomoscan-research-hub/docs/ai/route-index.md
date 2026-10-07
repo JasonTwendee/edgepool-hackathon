@@ -63,6 +63,7 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 |---|---|---|---|---|
 | GET | `/api/vaults/pools` | `vaults.controller.ts` | `api.ts#listPools` | pool summaries (index) |
 | GET | `/api/vaults/:id/pool` | `vaults.controller.ts` | `api.ts#getPoolDetail` | detail + `advanced` (KPIs/risk/ladder/exposure) |
+| GET | `/api/vaults/:id/ledger` | `vaults.controller.ts` | — (admin/terminal later) | per-order fund flow + cash statement |
 | GET | `/api/vaults/mine` | `vaults.controller.ts` (Auth) | `api.ts#getVaultMine` | my position per pool |
 | GET | `/api/vaults/portfolio` | `vaults.controller.ts` (Auth) | `api.ts#getPortfolioOverview` | investor overview |
 | GET | `/api/vaults/:id/earnings` | `vaults.controller.ts` (KOL-gated) | `api.ts#getVaultEarnings` | partner fee rows |

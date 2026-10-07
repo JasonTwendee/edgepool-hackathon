@@ -2,7 +2,7 @@
 
 ## Current state (2026-10-06)
 
-- No `jest`/`vitest` runner. Verification = **23 `assert-*.ts` suites** run with `tsx`
+- No `jest`/`vitest` runner. Verification = **25 `assert-*.ts` suites** run with `tsx`
   (mocked Prisma — no network/secrets), plus typecheck + FE build + live smoke.
 - CI (`ci.yml`) runs every suite: `for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do npx tsx "$f" || exit 1; done`
 - Run one suite: `cd backend && npx tsx src/modules/vaults/assert-pools.ts` → `… asserts: ALL GREEN`
