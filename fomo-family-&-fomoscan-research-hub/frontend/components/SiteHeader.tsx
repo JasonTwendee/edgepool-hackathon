@@ -2,21 +2,20 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { ChartLineUp, SquaresFour, Storefront, Wallet, X } from '@phosphor-icons/react';
+import { ChartPieSlice, Drop, UserCircle, Wallet, X } from '@phosphor-icons/react';
 import { LoginModal, restoreSession } from './LoginModal';
 import { clearSession, getCachedProfile, getStoredToken, logout } from '../lib/api';
 import type { FundSession } from '../types/fund';
 
 export type SiteNav = 'pools' | 'portfolio' | 'trader';
 
-const NAV: { key: SiteNav; label: string; href: string; Icon: typeof SquaresFour }[] = [
-  { key: 'pools', label: 'Pools', href: '/', Icon: SquaresFour },
-  { key: 'portfolio', label: 'Portfolio', href: '/portfolio', Icon: ChartLineUp },
-  { key: 'trader', label: 'Trader', href: '/trader', Icon: Storefront },
+const NAV: { key: SiteNav; label: string; href: string; Icon: typeof Drop }[] = [
+  { key: 'pools', label: 'Pools', href: '/', Icon: Drop },
+  { key: 'portfolio', label: 'Portfolio', href: '/portfolio', Icon: ChartPieSlice },
+  { key: 'trader', label: 'Trader', href: '/trader', Icon: UserCircle },
 ];
 
-function shortAddr(wallet: string | undefined, username?: string | null): string {
-  if (username) return username;
+function shortAddr(wallet: string | undefined): string {
   if (!wallet) return '';
   if (wallet.startsWith('cred:')) return wallet.slice(5);
   return `${wallet.slice(0, 4)}…${wallet.slice(-3)}`;
@@ -85,7 +84,7 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
     return () => window.removeEventListener('keydown', onKey);
   }, [loginOpen, menuOpen, close]);
 
-  const label = session ? shortAddr(session.user.wallet, session.user.username) : '';
+  const label = session ? shortAddr(session.user.wallet) : '';
 
   return (
     <>

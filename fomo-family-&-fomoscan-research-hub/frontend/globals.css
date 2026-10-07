@@ -75,36 +75,13 @@ samp {
   color: #e0fcf8;
 }
 
-/* Pools index cards: neutral by default, highlight + gradient pop on hover only
-   (customer feedback 2026-10-06 — all cards glowing at once kills focus). */
+/* Pools index cards: static, no hover lift/glow (customer 2026-10-07 —
+   cards stay put; the featured basket keeps its aqua edge). */
 .pool-card {
   box-shadow: 0 0 0 1px var(--ep-border, #2E313F);
-  transition: box-shadow 180ms ease, transform 180ms ease;
 }
 .pool-card--featured {
   box-shadow: 0 0 0 1px var(--ep-aqua, #49E6D7);
-}
-.pool-card:hover,
-.pool-card:focus-within {
-  box-shadow:
-    0 0 0 1px var(--ep-aqua, #49E6D7),
-    inset 0 0 60px rgba(3, 45, 42, 0.75);
-  transform: translateY(-2px);
-}
-/* Featured (first) card stays static — no hover lift/glow. */
-.pool-card--featured:hover,
-.pool-card--featured:focus-within {
-  box-shadow: 0 0 0 1px var(--ep-aqua, #49E6D7);
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pool-card {
-    transition: none;
-  }
-  .pool-card:hover,
-  .pool-card:focus-within {
-    transform: none;
-  }
 }
 
 /* Motion system (2026-10-06): entrances + skeletons + view cross-fade.
