@@ -896,6 +896,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/deposit/challenge:
+    post:
+      summary: Issue a wallet-signing challenge for a deposit (5-min TTL, single-use)
+      operationId: depositChallenge
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amountSol, wallet]
+              properties:
+                vaultId: { type: integer }
+                amountSol: { type: number }
+                wallet: { type: string }
+      responses:
+        '200':
+          description: Challenge (message to sign)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/withdraw/challenge:
+    post:
+      summary: Issue a wallet-signing challenge for a withdrawal (5-min TTL, single-use)
+      operationId: withdrawChallenge
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [shares, wallet]
+              properties:
+                vaultId: { type: integer }
+                shares: { type: number }
+                wallet: { type: string }
+      responses:
+        '200':
+          description: Challenge (message to sign)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/settle:
     post:
       summary: Settle an epoch (ADMIN only, audited; omitted NAV = engine mark-to-market)
@@ -1976,6 +2032,8 @@ components:
         vaultId: { type: integer }
         depositor: { type: string, description: Display-only, ignored when authed (session wallet is authoritative) }
         amountSol: { type: number }
+        message: { type: string, description: Exact challenged message (wallet-signed flow) }
+        signature: { type: string, description: Base58 ed25519 signature over message }
     VaultWithdrawDto:
       type: object
       required: [shares]
@@ -1983,6 +2041,8 @@ components:
         vaultId: { type: integer }
         depositor: { type: string, description: Display-only, ignored when authed }
         shares: { type: number }
+        message: { type: string, description: Exact challenged message (wallet-signed flow) }
+        signature: { type: string, description: Base58 ed25519 signature over message }
     VaultSettleDto:
       type: object
       required: []

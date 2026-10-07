@@ -6,9 +6,11 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   getPoolDetail,
   queueVaultDeposit,
+  depositChallenge,
   type PoolDetail,
 } from '../../../lib/api';
 import { getStoredToken } from '../../../lib/api';
+import { connectBrowserWallet, signWithBrowserWallet } from '../../../lib/solana';
 import SignalStream from '../../../components/SignalStream';
 
 type Period = 'day' | 'week' | 'month' | 'all';
@@ -72,8 +74,27 @@ export default function PoolDetailPage() {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await queueVaultDeposit({ vaultId: pool.id, amountSol: amt }, token);
-      setMsg(`Deposit #${res.data.id} queued — settles at next epoch price.`);
+      // Wallet-signed flow (demo custody bridge): the wallet signs a BE
+      // challenge; BE books paper against the verified wallet. No funds move
+      // on-chain. Falls back to a session deposit when no wallet is installed.
+      let message: string | undefined;
+      let signature: string | undefined;
+      let signedBy: string | null = null;
+      try {
+        const wallet = await connectBrowserWallet();
+        const ch = await depositChallenge({ vaultId: pool.id, amountSol: amt, wallet }, token);
+        const sig = await signWithBrowserWallet(ch.data.message);
+        message = ch.data.message;
+        signature = sig.signature;
+        signedBy = sig.wallet;
+      } catch (e) {
+        setMsg(`Wallet signing unavailable (${(e as Error).message}) — continuing as a session deposit.`);
+      }
+      const res = await queueVaultDeposit({ vaultId: pool.id, amountSol: amt, message, signature }, token);
+      setMsg(
+        `Deposit #${res.data.id} queued — settles at next epoch price.` +
+          (signedBy ? ` Signed by ${signedBy.slice(0, 4)}…${signedBy.slice(-4)} (paper, no funds moved).` : ''),
+      );
       setAmount('');
       await refresh();
     } catch (e) {
@@ -159,7 +180,7 @@ export default function PoolDetailPage() {
         {isDemo ? 'Demo pool · scripted scenario (unlisted)' : pool.kind === 'basket' ? 'Edgepool basket · algorithm-picked traders' : 'Partner pool'} · {pool.traders.length} traders · {pool.slots.used}/{pool.slots.max} slots
       </p>
       <div className="flex gap-2 mt-3 flex-wrap">
-        {['2% cap per trader', '50% now + 50% limit at −10%', 'Adaptive stop', '−5% daily kill switch'].map((r) => (
+        {['2% cap per trader', 'Immediate entry · 1% NAV size', 'TP1 +60% · stop −30%', '−5% daily kill switch'].map((r) => (
           <span key={r} className="text-[11px] px-2.5 py-1 rounded-full" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', color: 'var(--ep-text-3, #B2B6CA)' }}>{r}</span>
         ))}
       </div>

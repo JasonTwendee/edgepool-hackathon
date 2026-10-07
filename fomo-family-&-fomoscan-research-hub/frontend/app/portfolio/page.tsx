@@ -7,8 +7,10 @@ import {
   getPortfolioOverview,
   getStoredToken,
   requestVaultWithdraw,
+  withdrawChallenge,
   type PortfolioOverview,
 } from '../../lib/api';
+import { connectBrowserWallet, signWithBrowserWallet } from '../../lib/solana';
 
 function WithdrawModal({
   poolId,
@@ -50,7 +52,21 @@ function WithdrawModal({
     setBusy(true);
     setErr(null);
     try {
-      const res = await requestVaultWithdraw({ vaultId: poolId, shares }, token);
+      // Wallet-signed flow (demo custody bridge): sign a BE challenge so the
+      // withdrawal is booked against the verified wallet. No funds move
+      // on-chain. Falls back to a session withdrawal when no wallet installed.
+      let message: string | undefined;
+      let signature: string | undefined;
+      try {
+        const wallet = await connectBrowserWallet();
+        const ch = await withdrawChallenge({ vaultId: poolId, shares, wallet }, token);
+        const sig = await signWithBrowserWallet(ch.data.message);
+        message = ch.data.message;
+        signature = sig.signature;
+      } catch (e) {
+        setErr(`Wallet signing unavailable (${(e as Error).message}) — continuing as a session withdrawal.`);
+      }
+      const res = await requestVaultWithdraw({ vaultId: poolId, shares, message, signature }, token);
       onDone(`Withdraw #${res.data.id} ${flat ? 'settled instantly' : 'queued — settles at checkpoint'}.`);
       onClose();
     } catch (e) {

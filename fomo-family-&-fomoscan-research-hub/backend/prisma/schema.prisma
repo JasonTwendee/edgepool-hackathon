@@ -278,6 +278,7 @@ model User {
   withdrawals Withdrawal[]
   ownedVaults Vault[]    @relation("VaultOwner")
   payoutChallenges PayoutWalletChallenge[]
+  signedIntents SignedIntent[]
 
   @@map("users")
 }
@@ -416,4 +417,25 @@ model TraderRequest {
 
   @@map("trader_requests")
   @@index([vaultId, status])
+}
+
+// Wallet-signed deposit/withdraw intents (demo-grade custody bridge: the wallet
+// signs a purpose-bound message, no funds move on-chain; BE credits paper ledger).
+model SignedIntent {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet     String    @db.VarChar(100)
+  kind       String    @db.VarChar(16) // DEPOSIT | WITHDRAW
+  vaultId    Int       @map("vault_id")
+  amountSol  Decimal?  @map("amount_sol") @db.Decimal(24, 12)
+  shares     Decimal?  @db.Decimal(24, 12)
+  nonce      String    @unique @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz()
+  createdAt  DateTime  @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("signed_intents")
+  @@index([userId])
+  @@index([wallet])
 }

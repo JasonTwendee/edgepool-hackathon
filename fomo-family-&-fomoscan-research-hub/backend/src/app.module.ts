@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { AuditModule } from './modules/audit/audit.module.js';
 import { BotsModule } from './modules/bots/bots.module.js';
 import { DemoModule } from './modules/demo/demo.module.js';
+import { SignedIntentModule } from './modules/signed-intent/signed-intent.module.js';
 import { MarketModule } from './modules/market/market.module.js';
 import { VaultsModule } from './modules/vaults/vaults.module.js';
 import { PartnerModule } from './modules/partner/partner.module.js';
@@ -33,6 +34,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module.js';
     AuditModule,
     BotsModule,
     DemoModule,
+    SignedIntentModule,
     MarketModule,
     VaultsModule,
     PartnerModule,

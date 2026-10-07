@@ -415,7 +415,8 @@ export const ModelName = {
   Bot: 'Bot',
   PartnerPayout: 'PartnerPayout',
   PartnerApplication: 'PartnerApplication',
-  TraderRequest: 'TraderRequest'
+  TraderRequest: 'TraderRequest',
+  SignedIntent: 'SignedIntent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -431,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest"
+    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest" | "signedIntent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1841,6 +1842,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SignedIntent: {
+      payload: Prisma.$SignedIntentPayload<ExtArgs>
+      fields: Prisma.SignedIntentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SignedIntentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SignedIntentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        findFirst: {
+          args: Prisma.SignedIntentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SignedIntentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        findMany: {
+          args: Prisma.SignedIntentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>[]
+        }
+        create: {
+          args: Prisma.SignedIntentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        createMany: {
+          args: Prisma.SignedIntentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SignedIntentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>[]
+        }
+        delete: {
+          args: Prisma.SignedIntentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        update: {
+          args: Prisma.SignedIntentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        deleteMany: {
+          args: Prisma.SignedIntentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SignedIntentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SignedIntentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>[]
+        }
+        upsert: {
+          args: Prisma.SignedIntentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SignedIntentPayload>
+        }
+        aggregate: {
+          args: Prisma.SignedIntentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSignedIntent>
+        }
+        groupBy: {
+          args: Prisma.SignedIntentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SignedIntentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SignedIntentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SignedIntentCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2190,6 +2265,23 @@ export const TraderRequestScalarFieldEnum = {
 export type TraderRequestScalarFieldEnum = (typeof TraderRequestScalarFieldEnum)[keyof typeof TraderRequestScalarFieldEnum]
 
 
+export const SignedIntentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  wallet: 'wallet',
+  kind: 'kind',
+  vaultId: 'vaultId',
+  amountSol: 'amountSol',
+  shares: 'shares',
+  nonce: 'nonce',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SignedIntentScalarFieldEnum = (typeof SignedIntentScalarFieldEnum)[keyof typeof SignedIntentScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2511,6 +2603,7 @@ export type GlobalOmitConfig = {
   partnerPayout?: Prisma.PartnerPayoutOmit
   partnerApplication?: Prisma.PartnerApplicationOmit
   traderRequest?: Prisma.TraderRequestOmit
+  signedIntent?: Prisma.SignedIntentOmit
 }
 
 /* Types for Logging */
