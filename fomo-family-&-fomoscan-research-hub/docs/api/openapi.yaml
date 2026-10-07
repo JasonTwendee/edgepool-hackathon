@@ -1711,6 +1711,27 @@ paths:
               schema:
                 type: string
                 example: "data: {\"type\":\"CONNECTED\",\"vaultId\":1}\n\ndata: {\"type\":\"REPLAY\",\"events\":[...]}\n\ndata: {\"type\":\"SIGNAL\",\"event\":{\"kind\":\"SKIP\",\"token\":\"$XsCP\",\"note\":\"Qualify blocked\"}}\n\n"
+  /api/vaults/{id}/ledger:
+    get:
+      summary: Fund-flow ledger — per-order allocation/MTM/realized + vault cash reconciliation (paywalled like pool detail)
+      operationId: getVaultLedger
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Statement + per-order rows
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/{id}/earnings:
     get:
       summary: Partner-trader earnings ledger (report §4 80/15/5; public read)

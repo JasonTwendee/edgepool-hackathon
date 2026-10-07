@@ -457,6 +457,21 @@ export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY);
 }
 
+/** Synchronous profile snapshot for instant UI (wallet label without flash).
+ * Never trusted for auth — always re-validated via getAuthMe/restoreSession. */
+export function getCachedProfile(): { wallet: string; username?: string | null; role: string } | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AuthSessionData;
+    if (!parsed.token || !parsed.user?.wallet) return null;
+    if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() <= Date.now()) return null;
+    return { wallet: parsed.user.wallet, username: parsed.user.username ?? null, role: parsed.user.role };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchJsonAuth<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     // credentials:include lets the httpOnly cookie flow through Next rewrites;

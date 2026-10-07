@@ -119,6 +119,17 @@ export class VaultsController {
     return { success: true, data };
   }
 
+  @Get(':id/ledger')
+  @UseGuards(OptionalAuthGuard)
+  async ledger(
+    @Param('id') id: string,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const data = await this.vaults.ledger(Number.isFinite(parsed) ? parsed : -1, req.user ?? undefined);
+    return { success: true, data };
+  }
+
   @Get(':id/earnings')
   async earnings(
     @Param('id') id: string,
