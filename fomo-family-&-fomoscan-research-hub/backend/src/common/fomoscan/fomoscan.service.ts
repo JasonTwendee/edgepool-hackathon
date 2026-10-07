@@ -154,7 +154,8 @@ export class FomoscanService {
   async getPnl(handle: string, fetcher?: FomoscanFetch): Promise<FomoscanPnl> {
     const clean = (handle ?? '').trim().replace(/^@/, '');
     if (!clean) throw new Error('Handle is required.');
-    return this.call('GET', `/v2/user/handle/${encodeURIComponent(clean)}/pnl`, undefined, 300_000, fetcher);
+    // Display-only (leaderboard PnL): 15-min cache — quotes are cheap, credits are not.
+    return this.call('GET', `/v2/user/handle/${encodeURIComponent(clean)}/pnl`, undefined, 900_000, fetcher);
   }
 
   /** Whole-wallet PnL for up to 100 handles in ONE call (fast-path batch). */

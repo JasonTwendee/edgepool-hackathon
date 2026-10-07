@@ -144,18 +144,22 @@ export class LeaderboardService implements OnModuleInit {
         if (!existing.isActive) reactivated++;
       }
       // Best-effort enrich (unknown wallets simply stay unenriched).
-      try {
-        const idn = await this.fomoscan.lookupWallet(e.wallet);
-        await this.prisma.trackedWallet.update({
-          where: { address: e.wallet },
-          data: {
-            avatarUrl: idn.profilePicture ?? undefined,
-            bio: idn.bio ?? undefined,
-            evmAddress: idn.evmAddress ?? undefined,
-          },
-        });
-      } catch {
-        // enrich is cosmetic — rotation must not fail on it.
+      // Skip wallets that already have an avatar — identity rarely changes and
+      // each lookup burns sponsor credits (was: re-enriched every tick).
+      if (!existing?.avatarUrl) {
+        try {
+          const idn = await this.fomoscan.lookupWallet(e.wallet);
+          await this.prisma.trackedWallet.update({
+            where: { address: e.wallet },
+            data: {
+              avatarUrl: idn.profilePicture ?? undefined,
+              bio: idn.bio ?? undefined,
+              evmAddress: idn.evmAddress ?? undefined,
+            },
+          });
+        } catch {
+          // enrich is cosmetic — rotation must not fail on it.
+        }
       }
     }
 
