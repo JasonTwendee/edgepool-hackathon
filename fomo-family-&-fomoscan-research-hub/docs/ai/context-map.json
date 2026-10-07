@@ -248,6 +248,7 @@
     "POST /api/vaults/settle": "backend/src/modules/vaults/vaults.controller.ts (epoch settle, HWM fee)",
     "GET /api/vaults/status": "backend/src/modules/vaults/vaults.controller.ts",
     "POST /api/partner/apply": "backend/src/modules/partner/partner.controller.ts (public application)",
+    "GET /api/partner/apply/status": "backend/src/modules/partner/partner.controller.ts (public status by wallet)",
     "GET /api/partner/me": "backend/src/modules/partner/partner.controller.ts (AuthGuard, KOL fees)",
     "POST /api/partner/payout-wallet/challenge": "backend/src/modules/partner/partner.controller.ts (AuthGuard)",
     "POST /api/partner/payout-wallet": "backend/src/modules/partner/partner.controller.ts (AuthGuard, verified set)",
