@@ -69,6 +69,7 @@ function makeFake() {
         db.epoch.push(r);
         return r;
       },
+      findMany: async () => [...db.epoch],
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
     },
     vaultTrader: { findMany: async () => [], findUnique: async () => null, count: async () => 0 },
@@ -157,6 +158,23 @@ async function main(): Promise<void> {
   const svc5 = new VaultService(makeFake());
   const allowed = (await svc5.createVault('edgepool-smoke-1')) as Row;
   assert.equal(allowed.name, 'edgepool-smoke-1');
+
+  // 8. Kill-switch deposit gate: −6% day → new deposits refused (exits unaffected).
+  {
+    const now = Date.now();
+    const aged = {
+      vault: { findUnique: async () => ({ id: 1, name: 'h', maxSlots: 100, status: 'live', rulesJson: null }) },
+      epochCheckpoint: {
+        findMany: async () => [
+          { id: 1, vaultId: 1, navSol: 100, createdAt: new Date(now - 2 * 86400000) },
+          { id: 2, vaultId: 1, navSol: 94, createdAt: new Date(now - 3600000) },
+        ],
+      },
+      deposit: { findMany: async () => [], create: async ({ data }: { data: Row }) => ({ id: 1, ...data }) },
+    } as never;
+    const svcH = new VaultService(aged);
+    await assert.rejects(() => svcH.deposit(1, 'mallory', 5), /Kill-switch/);
+  }
 
   console.log('vault asserts: ALL GREEN');
 }

@@ -12,6 +12,7 @@ import {
 import { RugCheckService } from '../../common/rugcheck/rugcheck.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { VaultService } from '../vaults/vault.service.js';
+import { isHaltedVault } from './kill-switch.js';
 
 export interface CopyRecord {
   id: string;
@@ -220,6 +221,7 @@ export class CopyTradeService {
     // has no settled epoch yet (bootstrap).
     let sizedCapUsd = maxUsd;
     let sizedNote: Record<string, unknown> = { mode: 'bootstrap' };
+    let navUsd = 0;
     const market = overrides.market ?? this.market;
     const sizingVaultId = overrides.vaultId ?? 1;
     try {
@@ -229,7 +231,7 @@ export class CopyTradeService {
         const px = await market.bulkPrices([WSOL]);
         const solPrice = px[WSOL] ?? 0;
         if (solPrice > 0) {
-          const navUsd = st.lastEpoch.navSol * solPrice;
+          navUsd = st.lastEpoch.navSol * solPrice;
           sizedCapUsd = Math.min(maxUsd, navUsd * 0.01, 0.1 * solPrice);
           sizedNote = {
             navSol: st.lastEpoch.navSol,
@@ -316,6 +318,45 @@ export class CopyTradeService {
     }
     if (mintCount >= 2) {
       fail(`Exposure cap: ${dto.symbol} already has ${mintCount} live paper orders in 24h (max 2).`);
+    }
+    // Deck §3: max 10 open positions per vault (total risk ≤10% NAV).
+    const openCount = await this.prisma.copyOrder.count({
+      where: { vaultId: sizingVaultId, status: 'CONFIRMED', closedAt: null },
+    });
+    if (openCount >= 10) {
+      fail(`Pool already holds ${openCount} open positions (max 10).`);
+    }
+    // Deck §7.4 layer 2: per-mint ≤2% NAV by value (open CONFIRMED notional).
+    if (navUsd > 0 && dto.tokenMint) {
+      const mintOpen = (await this.prisma.copyOrder.findMany({
+        where: { vaultId: sizingVaultId, tokenMint: dto.tokenMint, status: 'CONFIRMED', closedAt: null },
+        select: { amountUsd: true },
+      })) as { amountUsd: unknown }[];
+      const toUsd = (v: unknown): number =>
+        v === null || v === undefined ? 0 : typeof (v as { toNumber?: unknown }).toNumber === 'function'
+          ? ((v as { toNumber: () => number }).toNumber() as number)
+          : Number(v) || 0;
+      const mintUsd = mintOpen.reduce((s, o) => s + toUsd(o.amountUsd), 0);
+      if (mintUsd + masterUsd > navUsd * 0.02) {
+        fail(`Per-mint cap: ${(dto.symbol ?? dto.tokenMint).slice(0, 12)} open $${Math.round(mintUsd)} + $${masterUsd} entrant exceeds 2% NAV ($${Math.round(navUsd * 0.02)}).`);
+      }
+    }
+    // Kill-switch gate: halted vaults refuse NEW risk on every entry path
+    // (auto-fire, demo replay, manual execute). Settle/withdraw unaffected.
+    {
+      const [vv, veps] = await Promise.all([
+        this.prisma.vault.findMany({ where: { id: { in: [sizingVaultId] } } }),
+        this.prisma.epochCheckpoint.findMany({ where: { vaultId: { in: [sizingVaultId] } }, orderBy: { id: 'asc' } }),
+      ]);
+      const vrow = (vv as { status?: unknown; rulesJson?: unknown }[])[0];
+      const halt = isHaltedVault(
+        vrow?.status,
+        vrow?.rulesJson,
+        veps as unknown as { navSol: unknown; createdAt: unknown }[],
+      );
+      if (halt.halted) {
+        fail(`Kill-switch: vault ${sizingVaultId} halted (day ${halt.dayPct}% / week ${halt.weekPct}%). New entries blocked.`);
+      }
     }
     const executor = overrides.executor ?? this.paper;
     const rugs = overrides.rugcheck ?? this.rugs;

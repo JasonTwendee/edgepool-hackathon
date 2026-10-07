@@ -93,6 +93,7 @@ function makeFake() {
         return r;
       },
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
+      findMany: async () => [...db.epoch],
     },
     vaultTrader: { findMany: async () => [], findUnique: async () => null, count: async () => 0 },
     partnerPayout: {

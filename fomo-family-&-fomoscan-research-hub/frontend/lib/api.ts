@@ -30,6 +30,32 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Short-lived GET cache: back-navigation renders instantly from memory while
+// mutations below always invalidate. Keyed by path + token (never leak one
+// user's numbers to the next login on the same browser).
+const GET_TTL_MS = 30000;
+const getCache = new Map<string, { at: number; data: unknown }>();
+
+function cachedGet<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const hit = getCache.get(key);
+  if (hit && Date.now() - hit.at < GET_TTL_MS) return Promise.resolve(hit.data as T);
+  return run().then((data) => {
+    getCache.set(key, { at: Date.now(), data });
+    return data;
+  });
+}
+
+/** Drop cached GETs (all, or by key prefix) after any state-changing call. */
+export function bumpApiCache(prefix?: string): void {
+  if (!prefix) {
+    getCache.clear();
+    return;
+  }
+  for (const k of [...getCache.keys()]) {
+    if (k.startsWith(prefix)) getCache.delete(k);
+  }
+}
+
 export interface HealthResponse {
   status: string;
   service: string;
@@ -204,7 +230,7 @@ export interface PoolSummary {
 }
 
 export function listPools(): Promise<{ success: boolean; total: number; data: PoolSummary[] }> {
-  return fetchJson('/api/vaults/pools');
+  return cachedGet(`pools:${getStoredToken() ?? ''}`, () => fetchJson('/api/vaults/pools'));
 }
 
 export interface PoolDetail extends PoolSummary {
@@ -225,7 +251,7 @@ export interface PoolDetail extends PoolSummary {
 }
 
 export function getPoolDetail(id: number): Promise<{ success: boolean; data: PoolDetail }> {
-  return fetchJson(`/api/vaults/${id}/pool`);
+  return cachedGet(`pool:${id}:${getStoredToken() ?? ''}`, () => fetchJson(`/api/vaults/${id}/pool`));
 }
 
 export interface PortfolioOverview {
@@ -240,11 +266,14 @@ export interface PortfolioOverview {
 }
 
 export function getPortfolioOverview(token?: string): Promise<{ success: boolean; data: PortfolioOverview }> {
-  return token ? fetchJsonAuth('/api/vaults/portfolio', token) : fetchJson('/api/vaults/portfolio');
+  const key = `portfolio:${token ?? getStoredToken() ?? ''}`;
+  return cachedGet(key, () => (token ? fetchJsonAuth('/api/vaults/portfolio', token) : fetchJson('/api/vaults/portfolio')));
 }
 
 export function cancelWithdrawal(id: number, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
-  return fetchJsonAuth(`/api/vaults/withdraw/${id}`, token, { method: 'DELETE' });
+  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string } }>(`/api/vaults/withdraw/${id}`, token, { method: 'DELETE' });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export interface PartnerMe {
@@ -278,7 +307,9 @@ export function partnerSetPayoutWallet(token: string, wallet: string, signature:
 }
 
 export function partnerClaim(token: string): Promise<{ success: boolean; data: { claimedSol: number; rows: number } }> {
-  return fetchJsonAuth('/api/partner/claim', token, { method: 'POST' });
+  const p = fetchJsonAuth<{ success: boolean; data: { claimedSol: number; rows: number } }>('/api/partner/claim', token, { method: 'POST' });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export function partnerPoolTraders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: { wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[] }> {
@@ -318,7 +349,9 @@ export function queueVaultDeposit(input: {
   signature?: string;
 }, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  return fetchJsonAuth('/api/vaults/deposit', token, init);
+  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }>('/api/vaults/deposit', token, init);
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export function requestVaultWithdraw(input: {
@@ -329,7 +362,9 @@ export function requestVaultWithdraw(input: {
   signature?: string;
 }, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  return fetchJsonAuth('/api/vaults/withdraw', token, init);
+  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }>('/api/vaults/withdraw', token, init);
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export function depositChallenge(

@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException, Optional } 
 import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
+import { isHaltedVault } from '../copy-trade/kill-switch.js';
 
 export interface VaultStatus {
   id: number;
@@ -217,6 +218,19 @@ export class VaultService {
     const { id } = await this.resolveVault(vaultId);
     const vault = await this.prisma.vault.findUnique({ where: { id } });
     if (!vault) fail(`Vault ${id} not found.`);
+    // Kill-switch: deposits into a halted vault are refused (withdrawals
+    // still work — exits are never blocked).
+    {
+      const veps = await this.prisma.epochCheckpoint.findMany({ where: { vaultId: id }, orderBy: { id: 'asc' } });
+      const halt = isHaltedVault(
+        (vault as { status?: unknown }).status,
+        (vault as { rulesJson?: unknown }).rulesJson,
+        veps as unknown as { navSol: unknown; createdAt: unknown }[],
+      );
+      if (halt.halted) {
+        fail(`Kill-switch: pool ${id} halted (day ${halt.dayPct}% / week ${halt.weekPct}%). Deposits blocked until recovery.`);
+      }
+    }
     // Slots: a full pool blocks NEW depositors; existing holders add freely.
     // Identity-aware: holder = same userId OR same depositor string (legacy).
     const maxSlots = (vault.maxSlots as number | null) ?? 100;
