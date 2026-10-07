@@ -20,6 +20,7 @@ import {
   type PartnerMe,
 } from '../../lib/api';
 import { signWithBrowserWallet } from '../../lib/solana';
+import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
 
 const inputCls =
   'w-full text-sm bg-[#0D0F18] border border-[#3F424D] rounded-lg px-3 py-2.5 text-[#E9E9ED] placeholder:text-[#4A4D5E] outline-none focus:border-[#E9E9ED]';
@@ -119,14 +120,28 @@ export default function TraderPage() {
 
   if (!token || !me) {
     return (
-      <div className="mx-auto w-full grid gap-6 md:grid-cols-2" style={{ maxWidth: 1000, padding: '28px clamp(16px,4vw,40px) 64px' }}>
-        <div className="rounded-2xl p-8 flex flex-col justify-center" style={{ background: 'var(--ep-violet-tint, #2B2741)' }}>
+      <>
+        <SiteHeader active="trader" />
+        <div className="mx-auto w-full" style={{ maxWidth: 1000, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+        <div className="grid gap-0 md:grid-cols-2 rounded-2xl overflow-hidden" style={{ borderRadius: 18, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <div
+          className="p-8 flex flex-col justify-center gap-3"
+          style={{
+            background: 'radial-gradient(circle at top right, rgba(73,230,215,0.16), rgba(73,230,215,0) 55%), var(--ep-violet-tint, #2B2741)',
+          }}
+        >
+          <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-violet-100, #D2CEFD)' }}>
+            PARTNER TRADERS
+          </span>
           <h1 className="font-display font-medium" style={{ fontSize: 'clamp(26px,3vw,36px)' }}>Run your own copy pool.</h1>
-          <p className="text-sm mt-2" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
-            Partner pools earn 15% of their own profitable trades. Edgepool takes 5%.
+          <p className="text-sm mt-1" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
+            Bring traders you trust. Every trader earns 15% of the profit their own signals make for the pool.
+          </p>
+          <p className="text-[11px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>
+            Invite only. Accounts are created by the Edgepool team.
           </p>
         </div>
-        <div className="rounded-2xl p-6 space-y-3" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <div className="p-6 space-y-3">
           <div className="flex gap-2">
             {(['signin', 'apply'] as const).map((t) => (
               <button key={t} onClick={() => { setTab(t); setMsg(null); }} className="text-xs font-bold px-3 py-1.5 rounded-lg capitalize"
@@ -137,23 +152,39 @@ export default function TraderPage() {
           </div>
           {tab === 'signin' ? (
             <div className="space-y-2.5">
-              <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you. Accounts are created manually — no self-sign-up.</p>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" autoComplete="username" className={inputCls} />
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" type="password" autoComplete="current-password"
+              <h2 className="font-display text-lg font-medium">Sign in</h2>
+              <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you.</p>
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EMAIL</label>
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" autoComplete="username" className={inputCls} />
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>PASSWORD</label>
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" autoComplete="current-password"
                 onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
               <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-                style={{ background: 'var(--ep-text, #E9E9ED)', color: '#161826' }}>
+                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
                 Sign in
               </button>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Not a partner yet?</span>
+                <button onClick={() => setTab('apply')} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                  style={{ border: '1px solid var(--ep-violet, #9184D9)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
+                  Apply to become a partner
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2.5">
-              <input value={fomo} onChange={(e) => setFomo(e.target.value)} placeholder="Fomo handle" className={inputCls} />
-              <input value={x} onChange={(e) => setX(e.target.value)} placeholder="X handle (optional)" className={inputCls} />
-              <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="Trading wallet (Base58)" className={`${inputCls} font-mono`} />
+              <h2 className="font-display text-lg font-medium">Apply as a partner</h2>
+              <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Tell us where to find your track record. Applications are reviewed by the Edgepool team.</p>
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>FOMO HANDLE</label>
+              <input value={fomo} onChange={(e) => setFomo(e.target.value)} placeholder="@yourhandle" className={inputCls} />
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>X HANDLE</label>
+              <input value={x} onChange={(e) => setX(e.target.value)} placeholder="@yourhandle (optional)" className={inputCls} />
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>TRADING WALLET</label>
+              <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="Base58 address (32+ chars)" className={`${inputCls} font-mono`} />
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>CONTACT</label>
               <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Email or Telegram" className={inputCls} />
               <button onClick={() => void apply()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-                style={{ background: 'var(--ep-text, #E9E9ED)', color: '#161826' }}>
+                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
                 Submit application
               </button>
             </div>
@@ -161,14 +192,19 @@ export default function TraderPage() {
           {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
           <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
         </div>
-      </div>
+        </div>
+        <SiteFooter />
+        </div>
+      </>
     );
   }
 
   const pool = me.pools.find((p) => p.id === poolId) ?? me.pools[0] ?? null;
 
   return (
-    <div className="mx-auto w-full space-y-4" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+    <>
+      <SiteHeader active="trader" />
+      <div className="mx-auto w-full space-y-4" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <span className="font-mono text-sm font-bold">@{me.handle}</span>
@@ -381,6 +417,8 @@ export default function TraderPage() {
       <div>
         <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
       </div>
+      <SiteFooter />
     </div>
+    </>
   );
 }

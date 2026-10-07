@@ -136,3 +136,27 @@ samp {
     animation: none;
   }
 }
+
+/* Mobile bottom tab bar clearance (<760px): keep footer reachable. */
+@media (max-width: 759px) {
+  body {
+    padding-bottom: 96px;
+  }
+}
+
+/* Pool detail two-column grid: collapse under 900px (mobile fix). */
+.ep-pool-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+@media (max-width: 899px) {
+  .ep-pool-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 900px) {
+  .ep-sticky-col {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+  }
+}

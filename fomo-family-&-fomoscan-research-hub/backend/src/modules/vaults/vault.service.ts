@@ -599,6 +599,14 @@ export class VaultService {
     } catch {
       px = {};
     }
+    // wSOL price for SOL-denominated size (best-effort; null when unpriced).
+    let solPx = 0;
+    try {
+      const w = 'So11111111111111111111111111111111111111112';
+      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
+    } catch {
+      solPx = 0;
+    }
     const positions = orders
       .filter((o) => !o.closedAt && o.status === 'CONFIRMED')
       .map((o) => {
@@ -609,12 +617,13 @@ export class VaultService {
         return {
           token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
           trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
-          sizeSol: null,
+          sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
           notionalUsd: num(o.amountUsd),
           unrealizedPct: unreal !== null && num(o.amountUsd) > 0 ? r9((unreal / num(o.amountUsd)) * 100) : null,
           stage: o.closeReason ?? 'OPEN',
           entryPriceUsd: entry > 0 ? entry : null,
           livePriceUsd: live,
+          createdAt: new Date(o.createdAt as unknown as string).toISOString(),
         };
       });
     return { positions, nav };
@@ -864,6 +873,8 @@ export class VaultService {
         token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
         trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
         entry, live, movePct,
+        sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
+        createdAt: new Date(o.createdAt as unknown as string).toISOString(),
         tp1Pct: r9(tp1), tp1Hit: legs.includes('TP1'),
         tp2Pct: r9(tp2), tp2Hit: legs.includes('TP2'),
         stopPct: r9(stop),
@@ -1103,7 +1114,7 @@ export class VaultService {
       const basket = traders
         .filter((t) => t.vaultId === v.id)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((t) => ({ wallet: t.wallet, handle: (byId.get(t.wallet)?.handle as string) ?? t.wallet.slice(0, 6), rank: (byId.get(t.wallet)?.fomoRank as number | null) ?? null }));
+        .map((t) => ({ wallet: t.wallet, handle: (byId.get(t.wallet)?.handle as string) ?? t.wallet.slice(0, 6), rank: (byId.get(t.wallet)?.fomoRank as number | null) ?? null, weightBps: (t.weightBps as number | null) ?? 0 }));
       const row: Record<string, unknown> = {
         id: v.id,
         name: v.name,
@@ -1117,6 +1128,7 @@ export class VaultService {
         slots: { used, max: (v.maxSlots as number) ?? 100 },
         maxTraders: (v.maxTraders as number) ?? 5,
         traders: basket,
+        spark: eps.slice(-20).map((e) => num(e.sharePrice)),
         pnl,
       };
       if (user) {
