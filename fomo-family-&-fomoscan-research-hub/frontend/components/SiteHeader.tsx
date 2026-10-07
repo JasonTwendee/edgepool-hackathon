@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ChartLineUp, SquaresFour, Storefront, Wallet, X } from '@phosphor-icons/react';
 import { LoginModal, restoreSession } from './LoginModal';
+import { clearSession, getStoredToken, logout } from '../lib/api';
 import type { FundSession } from '../types/fund';
 
 export type SiteNav = 'pools' | 'portfolio' | 'trader';
@@ -28,20 +29,36 @@ function shortAddr(wallet: string | undefined, username?: string | null): string
 export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle?: React.ReactNode }) {
   const [session, setSession] = useState<FundSession | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     void restoreSession().then(setSession);
   }, []);
 
-  const close = useCallback(() => setLoginOpen(false), []);
+  async function logoutNow() {
+    const token = getStoredToken();
+    try {
+      if (token) await logout(token);
+    } catch {
+      // session row may already be gone — still clear locally.
+    }
+    clearSession();
+    setSession(null);
+    setMenuOpen(false);
+  }
+
+  const close = useCallback(() => {
+    setLoginOpen(false);
+    setMenuOpen(false);
+  }, []);
   useEffect(() => {
-    if (!loginOpen) return;
+    if (!loginOpen && !menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [loginOpen, close]);
+  }, [loginOpen, menuOpen, close]);
 
   const label = session ? shortAddr(session.user.wallet, session.user.username) : '';
 
@@ -71,8 +88,9 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
           </nav>
           <div className="flex items-center gap-2">
             {viewToggle}
+          <div className="relative">
             <button
-              onClick={() => setLoginOpen(true)}
+              onClick={() => (session ? setMenuOpen((o) => !o) : setLoginOpen(true))}
               className="flex items-center gap-2 text-sm font-medium px-3 rounded-lg"
               style={{
                 height: 38,
@@ -83,6 +101,40 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
               <Wallet size={17} weight="regular" />
               <span className="hidden sm:inline font-mono text-xs">{session ? label : 'Connect wallet'}</span>
             </button>
+            {menuOpen && session && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div
+                  className="absolute right-0 top-11 z-50 w-56 rounded-xl p-3 space-y-2"
+                  style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border-strong, #3F424D), 0 24px 60px rgba(0,0,0,0.5)' }}
+                >
+                  <div className="font-mono text-xs break-all" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+                    {session.user.username ?? session.user.wallet}
+                  </div>
+                  <div className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                    {session.user.role} · {session.user.wallet.startsWith('cred:') ? 'account login' : `${session.user.wallet.slice(0, 6)}…${session.user.wallet.slice(-4)}`}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setLoginOpen(true);
+                    }}
+                    className="w-full text-xs font-bold px-3 py-2 rounded-lg"
+                    style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
+                  >
+                    Switch account
+                  </button>
+                  <button
+                    onClick={() => void logoutNow()}
+                    className="w-full text-xs font-bold px-3 py-2 rounded-lg"
+                    style={{ background: 'var(--ep-neg, #F28881)', color: '#0D0F18' }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           </div>
         </div>
       </header>
