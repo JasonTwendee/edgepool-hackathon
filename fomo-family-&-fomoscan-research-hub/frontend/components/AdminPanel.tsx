@@ -10,6 +10,11 @@ import {
   listBots,
   listUsers,
   listVaults,
+  partnerMe,
+  partnerPauseTrader,
+  partnerPoolTraders,
+  partnerRemoveTrader,
+  partnerUpdateSettings,
   removeVaultTrader,
   resetDemo,
   runAutoFireTick,
@@ -28,7 +33,7 @@ import type {
 } from '../types/fund';
 import type { DemoScenarioResult } from '../lib/api';
 
-type Tab = 'users' | 'audit' | 'vaults' | 'bots' | 'engine' | 'demo';
+type Tab = 'users' | 'audit' | 'vaults' | 'pools' | 'bots' | 'engine' | 'demo';
 
 const inputCls =
   'text-xs bg-[#161826] border border-[#3F424D] rounded-lg px-2.5 py-1.5 text-[#E9E9ED] placeholder:text-[#4A4D5E]';
@@ -68,6 +73,15 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
   const [tickLimit, setTickLimit] = useState('10');
   const [tickResult, setTickResult] = useState<AutoFireTickResult | null>(null);
   const [demoResult, setDemoResult] = useState<DemoScenarioResult | null>(null);
+
+  // Partner-pool ops (moved out of /trader KOL portal — ADMIN-only home).
+  type PoolMeData = { pools: { id: number; name: string; kind: string; status: string; listing: string; navSol: number }[]; basket: { wallet: string; handle: string; inBasket: boolean; ranks: { h24: number | null; d7: number | null; d30: number | null } }[] };
+  const [poolMe, setPoolMe] = useState<PoolMeData | null>(null);
+  const [poolSel, setPoolSel] = useState<number | null>(null);
+  const [poolTraders, setPoolTraders] = useState<{ wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[]>([]);
+  const [poolName, setPoolName] = useState('');
+  const [poolSlots, setPoolSlots] = useState('');
+  const [poolRules, setPoolRules] = useState<Record<string, string>>({});
 
   const token: string = session?.token ?? '';
   // UI guard only — real authorization stays in BE guards (D-F3).
@@ -125,15 +139,35 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
     })();
   }, []);
 
+  const refreshPools = useCallback(() => {
+    if (!token) return;
+    void (async () => {
+      try {
+        const r = await partnerMe(token);
+        setPoolMe(r.data as unknown as PoolMeData);
+        setPoolSel((prev) => prev ?? (r.data.pools[0]?.id ?? null));
+      } catch (e) {
+        setMsg((e as Error).message);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   useEffect(() => {
     refreshVaults();
     refreshBots();
     if (token) {
       refreshUsers();
       refreshAudit();
+      refreshPools();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    if (!token || poolSel === null) return;
+    void partnerPoolTraders(token, poolSel).then((r) => setPoolTraders(r.data)).catch((e) => setMsg((e as Error).message));
+  }, [token, poolSel]);
 
   if (!session) {
     return (
@@ -162,7 +196,7 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
       )}
 
       <div className="flex gap-1.5 flex-wrap">
-        {(['users', 'audit', 'vaults', 'bots', 'engine', 'demo'] as Tab[]).map((t) => (
+        {(['users', 'audit', 'vaults', 'pools', 'bots', 'engine', 'demo'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -328,6 +362,114 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === 'pools' && (
+        <div className="space-y-2">
+          <p className="text-[11px] text-[#75798C]">
+            Partner-pool ops (moved out of the KOL /trader portal). ADMIN-only; every write is audited in BE.
+          </p>
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <button onClick={refreshPools} disabled={busy} className={btnGhost}>
+              Reload pools
+            </button>
+            {(poolMe?.pools ?? []).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPoolSel(p.id)}
+                className={`text-[11px] font-bold rounded-lg px-2.5 py-1.5 border ${poolSel === p.id ? 'bg-[#49E6D7] text-[#161826] border-[#49E6D7]' : 'text-[#A7AABF] border-[#3F424D]'}`}
+              >
+                #{p.id} {p.name}
+              </button>
+            ))}
+          </div>
+          {(() => {
+            const pool = (poolMe?.pools ?? []).find((p) => p.id === poolSel) ?? null;
+            if (!pool) return <div className="text-[11px] text-[#75798C]">No pool selected.</div>;
+            const save = (patch: Record<string, unknown>, label: string) =>
+              void run(() => partnerUpdateSettings(token, pool.id, patch).then(() => refreshPools()), () => undefined, label);
+            const ruleKeys = ['traderCapPctNav', 'entryNowPct', 'limitOffsetPct', 'stopMinPct', 'stopMaxPct', 'timeStopHours', 'dailyKillSwitchPct', 'weeklyLossLimitPct'];
+            return (
+              <div className="space-y-2">
+                <div className="text-[11px] font-mono text-[#A7AABF]">
+                  <span className="text-[#E9E9ED]">#{pool.id} {pool.name}</span> [{pool.kind}] · {pool.status} · {pool.listing} · NAV {pool.navSol.toFixed(2)} SOL
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  <input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="New pool name" className={`${inputCls} flex-1 min-w-[140px]`} />
+                  <button disabled={busy || !poolName.trim()} onClick={() => save({ name: poolName.trim() }, 'Pool renamed')}
+                    className={btnPrimary}>Rename</button>
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button disabled={busy} onClick={() => save({ status: pool.status === 'live' ? 'paused' : 'live' }, pool.status === 'live' ? 'Pool paused' : 'Pool live')}
+                    className={btnGhost}>{pool.status === 'live' ? 'Pause pool' : 'Resume pool'}</button>
+                  <button disabled={busy} onClick={() => save({ listing: pool.listing === 'public' ? 'unlisted' : 'public' }, 'Listing updated')}
+                    className={btnGhost}>Make {pool.listing === 'public' ? 'unlisted' : 'public'}</button>
+                  {[3, 4, 5].map((n) => (
+                    <button key={n} disabled={busy} onClick={() => save({ maxTraders: n }, `Max traders → ${n}`)}
+                      className={btnGhost}>Max {n}</button>
+                  ))}
+                  <input value={poolSlots} onChange={(e) => setPoolSlots(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Max slots" className={`${inputCls} w-24`} />
+                  <button disabled={busy || !poolSlots} onClick={() => save({ maxSlots: Number(poolSlots) }, 'Slots updated')}
+                    className={btnGhost}>Set slots</button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {ruleKeys.map((k) => (
+                    <div key={k}>
+                      <div className="text-[10px] font-mono text-[#75798C]">{k}</div>
+                      <input value={poolRules[k] ?? ''} onChange={(e) => setPoolRules((v) => ({ ...v, [k]: e.target.value.replace(/[^0-9.]/g, '') }))}
+                        placeholder="—" inputMode="decimal" className={`${inputCls} w-full font-mono`} />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  disabled={busy || Object.keys(poolRules).length === 0}
+                  onClick={() => {
+                    const rules: Record<string, number> = {};
+                    for (const [k, v] of Object.entries(poolRules)) {
+                      if (v.trim() === '') continue;
+                      const n = Number(v);
+                      if (!Number.isFinite(n)) {
+                        setMsg(`Rule ${k} must be a number.`);
+                        return;
+                      }
+                      rules[k] = n;
+                    }
+                    save({ rulesJson: rules }, 'Pool rules saved');
+                    setPoolRules({});
+                  }}
+                  className={btnPrimary}
+                >
+                  Save rules
+                </button>
+                <div className="space-y-1.5 pt-1">
+                  <div className="text-[11px] font-bold text-[#E9E9ED]">Traders ({poolTraders.length})</div>
+                  {poolTraders.map((t) => (
+                    <div key={t.wallet} className="text-[11px] font-mono text-[#A7AABF] flex justify-between gap-2 items-center flex-wrap">
+                      <span className="break-all">@{t.handle} · {t.isActive ? 'active' : 'paused'} · {t.signals7d} sig 7d · {t.profitUsd} · fee {t.feeSol.toFixed(4)}</span>
+                      <span className="flex gap-1 shrink-0">
+                        <button disabled={busy}
+                          onClick={() => void run(() => partnerPauseTrader(token, pool.id, t.wallet, !t.isActive), () => partnerPoolTraders(token, pool.id).then((r) => setPoolTraders(r.data)), t.isActive ? 'Trader paused' : 'Trader resumed')}
+                          className={btnGhost}>{t.isActive ? 'Pause' : 'Resume'}</button>
+                        <button disabled={busy}
+                          onClick={() => void run(() => partnerRemoveTrader(token, pool.id, t.wallet), () => partnerPoolTraders(token, pool.id).then((r) => setPoolTraders(r.data)), 'Trader removed')}
+                          className={btnGhost}>Remove</button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1 pt-1">
+                  <div className="text-[11px] font-bold text-[#E9E9ED]">Basket status</div>
+                  {(poolMe?.basket ?? []).map((b) => (
+                    <div key={b.wallet} className="text-[11px] font-mono text-[#A7AABF]">
+                      @{b.handle} · {b.inBasket ? 'In basket' : 'Not in basket'} · #{b.ranks?.h24 ?? '—'} / #{b.ranks?.d7 ?? '—'} / #{b.ranks?.d30 ?? '—'}
+                    </div>
+                  ))}
+                  {(poolMe?.basket ?? []).length === 0 && <div className="text-[11px] text-[#75798C]">No tracked traders.</div>}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
