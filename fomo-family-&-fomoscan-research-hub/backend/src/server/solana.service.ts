@@ -148,11 +148,15 @@ export class SolanaOnChainListenerService {
     this.connection = new Connection(rpcUrl, {
       commitment: 'confirmed',
       wsEndpoint,
+      // 429 spirals: the library resubscribes hot on rate-limit. Surface the
+      // error instead — the 30s watchdog + 120s sync safety-net reconnect calmly.
+      disableRetryOnRateLimit: true,
     });
     const heliusKey = process.env.HELIUS_API_KEY || undefined;
     this.historyConnection = heliusKey
       ? new Connection(`https://mainnet.helius-rpc.com/?api-key=${heliusKey}`, {
         commitment: 'confirmed',
+        disableRetryOnRateLimit: true,
       })
       : this.connection;
 
