@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
+  clearSession,
+  getAuthMe,
   getStoredToken,
   loginAccount,
   partnerApply,
@@ -90,6 +92,7 @@ export default function TraderPage() {
   const [poolName, setPoolName] = useState('');
   const [maxSlots, setMaxSlots] = useState('');
   const [reqFomo, setReqFomo] = useState('');
+  const [identity, setIdentity] = useState<{ username: string | null; role: string } | null>(null);
   const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
   const [undone, setUndone] = useState<{ wallet: string } | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -101,11 +104,22 @@ export default function TraderPage() {
   }, [poolId]);
 
   useEffect(() => {
-    const t = getStoredToken();
-    if (t) {
+    const sync = () => {
+      const t = getStoredToken();
       setToken(t);
-      void load(t).catch(() => undefined);
-    }
+      if (t) {
+        void load(t).catch(() => undefined);
+        void getAuthMe(t)
+          .then((r) => setIdentity({ username: r.data.username ?? null, role: r.data.role }))
+          .catch(() => setIdentity(null));
+      } else {
+        setIdentity(null);
+        setMe(null);
+      }
+    };
+    sync();
+    window.addEventListener('edgepool:session', sync);
+    return () => window.removeEventListener('edgepool:session', sync);
   }, [load]);
 
   useEffect(() => {
@@ -195,6 +209,24 @@ export default function TraderPage() {
           </p>
         </div>
         <div className="p-6 space-y-3">
+          {token && identity && (
+            <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
+              <span className="text-[11px]" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+                Signed in as {identity.username ?? 'wallet'} ({identity.role}) — this portal needs a partner account.
+              </span>
+              <button
+                onClick={() => {
+                  clearSession();
+                  setToken(null);
+                  setMe(null);
+                  setIdentity(null);
+                }}
+                className="text-[11px] font-bold px-2 py-1 rounded-lg shrink-0"
+                style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
+                Sign out
+              </button>
+            </div>
+          )}
           <div className="flex gap-2">
             {(['signin', 'apply'] as const).map((t) => (
               <button key={t} onClick={() => { setTab(t); setMsg(null); }} className="text-xs font-bold px-3 py-1.5 rounded-lg capitalize"

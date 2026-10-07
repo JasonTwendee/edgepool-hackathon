@@ -48,8 +48,15 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
     void restoreSession().then((s) => {
       if (live) setSession(s);
     });
+    const onSession = () => {
+      void restoreSession().then((s) => {
+        if (live) setSession(s);
+      });
+    };
+    window.addEventListener('edgepool:session', onSession);
     return () => {
       live = false;
+      window.removeEventListener('edgepool:session', onSession);
     };
   }, []);
 
