@@ -451,10 +451,12 @@ export function getStoredToken(): string | null {
 
 export function storeSession(data: AuthSessionData): void {
   localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  window.dispatchEvent(new Event('edgepool:session'));
 }
 
 export function clearSession(): void {
   localStorage.removeItem(SESSION_KEY);
+  window.dispatchEvent(new Event('edgepool:session'));
 }
 
 /** Synchronous profile snapshot for instant UI (wallet label without flash).
