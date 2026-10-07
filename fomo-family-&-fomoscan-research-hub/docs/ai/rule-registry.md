@@ -70,6 +70,7 @@ This file is the durable rule source.
 - 2026-10-02: KHÔNG BAO GIỜ sửa migration đã apply — backfill/data-fix luôn bằng migration mới (Prisma checksum drift).
 - 2026-10-06 (user-confirmed): Deploy + CI/CD ghi vào 1 file SSOT `docs/setup/CICD_SERVER.md`; session mới đọc file này trước, không đoán lệnh.
 - 2026-10-06: Structural change (module/route/entity/suite mới) → update `docs/ai` indexes + `context-map.json` ngay trong cùng commit.
+- 2026-10-07 (user-confirmed): KOL /trader chỉ giữ Fees + Share + Signals + Payouts (+ xem/request trader); mọi pool ops (settings/rules/pause/remove/basket) là ADMIN-only ở /terminal, khóa cả BE (controller Roles + service guard).
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
 ## User Overrides

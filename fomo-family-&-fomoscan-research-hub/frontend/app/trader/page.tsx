@@ -11,15 +11,12 @@ import {
   partnerApplyStatus,
   partnerClaim,
   partnerMe,
-  partnerPauseTrader,
   partnerPayoutChallenge,
   partnerPayouts,
   partnerPoolTraders,
-  partnerRemoveTrader,
   partnerRequestTrader,
   partnerSetPayoutWallet,
   partnerSignals,
-  partnerUpdateSettings,
   storeSession,
   type PartnerMe,
 } from '../../lib/api';
@@ -193,8 +190,6 @@ export default function TraderPage() {
   const [payouts, setPayouts] = useState<{ id: number; trader: string; amountSol: number; status: string; createdAt: string }[]>([]);
   const [payoutInput, setPayoutInput] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [poolName, setPoolName] = useState('');
-  const [maxSlots, setMaxSlots] = useState('');
   const [reqFomo, setReqFomo] = useState('');
   const [applyOpen, setApplyOpen] = useState(false);
   const [appliedWallet, setAppliedWallet] = useState<string | null>(() => {
@@ -206,8 +201,6 @@ export default function TraderPage() {
   });
   const [applyStatus, setApplyStatus] = useState<string | null>(null);
   const [identity, setIdentity] = useState<{ username: string | null; role: string } | null>(null);
-  const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
-  const [undone, setUndone] = useState<{ wallet: string } | null>(null);
   const [now, setNow] = useState(Date.now());
 
   const load = useCallback(async (t: string) => {
@@ -258,21 +251,6 @@ export default function TraderPage() {
       setToken(res.data.token);
       await load(res.data.token);
       setMsg(`Signed in (${res.data.user.role}).`);
-    } catch (e) {
-      setMsg((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveSettings(patch: Record<string, unknown>, okMsg: string) {
-    if (!token || poolId === null) return;
-    setBusy(true);
-    setMsg(null);
-    try {
-      await partnerUpdateSettings(token, poolId, patch);
-      if (token) await load(token);
-      setMsg(okMsg);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -507,43 +485,9 @@ export default function TraderPage() {
         <section className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
           <h2 className="font-display text-base font-medium">My pool · {pool.name}</h2>
           <div className="text-xs font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-            NAV {pool.navSol.toFixed(2)} SOL · {pool.status} · {pool.listing}
-          </div>
-          <div className="grid sm:grid-cols-2 gap-2">
-            <input value={poolName} onChange={(e) => setPoolName(e.target.value)} placeholder="Pool name" className={inputCls} />
-            <input value={maxSlots} onChange={(e) => setMaxSlots(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Max slots" inputMode="numeric" className={inputCls} />
+            NAV {pool.navSol.toFixed(2)} SOL
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => void saveSettings({ name: poolName || undefined }, 'Pool renamed.').then(() => setPoolName(''))}
-              disabled={busy || !poolName.trim()} className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-              style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
-              Rename
-            </button>
-            <button onClick={() => void saveSettings({ status: pool.status === 'live' ? 'paused' : 'live' }, pool.status === 'live' ? 'Pool paused.' : 'Pool live.')}
-              disabled={busy} className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-              style={{ border: '1px solid var(--ep-amber, #F0BE67)', color: 'var(--ep-amber, #F0BE67)' }}>
-              {pool.status === 'live' ? 'Pause pool' : 'Resume pool'}
-            </button>
-            <button onClick={() => void saveSettings({ listing: pool.listing === 'public' ? 'unlisted' : 'public' }, 'Listing updated.')}
-              disabled={busy} className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-              style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
-              Make {pool.listing === 'public' ? 'unlisted' : 'public'}
-            </button>
-            <button onClick={() => maxSlots && void saveSettings({ maxSlots: Number(maxSlots) }, 'Slots updated.').then(() => setMaxSlots(''))}
-              disabled={busy || !maxSlots} className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-              style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
-              Set slots
-            </button>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Max traders</span>
-              {[3, 4, 5].map((n) => (
-                <button key={n} onClick={() => void saveSettings({ maxTraders: n }, `Max traders → ${n}.`)}
-                  disabled={busy} className="text-xs font-bold px-2.5 py-2 rounded-lg disabled:opacity-50"
-                  style={pool.maxTraders === n ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
-                  {n}
-                </button>
-              ))}
-            </div>
             <Link href={`/pools/${pool.id}`} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)' }}>
               View public page
             </Link>
@@ -557,54 +501,9 @@ export default function TraderPage() {
                 <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                   {t.isActive ? 'active' : 'paused'} · {t.signals7d} signals 7d · {t.profitUsd >= 0 ? '+' : ''}{t.profitUsd} · fee {t.feeSol.toFixed(4)}
                 </span>
-                <button
-                  onClick={() => {
-                    if (!token) return;
-                    void partnerPauseTrader(token, pool.id, t.wallet, !t.isActive)
-                      .then(() => partnerPoolTraders(token, pool.id).then((r) => setTraders(r.data)))
-                      .catch((e) => setMsg((e as Error).message));
-                  }}
-                  className="text-[11px] font-bold px-2 py-1 rounded-lg"
-                  style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
-                  {t.isActive ? 'Pause' : 'Resume'}
-                </button>
-                <button
-                  onClick={() => {
-                    if (!token) return;
-                    void partnerRemoveTrader(token, pool.id, t.wallet)
-                      .then(() => {
-                        setUndone({ wallet: t.wallet });
-                        setTimeout(() => setUndone((u) => (u && u.wallet === t.wallet ? null : u)), 8000);
-                        return partnerPoolTraders(token, pool.id).then((r) => setTraders(r.data));
-                      })
-                      .catch((e) => setMsg((e as Error).message));
-                  }}
-                  className="text-[11px] font-bold px-2 py-1 rounded-lg"
-                  style={{ border: '1px solid var(--ep-neg, #F28881)', color: 'var(--ep-neg, #F28881)' }}>
-                  Remove
-                </button>
               </li>
             ))}
           </ul>
-          {undone && (
-            <div className="flex items-center justify-between gap-2 text-[11px] rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
-              <span style={{ color: 'var(--ep-amber, #F0BE67)' }}>Trader removed.</span>
-              <button
-                onClick={() => {
-                  if (!token || poolId === null) return;
-                  void partnerPauseTrader(token, poolId, undone.wallet, true)
-                    .then(() => {
-                      setUndone(null);
-                      return partnerPoolTraders(token, poolId).then((r) => setTraders(r.data));
-                    })
-                    .catch((e) => setMsg((e as Error).message));
-                }}
-                className="font-bold px-2 py-1 rounded-lg"
-                style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
-                Undo
-              </button>
-            </div>
-          )}
           <div className="flex gap-2">
             <input value={reqFomo} onChange={(e) => setReqFomo(e.target.value)} placeholder="Request trader (Fomo handle)"
               className="flex-1 min-w-0 text-xs px-2.5 py-2 rounded-lg outline-none"
@@ -630,77 +529,13 @@ export default function TraderPage() {
               @{r.fomoHandle} · {r.status}
             </div>
           ))}
+          {identity?.role === 'ADMIN' && (
+            <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              Pool management (pause / listing / slots / rules / basket) moved to <Link href="/terminal" className="font-bold" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>/terminal</Link>.
+            </p>
+          )}
         </section>
       )}
-
-      {pool && (
-      <section className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>POOL RULES · CUSTOM</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[
-            ['traderCapPctNav', 'Cap % NAV'],
-            ['entryNowPct', 'Entry % now'],
-            ['limitOffsetPct', 'Limit offset %'],
-            ['stopMinPct', 'Stop min %'],
-            ['stopMaxPct', 'Stop max %'],
-            ['timeStopHours', 'Time stop h'],
-            ['dailyKillSwitchPct', 'Daily kill %'],
-            ['weeklyLossLimitPct', 'Weekly loss %'],
-          ].map(([k, label]) => (
-            <div key={k}>
-              <div className="text-[10px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
-              <input
-                value={ruleVals[k] ?? (pool?.rulesJson?.[k] !== undefined && pool?.rulesJson?.[k] !== null ? String(pool.rulesJson[k]) : '')}
-                onChange={(e) => setRuleVals((v) => ({ ...v, [k]: e.target.value.replace(/[^0-9.]/g, '') }))}
-                placeholder="—"
-                inputMode="decimal"
-                className="w-full mt-0.5 text-xs font-mono px-2 py-1.5 rounded-lg outline-none"
-                style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
-              />
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={() => {
-            const rules: Record<string, number> = {};
-            for (const [k, v] of Object.entries(ruleVals)) {
-              if (v.trim() === '') continue;
-              const n = Number(v);
-              if (!Number.isFinite(n)) {
-                setMsg(`Rule ${k} must be a number.`);
-                return;
-              }
-              rules[k] = n;
-            }
-            void saveSettings({ rulesJson: rules }, 'Pool rules saved.').then(() => setRuleVals({}));
-          }}
-          disabled={busy || Object.keys(ruleVals).length === 0}
-          className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
-          style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-          Save rules
-        </button>
-      </section>
-      )}
-
-      <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EDGEPOOL BASKET STATUS</h2>
-        <div className="mt-2 space-y-1.5">
-          {me.basket.length === 0 && (
-            <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>None of your traders are tracked yet.</p>
-          )}
-          {me.basket.map((b) => (
-            <div key={b.wallet} className="flex items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-              <span className="font-bold font-mono">@{b.handle}</span>
-              <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                {b.inBasket ? 'In basket' : 'Not in basket'} · #{b.ranks?.h24 ?? '—'} · #{b.ranks?.d7 ?? '—'} · #{b.ranks?.d30 ?? '—'}
-              </span>
-            </div>
-          ))}
-          <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-            You&apos;d move out if you drop below #8 on 7d. Picked by algorithm; you earn <b style={{ color: 'var(--ep-aqua, #49E6D7)' }}>10%</b> of the profit your signals make here, Edgepool takes <b style={{ color: 'var(--ep-violet, #9184D9)' }}>10%</b>.
-          </p>
-        </div>
-      </section>
 
       <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
         <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>SHARE CARD FOR X</h2>
