@@ -289,6 +289,7 @@
     "poolDetail": "frontend/app/pools/[id]/page.tsx (Calm default + ?view=advanced: KPIs, risk bars, ladder, exposure)",
     "poolTerminal": "frontend/components/SignalStream.tsx (SSE terminal log: replay + live SKIP/ENTER/EXIT, filter, pause)",
     "siteChrome": "frontend/components/SiteHeader.tsx (64px header + wallet button + mobile tab bar + footer)",
+    "toaster": "frontend/components/Toaster.tsx (bottom-center 2.8s toasts)",
     "portfolio": "frontend/app/portfolio/page.tsx (totals, Value/PnL chart, my pools, exposures, pending, history)",
     "traderPortal": "frontend/app/trader/page.tsx (KOL fees pending/claimable/paid, payout wallet, pool settings)",
     "terminal": "frontend/app/terminal/page.tsx (admin: leaderboard, chart, copy-trade, vaults, audit; login wall)",
