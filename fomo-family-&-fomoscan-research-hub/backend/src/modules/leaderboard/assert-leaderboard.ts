@@ -172,7 +172,21 @@ async function main(): Promise<void> {
     assert.equal(s2.deactivated, 0);
     restore();
   }
-
+  // 1b. Window ranks snapshot per tick (24h/7d/30d), stub board shared.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'weekly', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const world = makeFake();
+    const svc = svcWith(world.prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]));
+    await svc.tick();
+    const rows = world.db.wallet as Row[];
+    assert.equal(rows.length, 2);
+    for (const r of rows) {
+      assert.equal(r.rank24h, 1);
+      assert.equal(r.rank7d, 1);
+      assert.equal(r.rank30d, 1);
+    }
+    restore();
+  }
   // 3. Drop → deactivated, history row kept; newcomer added.
   {
     const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });

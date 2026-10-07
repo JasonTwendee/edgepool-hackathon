@@ -24,6 +24,9 @@ model TrackedWallet {
   // with no local tx history yet. Refreshed on every rotation tick.
   fomoPnlUsd           Decimal? @map("fomo_pnl_usd") @db.Decimal(15, 2)
   fomoRank             Int?     @map("fomo_rank")
+  rank24h              Int?     @map("rank_24h")
+  rank7d               Int?     @map("rank_7d")
+  rank30d              Int?     @map("rank_30d")
   fomoSyncedAt         DateTime? @map("fomo_synced_at") @db.Timestamptz()
   ownerNotes           String?   @map("owner_notes") @db.Text
   allocationWeight     Decimal  @map("allocation_weight") @db.Decimal(4, 2)

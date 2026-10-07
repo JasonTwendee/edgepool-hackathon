@@ -134,7 +134,7 @@ export class PartnerService {
     };
   }
 
-  private async poolCard(vaultId: number): Promise<{ id: number; name: string; kind: string; status: string; listing: string; navSol: number }> {
+  private async poolCard(vaultId: number): Promise<{ id: number; name: string; kind: string; status: string; listing: string; navSol: number; maxSlots: number; maxTraders: number; rulesJson: Record<string, number> | null }> {
     const v = await this.prisma.vault.findUnique({ where: { id: vaultId } });
     if (!v) missing(`Vault ${vaultId} not found.`);
     const last = await this.prisma.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } });
@@ -142,6 +142,8 @@ export class PartnerService {
       id: v.id, name: v.name,
       kind: (v.kind as string) ?? 'basket', status: (v.status as string) ?? 'live',
       listing: (v.listing as string) ?? 'public', navSol: last ? num(last.navSol) : 0,
+      maxSlots: (v.maxSlots as number) ?? 100, maxTraders: (v.maxTraders as number) ?? 5,
+      rulesJson: (v.rulesJson as Record<string, number> | null) ?? null,
     };
   }
 
@@ -403,10 +405,10 @@ export class PartnerService {
     const [mine, basket, tracked] = await Promise.all([
       this.prisma.vaultTrader.findMany({ where: { vaultId: { in: ids }, isActive: true } }),
       this.prisma.vaultTrader.findMany({ where: { vaultId: flagship.id, isActive: true } }),
-      this.prisma.trackedWallet.findMany({ select: { address: true, handle: true, fomoRank: true } }),
+      this.prisma.trackedWallet.findMany({ select: { address: true, handle: true, fomoRank: true, rank24h: true, rank7d: true, rank30d: true } }),
     ]);
     const inBasket = new Set(basket.map((t) => t.wallet));
-    const rankOf = new Map(tracked.map((t) => [t.address, { handle: t.handle, rank: t.fomoRank ?? null }]));
+    const rankOf = new Map(tracked.map((t) => [t.address, { handle: t.handle, rank: t.fomoRank ?? null, ranks: { h24: t.rank24h ?? null, d7: t.rank7d ?? null, d30: t.rank30d ?? null } }]));
     const seen = new Set<string>();
     return mine
       .filter((t) => !seen.has(t.wallet) && (seen.add(t.wallet), true))
@@ -414,6 +416,7 @@ export class PartnerService {
         wallet: t.wallet,
         handle: rankOf.get(t.wallet)?.handle ?? t.wallet.slice(0, 6),
         rank: rankOf.get(t.wallet)?.rank ?? null,
+        ranks: rankOf.get(t.wallet)?.ranks ?? { h24: null, d7: null, d30: null },
         inBasket: inBasket.has(t.wallet),
         note: inBasket.has(t.wallet) ? '10% of profit your signals make here (Edgepool takes 10%)' : 'Not in the Edgepool basket',
       }));

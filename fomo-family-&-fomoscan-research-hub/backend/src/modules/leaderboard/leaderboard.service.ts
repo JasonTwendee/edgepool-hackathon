@@ -247,6 +247,50 @@ export class LeaderboardService implements OnModuleInit {
         await this.stream.unwatch(w.address).catch(() => undefined);
       }
     }
+    // Window ranks for the pool basket display (Rank · 24h/7d/30d): snapshot
+    // each FomoScan window independently of rotation membership. Reuses the
+    // main board when the period matches to save a call. Never creates rows
+    // (rotation owns membership) and never fails the tick.
+    const rankWindows = [
+      ['daily', 'rank24h'],
+      ['weekly', 'rank7d'],
+      ['monthly', 'rank30d'],
+    ] as const;
+    const rankByWallet = new Map<string, { rank24h?: number; rank7d?: number; rank30d?: number }>();
+    for (const [win, col] of rankWindows) {
+      let board: { entries: { wallet: string; isVerified: boolean; rank?: unknown }[] } | null =
+        win === period ? (lb as unknown as { entries: { wallet: string; isVerified: boolean; rank?: unknown }[] }) : null;
+      if (!board) {
+        try {
+          board = (await this.fomoscan.leaderboard(fetchN, win)) as unknown as {
+            entries: { wallet: string; isVerified: boolean; rank?: unknown }[];
+          };
+        } catch {
+          continue;
+        }
+      }
+      for (const e of board.entries) {
+        if (!e.isVerified) continue;
+        try {
+          decodeWalletAddress(e.wallet);
+        } catch {
+          continue;
+        }
+        if (typeof e.rank !== 'number') continue;
+        const cur = rankByWallet.get(e.wallet) ?? {};
+        (cur as Record<string, number>)[col] = e.rank;
+        rankByWallet.set(e.wallet, cur);
+      }
+    }
+    for (const [wallet, ranks] of rankByWallet) {
+      try {
+        const existing = await this.prisma.trackedWallet.findUnique({ where: { address: wallet } });
+        if (!existing) continue;
+        await this.prisma.trackedWallet.update({ where: { address: wallet }, data: { ...ranks } });
+      } catch {
+        // rank snapshot is display-only — never break rotation.
+      }
+    }
     return { period, topN, cap, added, reactivated, deactivated, pruned, total: finalTotal, active: finalActive, at: new Date().toISOString() };
   }
 }
