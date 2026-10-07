@@ -345,18 +345,26 @@ export default function PoolDetailPage() {
           </section>
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Trader basket</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>TRADER BASKET · {pool.traders.length}</h2>
+              <span className="font-mono text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>Rank · 24h / 7d / 30d</span>
+            </div>
             <ul className="mt-2 space-y-2">
               {pool.traders.map((t) => (
-                <li key={t.wallet} className="flex items-center justify-between text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+                <li key={t.wallet} className="flex items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
                   <span className="font-bold flex items-center gap-1.5">
                     <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold" style={{ background: 'var(--ep-violet-tint, #2B2741)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
                       {(locked ? 'T' : t.handle || '?').slice(0, 1).toUpperCase()}
                     </span>
                     @{locked ? 'Trader •' : t.handle} <XLogo size={12} style={{ color: 'var(--ep-faint, #75798C)' }} />
                   </span>
-                  <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                    {t.rank ? `rank #${t.rank}` : 'unranked'}{expByWallet[t.wallet] !== undefined ? ` · ${expByWallet[t.wallet].toFixed(1)}% NAV` : ''}
+                  <span className="text-right">
+                    <span className="font-mono" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+                      #{t.ranks?.h24 ?? '—'} · #{t.ranks?.d7 ?? '—'} · #{t.ranks?.d30 ?? '—'}
+                    </span>
+                    <span className="font-mono block" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                      {expByWallet[t.wallet] !== undefined ? `${expByWallet[t.wallet].toFixed(1)}% NAV` : 'no exposure'}
+                    </span>
                   </span>
                 </li>
               ))}

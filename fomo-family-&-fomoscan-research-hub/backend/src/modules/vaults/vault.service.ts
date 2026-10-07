@@ -1160,7 +1160,20 @@ export class VaultService {
       const basket = traders
         .filter((t) => t.vaultId === v.id)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((t) => ({ wallet: t.wallet, handle: (byId.get(t.wallet)?.handle as string) ?? t.wallet.slice(0, 6), rank: (byId.get(t.wallet)?.fomoRank as number | null) ?? null, weightBps: (t.weightBps as number | null) ?? 0 }));
+        .map((t) => {
+          const tw = byId.get(t.wallet) as any;
+          return {
+            wallet: t.wallet,
+            handle: (tw?.handle as string) ?? t.wallet.slice(0, 6),
+            rank: (tw?.fomoRank as number | null) ?? null,
+            ranks: {
+              h24: (tw?.rank24h as number | null) ?? null,
+              d7: (tw?.rank7d as number | null) ?? null,
+              d30: (tw?.rank30d as number | null) ?? null,
+            },
+            weightBps: (t.weightBps as number | null) ?? 0,
+          };
+        });
       const row: Record<string, unknown> = {
         id: v.id,
         name: v.name,

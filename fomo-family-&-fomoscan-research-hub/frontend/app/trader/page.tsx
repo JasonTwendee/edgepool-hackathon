@@ -12,6 +12,7 @@ import {
   partnerPayoutChallenge,
   partnerPayouts,
   partnerPoolTraders,
+  partnerRemoveTrader,
   partnerRequestTrader,
   partnerSetPayoutWallet,
   partnerSignals,
@@ -25,6 +26,48 @@ import { Toaster, toast } from '../../components/Toaster';
 
 const inputCls =
   'w-full text-sm bg-[#0D0F18] border border-[#3F424D] rounded-lg px-3 py-2.5 text-[#E9E9ED] placeholder:text-[#4A4D5E] outline-none focus:border-[#E9E9ED]';
+
+function countdown(iso: string, now: number): string {
+  const cd = Math.max(0, new Date(iso).getTime() - now);
+  if (cd <= 0) return 'settling…';
+  const h = Math.floor(cd / 3600000);
+  const m = Math.floor((cd % 3600000) / 60000);
+  const s = Math.floor((cd % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+/** Render the 600×315 X share card on canvas and trigger a PNG download. */
+function downloadShareCard(poolName: string, navSol: number, poolId: number): void {
+  const c = document.createElement('canvas');
+  c.width = 600;
+  c.height = 315;
+  const g = c.getContext('2d');
+  if (!g) throw new Error('Canvas unavailable.');
+  g.fillStyle = '#161826';
+  g.fillRect(0, 0, 600, 315);
+  const grad = g.createRadialGradient(520, 40, 10, 520, 40, 320);
+  grad.addColorStop(0, 'rgba(73,230,215,0.25)');
+  grad.addColorStop(1, 'rgba(73,230,215,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 600, 315);
+  g.fillStyle = '#49E6D7';
+  g.font = '700 34px Inter, sans-serif';
+  g.fillText('◈ edgepool', 40, 70);
+  g.fillStyle = '#E9E9ED';
+  g.font = '500 40px Inter, sans-serif';
+  const name = poolName.length > 26 ? `${poolName.slice(0, 25)}…` : poolName;
+  g.fillText(name, 40, 140);
+  g.fillStyle = '#73DEA4';
+  g.font = '700 44px JetBrains Mono, monospace';
+  g.fillText(`${navSol.toFixed(2)} SOL`, 40, 210);
+  g.fillStyle = '#9397AB';
+  g.font = '400 20px Inter, sans-serif';
+  g.fillText(`edgepool-dev · /pools/${poolId}`, 40, 260);
+  const a = document.createElement('a');
+  a.download = `edgepool-pool-${poolId}.png`;
+  a.href = c.toDataURL('image/png');
+  a.click();
+}
 
 export default function TraderPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -47,6 +90,9 @@ export default function TraderPage() {
   const [poolName, setPoolName] = useState('');
   const [maxSlots, setMaxSlots] = useState('');
   const [reqFomo, setReqFomo] = useState('');
+  const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
+  const [undone, setUndone] = useState<{ wallet: string } | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   const load = useCallback(async (t: string) => {
     const res = await partnerMe(t);
@@ -68,6 +114,12 @@ export default function TraderPage() {
     void partnerSignals(token, poolId).then((r) => setSignals(r.data)).catch(() => undefined);
     void partnerPayouts(token).then((r) => setPayouts(r.data)).catch(() => undefined);
   }, [token, poolId]);
+
+  useEffect(() => {
+    if (!me?.fees.nextCheckpointAt) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [me?.fees.nextCheckpointAt]);
 
   async function signin() {
     if (busy || !username.trim() || !password) return;
@@ -284,7 +336,10 @@ export default function TraderPage() {
             style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
             Claim
           </button>
-          <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>Auto-paid at each checkpoint.</span>
+          <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>
+            Auto-paid at each checkpoint
+            {me.fees.nextCheckpointAt ? `, next in ${countdown(me.fees.nextCheckpointAt, now)}` : '.'}
+          </span>
         </div>
         <p className="text-[11px] mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
           Traders in this pool earn <b style={{ color: 'var(--ep-aqua, #49E6D7)' }}>15%</b> of their own profitable trades. Edgepool takes <b style={{ color: 'var(--ep-violet, #9184D9)' }}>5%</b>.
@@ -333,6 +388,16 @@ export default function TraderPage() {
               style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
               Set slots
             </button>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Max traders</span>
+              {[3, 4, 5].map((n) => (
+                <button key={n} onClick={() => void saveSettings({ maxTraders: n }, `Max traders → ${n}.`)}
+                  disabled={busy} className="text-xs font-bold px-2.5 py-2 rounded-lg disabled:opacity-50"
+                  style={pool.maxTraders === n ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                  {n}
+                </button>
+              ))}
+            </div>
             <Link href={`/pools/${pool.id}`} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)' }}>
               View public page
             </Link>
@@ -357,9 +422,43 @@ export default function TraderPage() {
                   style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
                   {t.isActive ? 'Pause' : 'Resume'}
                 </button>
+                <button
+                  onClick={() => {
+                    if (!token) return;
+                    void partnerRemoveTrader(token, pool.id, t.wallet)
+                      .then(() => {
+                        setUndone({ wallet: t.wallet });
+                        setTimeout(() => setUndone((u) => (u && u.wallet === t.wallet ? null : u)), 8000);
+                        return partnerPoolTraders(token, pool.id).then((r) => setTraders(r.data));
+                      })
+                      .catch((e) => setMsg((e as Error).message));
+                  }}
+                  className="text-[11px] font-bold px-2 py-1 rounded-lg"
+                  style={{ border: '1px solid var(--ep-neg, #F28881)', color: 'var(--ep-neg, #F28881)' }}>
+                  Remove
+                </button>
               </li>
             ))}
           </ul>
+          {undone && (
+            <div className="flex items-center justify-between gap-2 text-[11px] rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
+              <span style={{ color: 'var(--ep-amber, #F0BE67)' }}>Trader removed.</span>
+              <button
+                onClick={() => {
+                  if (!token || poolId === null) return;
+                  void partnerPauseTrader(token, poolId, undone.wallet, true)
+                    .then(() => {
+                      setUndone(null);
+                      return partnerPoolTraders(token, poolId).then((r) => setTraders(r.data));
+                    })
+                    .catch((e) => setMsg((e as Error).message));
+                }}
+                className="font-bold px-2 py-1 rounded-lg"
+                style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
+                Undo
+              </button>
+            </div>
+          )}
           <div className="flex gap-2">
             <input value={reqFomo} onChange={(e) => setReqFomo(e.target.value)} placeholder="Request trader (Fomo handle)"
               className="flex-1 min-w-0 text-xs px-2.5 py-2 rounded-lg outline-none"
@@ -387,6 +486,109 @@ export default function TraderPage() {
           ))}
         </section>
       )}
+
+      {pool && (
+      <section className="rounded-2xl p-5 space-y-3" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>POOL RULES · CUSTOM</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            ['traderCapPctNav', 'Cap % NAV'],
+            ['entryNowPct', 'Entry % now'],
+            ['limitOffsetPct', 'Limit offset %'],
+            ['stopMinPct', 'Stop min %'],
+            ['stopMaxPct', 'Stop max %'],
+            ['timeStopHours', 'Time stop h'],
+            ['dailyKillSwitchPct', 'Daily kill %'],
+            ['weeklyLossLimitPct', 'Weekly loss %'],
+          ].map(([k, label]) => (
+            <div key={k}>
+              <div className="text-[10px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
+              <input
+                value={ruleVals[k] ?? (pool?.rulesJson?.[k] !== undefined && pool?.rulesJson?.[k] !== null ? String(pool.rulesJson[k]) : '')}
+                onChange={(e) => setRuleVals((v) => ({ ...v, [k]: e.target.value.replace(/[^0-9.]/g, '') }))}
+                placeholder="—"
+                inputMode="decimal"
+                className="w-full mt-0.5 text-xs font-mono px-2 py-1.5 rounded-lg outline-none"
+                style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
+              />
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => {
+            const rules: Record<string, number> = {};
+            for (const [k, v] of Object.entries(ruleVals)) {
+              if (v.trim() === '') continue;
+              const n = Number(v);
+              if (!Number.isFinite(n)) {
+                setMsg(`Rule ${k} must be a number.`);
+                return;
+              }
+              rules[k] = n;
+            }
+            void saveSettings({ rulesJson: rules }, 'Pool rules saved.').then(() => setRuleVals({}));
+          }}
+          disabled={busy || Object.keys(ruleVals).length === 0}
+          className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
+          style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+          Save rules
+        </button>
+      </section>
+      )}
+
+      <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EDGEPOOL BASKET STATUS</h2>
+        <div className="mt-2 space-y-1.5">
+          {me.basket.length === 0 && (
+            <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>None of your traders are tracked yet.</p>
+          )}
+          {me.basket.map((b) => (
+            <div key={b.wallet} className="flex items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+              <span className="font-bold font-mono">@{b.handle}</span>
+              <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                {b.inBasket ? 'In basket' : 'Not in basket'} · #{b.ranks?.h24 ?? '—'} · #{b.ranks?.d7 ?? '—'} · #{b.ranks?.d30 ?? '—'}
+              </span>
+            </div>
+          ))}
+          <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+            You&apos;d move out if you drop below #8 on 7d. Picked by algorithm; you earn <b style={{ color: 'var(--ep-aqua, #49E6D7)' }}>10%</b> of the profit your signals make here, Edgepool takes <b style={{ color: 'var(--ep-violet, #9184D9)' }}>10%</b>.
+          </p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>SHARE CARD FOR X</h2>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>600×315 PNG for posts + copyable pool link.</p>
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <button
+            onClick={() => {
+              if (!pool) return;
+              try {
+                downloadShareCard(pool.name, pool.navSol, pool.id);
+                setMsg('Share card downloaded.');
+              } catch (e) {
+                setMsg((e as Error).message);
+              }
+            }}
+            className="text-xs font-bold px-3 py-2 rounded-lg"
+            style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+            Download PNG
+          </button>
+          <button
+            onClick={() => {
+              if (!pool) return;
+              const url = `${window.location.origin}/pools/${pool.id}`;
+              void navigator.clipboard.writeText(url).then(
+                () => setMsg('Pool link copied.'),
+                () => setMsg('Copy failed — link: ' + url),
+              );
+            }}
+            className="text-xs font-bold px-3 py-2 rounded-lg"
+            style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
+            Copy pool link
+          </button>
+        </div>
+      </section>
 
       <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
         <h2 className="font-display text-base font-medium">My signals in my pool</h2>

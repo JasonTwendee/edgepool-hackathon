@@ -197,7 +197,7 @@ export interface PoolSummary {
   totalShares: number;
   slots: { used: number; max: number };
   maxTraders: number;
-  traders: { wallet: string; handle: string; rank: number | null; weightBps: number }[];
+  traders: { wallet: string; handle: string; rank: number | null; weightBps: number; ranks: { h24: number | null; d7: number | null; d30: number | null } }[];
   spark: number[];
   pnl: Record<'day' | 'week' | 'month' | 'all', { sol: number; pct: number }>;
   myHolding?: { shares: number; valueSol: number; returnsSol: number } | null;
@@ -251,9 +251,9 @@ export interface PartnerMe {
   handle: string;
   payoutWallet: string | null;
   payoutWalletVerified: boolean;
-  pools: { id: number; name: string; kind: string; status: string; listing: string; navSol: number }[];
+  pools: { id: number; name: string; kind: string; status: string; listing: string; navSol: number; maxSlots: number; maxTraders: number; rulesJson: Record<string, number> | null }[];
   fees: { pendingSol: number; claimableSol: number; paidSol: number; nextCheckpointAt: string | null; byPool: { vaultId: number; kind: string; claimableSol: number; paidSol: number }[] };
-  basket: { wallet: string; handle: string; rank: number | null; inBasket: boolean; note: string }[];
+  basket: { wallet: string; handle: string; rank: number | null; ranks: { h24: number | null; d7: number | null; d30: number | null }; inBasket: boolean; note: string }[];
   requests: { id: number; vaultId: number; fomoHandle: string; status: string }[];
 }
 
@@ -287,6 +287,11 @@ export function partnerUpdateSettings(token: string, poolId: number, patch: Reco
 
 export function partnerPauseTrader(token: string, poolId: number, wallet: string, active: boolean): Promise<{ success: boolean; data: unknown }> {
   return fetchJsonAuth(`/api/partner/pools/${poolId}/traders/${encodeURIComponent(wallet)}/pause`, token, { method: 'POST', body: JSON.stringify({ active }) });
+}
+
+/** Permanently remove a trader from the pool (owner). Undo = pause with active:true. */
+export function partnerRemoveTrader(token: string, poolId: number, wallet: string): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/traders/${encodeURIComponent(wallet)}`, token, { method: 'DELETE' });
 }
 
 export function partnerRequestTrader(token: string, poolId: number, input: { fomoHandle: string; xHandle?: string }): Promise<{ success: boolean; data: unknown }> {
