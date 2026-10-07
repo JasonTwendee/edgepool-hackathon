@@ -85,6 +85,15 @@ export class VaultDepositDto {
   @IsNumber()
   @Min(0.000000001)
   amountSol!: number;
+
+  /** Wallet-signed flow: exact challenged message + base58 signature. */
+  @IsOptional()
+  @IsString()
+  message?: string;
+
+  @IsOptional()
+  @IsString()
+  signature?: string;
 }
 
 /** POST /api/vaults/withdraw body. Mirrors openapi.yaml#VaultWithdrawDto. */
@@ -101,6 +110,15 @@ export class VaultWithdrawDto {
   @IsNumber()
   @Min(0.000000001)
   shares!: number;
+
+  /** Wallet-signed flow: exact challenged message + base58 signature. */
+  @IsOptional()
+  @IsString()
+  message?: string;
+
+  @IsOptional()
+  @IsString()
+  signature?: string;
 }
 
 /** POST /api/vaults/settle body. Mirrors openapi.yaml#VaultSettleDto. */

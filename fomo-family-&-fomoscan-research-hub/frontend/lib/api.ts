@@ -304,7 +304,9 @@ export function queueVaultDeposit(input: {
   depositor?: string;
   amountSol: number;
   vaultId?: number;
-}, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  message?: string;
+  signature?: string;
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
   return fetchJsonAuth('/api/vaults/deposit', token, init);
 }
@@ -313,9 +315,31 @@ export function requestVaultWithdraw(input: {
   depositor?: string;
   shares: number;
   vaultId?: number;
-}, token: string): Promise<{ success: boolean; data: { id: number; status: string } }> {
+  message?: string;
+  signature?: string;
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
   return fetchJsonAuth('/api/vaults/withdraw', token, init);
+}
+
+export function depositChallenge(
+  input: { vaultId?: number; amountSol: number; wallet: string },
+  token: string,
+): Promise<{ success: boolean; data: { message: string; nonce: string; expiresAt: string } }> {
+  return fetchJsonAuth('/api/vaults/deposit/challenge', token, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function withdrawChallenge(
+  input: { vaultId?: number; shares: number; wallet: string },
+  token: string,
+): Promise<{ success: boolean; data: { message: string; nonce: string; expiresAt: string } }> {
+  return fetchJsonAuth('/api/vaults/withdraw/challenge', token, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export interface WalletPnl {

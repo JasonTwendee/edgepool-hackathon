@@ -112,3 +112,8 @@ export type PartnerApplication = Prisma.PartnerApplicationModel
  * 
  */
 export type TraderRequest = Prisma.TraderRequestModel
+/**
+ * Model SignedIntent
+ * 
+ */
+export type SignedIntent = Prisma.SignedIntentModel

@@ -6,11 +6,19 @@ import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, OptionalAuthGuard, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { VaultService } from './vault.service.js';
+import { SignedIntentService } from '../signed-intent/signed-intent.service.js';
+
+function fail(message: string): never {
+  throw new Error(message);
+}
 import { AssignTraderDto, CreateVaultDto, VaultDepositDto, VaultPolicyDto, VaultSettleDto, VaultWithdrawDto } from './dto/vault.dto.js';
 
 @Controller('api/vaults')
 export class VaultsController {
-  constructor(@Inject(VaultService) private readonly vaults: VaultService) {}
+  constructor(
+    @Inject(VaultService) private readonly vaults: VaultService,
+    @Inject(SignedIntentService) private readonly intents: SignedIntentService,
+  ) {}
 
   @Get()
   async list(): Promise<{ success: boolean; total: number; data: unknown }> {
@@ -159,8 +167,24 @@ export class VaultsController {
     const dto = await validateDto(VaultDepositDto, body);
     // Fix #4: session identity is authoritative — client `depositor` is
     // display-only and ignored. Anonymous deposits are rejected (401).
-    const row = await this.vaults.deposit(dto.vaultId ?? 1, req.user as AuthedUser, dto.amountSol);
-    return { success: true, data: row };
+    // Wallet-signed flow: valid signature upgrades the booking identity to the
+    // verified wallet (no funds move on-chain — BE paper ledger).
+    let identity = req.user as AuthedUser;
+    let signedWallet: string | null = null;
+    if (dto.message || dto.signature) {
+      if (!dto.message || !dto.signature) fail('Both message and signature are required.');
+      signedWallet = await this.intents.verifyAndConsume({
+        userId: (req.user as AuthedUser).id,
+        kind: 'DEPOSIT',
+        vaultId: dto.vaultId ?? 1,
+        qty: dto.amountSol,
+        message: dto.message,
+        signature: dto.signature,
+      });
+      identity = { ...(req.user as AuthedUser), wallet: signedWallet };
+    }
+    const row = await this.vaults.deposit(dto.vaultId ?? 1, identity, dto.amountSol);
+    return { success: true, data: { ...(row as object), signedWallet } };
   }
 
   @Post('withdraw')
@@ -170,8 +194,22 @@ export class VaultsController {
     @Req() req: { user?: AuthedUser },
   ) {
     const dto = await validateDto(VaultWithdrawDto, body);
-    const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, req.user as AuthedUser, dto.shares);
-    return { success: true, data: row };
+    let identity = req.user as AuthedUser;
+    let signedWallet: string | null = null;
+    if (dto.message || dto.signature) {
+      if (!dto.message || !dto.signature) fail('Both message and signature are required.');
+      signedWallet = await this.intents.verifyAndConsume({
+        userId: (req.user as AuthedUser).id,
+        kind: 'WITHDRAW',
+        vaultId: dto.vaultId ?? 1,
+        qty: dto.shares,
+        message: dto.message,
+        signature: dto.signature,
+      });
+      identity = { ...(req.user as AuthedUser), wallet: signedWallet };
+    }
+    const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, identity, dto.shares);
+    return { success: true, data: { ...(row as object), signedWallet } };
   }
 
   @Post('settle')

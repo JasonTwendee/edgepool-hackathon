@@ -69,7 +69,8 @@ export const ModelName = {
   Bot: 'Bot',
   PartnerPayout: 'PartnerPayout',
   PartnerApplication: 'PartnerApplication',
-  TraderRequest: 'TraderRequest'
+  TraderRequest: 'TraderRequest',
+  SignedIntent: 'SignedIntent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -396,6 +397,23 @@ export const TraderRequestScalarFieldEnum = {
 } as const
 
 export type TraderRequestScalarFieldEnum = (typeof TraderRequestScalarFieldEnum)[keyof typeof TraderRequestScalarFieldEnum]
+
+
+export const SignedIntentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  wallet: 'wallet',
+  kind: 'kind',
+  vaultId: 'vaultId',
+  amountSol: 'amountSol',
+  shares: 'shares',
+  nonce: 'nonce',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SignedIntentScalarFieldEnum = (typeof SignedIntentScalarFieldEnum)[keyof typeof SignedIntentScalarFieldEnum]
 
 
 export const SortOrder = {
