@@ -93,6 +93,47 @@ async function main(): Promise<void> {
   assert.equal(paused.status, 'paused');
   assert.equal(paused.listing, 'unlisted');
 
+  // 1b. Genesis 0-NAV checkpoint is never the PnL base: a young pool funded
+  // 12 → now 12.96 reports +0.96 / +8%, never "+12.96 at +0.0%".
+  {
+    const gFake = {
+      vault: [{ id: 3, name: 'genesis', kind: 'partner', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 50, maxTraders: 3, environment: 'SANDBOX', createdAt: new Date(now - 3600000) }],
+      traders: [] as Row[],
+      tracked: [] as Row[],
+      epochs: [
+        { id: 1, vaultId: 3, navSol: 0, sharePrice: 1, createdAt: new Date(now - 3600000) },
+        { id: 2, vaultId: 3, navSol: 12, sharePrice: 1.2, createdAt: new Date(now - 1800000) },
+        { id: 3, vaultId: 3, navSol: 12.96, sharePrice: 1.296, createdAt: new Date(now - 60000) },
+      ] as Row[],
+      deposits: [] as Row[],
+      withdrawals: [] as Row[],
+    };
+    const gMatch = (r: Row, w: Row): boolean =>
+      Object.entries(w).every(([k, v]) => {
+        if (v !== null && typeof v === 'object') return true;
+        return r[k] === v;
+      });
+    const gPrisma = {
+      vault: {
+        findMany: async () => [...gFake.vault],
+        findUnique: async ({ where }: { where: Row }) => gFake.vault.find((r) => gMatch(r, where)) ?? null,
+      },
+      vaultTrader: { findMany: async () => [] },
+      trackedWallet: { findMany: async () => [] },
+      epochCheckpoint: {
+        findFirst: async () => gFake.epochs[gFake.epochs.length - 1],
+        findMany: async () => [...gFake.epochs],
+      },
+      deposit: { findMany: async () => [] },
+      withdrawal: { findMany: async () => [] },
+      partnerPayout: { aggregate: async () => ({ _sum: { amountSol: null } }) },
+    } as never;
+    const gPools = (await new VaultService(gPrisma).pools()) as Row[];
+    const gWeek = (gPools[0].pnl as Row).week as Row;
+    assert.equal(gWeek.sol, 0.96);
+    assert.equal(gWeek.pct, 8);
+  }
+
   // 2. Authed: myHolding attached.
   const authed = ((await svc.pools({ id: 7, wallet: 'cred:alice' })) as Row[])[0] as Row;
   assert.deepEqual(authed.myHolding, { shares: 10, valueSol: 11, returnsSol: 1 });

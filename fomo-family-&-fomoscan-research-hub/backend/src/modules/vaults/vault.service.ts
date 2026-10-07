@@ -1279,9 +1279,12 @@ export class VaultService {
       const pnl: Record<string, { sol: number; pct: number }> = {};
       for (const [key, days] of [['day', 1], ['week', 7], ['month', 30], ['all', 36500]] as const) {
         const cut = Date.now() - days * 86400000;
-        // Value at window start = last checkpoint before the cutoff
-        // (fallback: oldest checkpoint when the pool is younger than the window).
-        const base = [...eps].reverse().find((e) => new Date(e.createdAt as unknown as string).getTime() < cut) ?? eps[0];
+        // Value at window start = last FUNDED checkpoint before the cutoff
+        // (fallback: oldest funded checkpoint when the pool is younger than
+        // the window). The genesis 0-NAV checkpoint is never a base — using it
+        // prints a contradictory "+X SOL at +0.0%".
+        const funded = eps.filter((e) => num(e.navSol) > 0);
+        const base = [...funded].reverse().find((e) => new Date(e.createdAt as unknown as string).getTime() < cut) ?? funded[0];
         const navNow = last ? num(last.navSol) : 0;
         const navBase = base ? num(base.navSol) : navNow;
         const sol = r9(navNow - navBase);
