@@ -48,16 +48,13 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       : 'var(--ep-aqua, #49E6D7)';
   return (
     <article
-      className="pool-card ep-enter"
+      className={`pool-card ep-enter${featured ? ' pool-card--featured' : ''}`}
       style={{
         borderRadius: 18,
         padding: 22,
         background: featured
           ? 'radial-gradient(circle at top right, rgba(3,45,42,0.75), rgba(3,45,42,0) 60%), var(--ep-surface, #1D1F2C)'
           : 'radial-gradient(circle at top right, rgba(43,39,65,0.55), rgba(43,39,65,0) 60%), var(--ep-surface, #1D1F2C)',
-        boxShadow: featured
-          ? '0 0 0 1px var(--ep-aqua, #49E6D7)'
-          : '0 0 0 1px var(--ep-border, #2E313F)',
         animationDelay: `${Math.min(index, 7) * 55}ms`,
       }}
     >
