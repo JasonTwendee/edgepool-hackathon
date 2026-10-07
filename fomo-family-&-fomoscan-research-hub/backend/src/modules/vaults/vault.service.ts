@@ -77,6 +77,21 @@ function lastNav(epochs: { navSol: any }[]): number {
   return last ? num(last.navSol) : 0;
 }
 
+/** One-line human status under a live signal (design: "Entered 50% · limit filled"). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function signalDetail(o: any, legs: { leg: string }[]): string {
+  if (o.status === 'FAILED') return '';
+  if (o.closedAt) return `Closed · ${(o.closeReason as string) ?? ''}`.trim();
+  const names = legs.map((l) => l.leg);
+  if (names.includes('TP2')) return 'TP2 hit · runner armed';
+  if (names.includes('TP1')) return 'TP1 hit · managing runner';
+  if (names.includes('TRAIL')) return 'Trailing · runner armed';
+  if (names.includes('STOP')) return 'Stopped out';
+  if (names.includes('TIME')) return 'Time stop · scratched';
+  const stop = Math.abs(num(o.stopPct)) || 30;
+  return `Open · stop at −${stop}%`;
+}
+
 /**
  * Paywall (pool-math.ts): holding < 0.5 SOL sees $•••• / Trader • / •••.
  * Percent PnL stays visible. Applied server-side so curl can't bypass the UI.
@@ -694,6 +709,7 @@ export class VaultService {
       trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
       ageSec: Math.max(0, Math.floor((Date.now() - new Date(o.createdAt as unknown as string).getTime()) / 1000)),
       note: (o.error as string | null) ?? '',
+      detail: signalDetail(o, withLegs.filter((l) => l.orderId === o.id)),
       steps: stepsOf({ status: o.status, quoteJson: o.quoteJson, legs: withLegs.filter((l) => l.orderId === o.id) }),
     }));
     const log = orders

@@ -211,7 +211,7 @@ export interface PoolDetail extends PoolSummary {
   navSeries: { t: number; v: number }[];
   openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null; createdAt: string }[];
   openCount: number;
-  signals: { token: string; trader: string; ageSec: number; note: string; steps: { label: string; state: string }[] }[];
+  signals: { token: string; trader: string; ageSec: number; note: string; detail: string; steps: { label: string; state: string }[] }[];
   log: { at: string; token: string; trader: string; event: string; detail: string; kind: string }[];
   exposure: { trader: string; pctNav: number; pnlSol: number }[];
   myHolding: VaultMine | null;
