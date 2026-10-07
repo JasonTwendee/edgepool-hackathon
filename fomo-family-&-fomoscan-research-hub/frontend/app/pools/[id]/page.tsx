@@ -475,7 +475,9 @@ function AdvancedView({
 }) {
   const adv = pool.advanced;
   if (!adv) return null;
-  const locked = !pool.myHolding || pool.myHolding.valueSol < 0.5;
+  const locked =
+    !pool.myHolding ||
+    pool.myHolding.valueSol + pool.myHolding.queuedDeposits.reduce((s, q) => s + q.amountSol, 0) < 0.5;
   const card: React.CSSProperties = { background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' };
   const k = adv.kpis;
   const r = adv.risk;

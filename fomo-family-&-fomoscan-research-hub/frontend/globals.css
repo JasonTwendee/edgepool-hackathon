@@ -81,6 +81,9 @@ samp {
   box-shadow: 0 0 0 1px var(--ep-border, #2E313F);
   transition: box-shadow 180ms ease, transform 180ms ease;
 }
+.pool-card--featured {
+  box-shadow: 0 0 0 1px var(--ep-aqua, #49E6D7);
+}
 .pool-card:hover,
 .pool-card:focus-within {
   box-shadow:

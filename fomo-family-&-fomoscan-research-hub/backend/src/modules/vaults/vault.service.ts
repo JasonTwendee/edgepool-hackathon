@@ -742,7 +742,12 @@ export class VaultService {
       pnlSol: 0,
     }));
     const holding = user ? await this.mine(vaultId, user) : null;
-    const masked = !holding || holding.valueSol < 0.5;
+    // Unlock counts queued deposits too: a fresh 0.5+ deposit opens signals
+    // before the next epoch settles (prototype behavior; shares mint at settle).
+    const queuedIn = holding
+      ? (holding.queuedDeposits as { amountSol: number }[]).reduce((s, q) => s + num(q.amountSol), 0)
+      : 0;
+    const masked = !holding || holding.valueSol + queuedIn < 0.5;
     const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
     const unmasked = maskPoolDetail(masked, positions, signals, log, exposure, advanced);
     return {

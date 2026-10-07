@@ -205,6 +205,20 @@ async function main(): Promise<void> {
   assert.ok(Array.isArray(adv.ladder) && (adv.ladder as Row[]).length === 1);
   assert.equal((((adv.ladder as Row[])[0] as Row).tp1Hit as boolean), true);
   assert.equal((((adv.ladder as Row[])[0] as Row).token as string), '$••••');
+  // 5b. Queued deposit ≥ 0.5 unlocks signals before settle (prototype behavior).
+  const dFake3 = {
+    ...(dFake2 as unknown as Record<string, unknown>),
+    deposit: {
+      findMany: async ({ where }: { where: Row }) =>
+        JSON.stringify(where ?? {}).includes('7')
+          ? [{ id: 9, vaultId: 9, depositor: 'alice', userId: 7, amountSol: 1, status: 'QUEUED', sharesMinted: 0, sharePrice: 1, createdAt: new Date(now - 60000) }]
+          : [],
+    },
+  } as never;
+  const dSvc3 = new VaultService(dFake3, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const det3 = (await dSvc3.poolDetail(9, { id: 7, wallet: 'alice' })) as Row;
+  assert.equal(det3.masked, false);
+  assert.equal((((det3.openPositions as Row[])[0] as Row).token as string), 'T1');
   void dSvc;
 
   console.log('pools asserts: ALL GREEN');
