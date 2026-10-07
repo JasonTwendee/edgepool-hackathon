@@ -105,7 +105,9 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
                 className="flex items-center gap-1.5 text-sm font-medium px-3 rounded-lg"
                 style={{ height: 36, color: active === key ? 'var(--ep-text, #E9E9ED)' : 'var(--ep-muted, #9397AB)' }}
               >
-                <Icon size={17} weight={active === key ? 'fill' : 'regular'} />
+                <span style={{ color: 'var(--ep-muted, #9397AB)', display: 'flex' }}>
+                  <Icon size={17} weight="regular" />
+                </span>
                 {l}
               </Link>
             ))}
