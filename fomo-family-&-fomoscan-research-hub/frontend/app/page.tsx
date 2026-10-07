@@ -48,7 +48,7 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       : 'var(--ep-aqua, #49E6D7)';
   return (
     <article
-      className={`pool-card ep-enter${featured ? ' pool-card--featured' : ''}`}
+      className={`pool-card ep-enter`}
       style={{
         borderRadius: 18,
         padding: 22,

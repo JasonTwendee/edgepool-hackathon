@@ -75,13 +75,27 @@ samp {
   color: #e0fcf8;
 }
 
-/* Pools index cards: static, no hover lift/glow (customer 2026-10-07 —
-   cards stay put; the featured basket keeps its aqua edge). */
+/* Pools index cards: neutral edge by default; aqua glow + lift only on real
+   hover/focus (customer 2026-10-07 — no card may look hovered by default). */
 .pool-card {
   box-shadow: 0 0 0 1px var(--ep-border, #2E313F);
+  transition: box-shadow 180ms ease, transform 180ms ease;
 }
-.pool-card--featured {
-  box-shadow: 0 0 0 1px var(--ep-aqua, #49E6D7);
+.pool-card:hover,
+.pool-card:focus-within {
+  box-shadow:
+    0 0 0 1px var(--ep-aqua, #49E6D7),
+    inset 0 0 60px rgba(3, 45, 42, 0.75);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pool-card {
+    transition: none;
+  }
+  .pool-card:hover,
+  .pool-card:focus-within {
+    transform: none;
+  }
 }
 
 /* Motion system (2026-10-06): entrances + skeletons + view cross-fade.
