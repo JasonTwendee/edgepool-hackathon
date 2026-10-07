@@ -139,6 +139,9 @@ async function main(): Promise<void> {
     vault: {
       findUnique: async (_w: never) => gateDb.vault[0],
     },
+    epochCheckpoint: {
+      findMany: async () => [],
+    },
     deposit: {
       findMany: async (_w?: never) => [...gateDb.deposits],
       create: async ({ data }: { data: Row }) => {

@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CopyTradeService, type PaperOverrides } from './copy-trade.service.js';
 import { AuditService } from '../audit/audit.service.js';
+import { isHaltedVault, killLimits, vaultLoss } from './kill-switch.js';
 import { emitSignal } from './signal-bus.js';
 
 export interface AutoFireSummary {
@@ -29,49 +30,13 @@ const fresh = (): AutoFireSummary => ({
 
 /** Gate-block messages from executePaper (expected outcomes, not crashes). */
 function isGateBlock(message: string): boolean {
-  return /Qualify blocked|Exposure cap|Slippage|ran \+|disabled|exceeds cap/i.test(message);
+  return /Qualify blocked|Exposure cap|Slippage|ran \+|disabled|exceeds cap|Kill-switch|open positions|Per-mint cap/i.test(message);
 }
 
 const num = (v: { toNumber(): number } | number | null | undefined): number | undefined => {
   if (typeof v === 'number') return v;
   return v?.toNumber() ?? undefined;
 };
-
-const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
-
-/**
- * Kill-switch loss for one vault from its epoch NAV series (fix #6).
- * Same navAt logic as VaultService.advancedView: value at window start =
- * last checkpoint before the cutoff (fallback: current NAV → 0% on young
- * pools so fresh pools never halt on empty history).
- */
-function vaultLoss(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  epochs: { navSol: any; createdAt: any }[],
-): { dayPct: number; weekPct: number; nav: number } {
-  const nav = epochs.length > 0 ? Number((epochs[epochs.length - 1].navSol as { toNumber(): number } | number)?.toString?.() ?? 0) : 0;
-  const navNum = Number.isFinite(nav) ? (nav as number) : 0;
-  const at = (ts: number): number | null => {
-    const past = epochs.filter((e) => new Date(e.createdAt as unknown as string).getTime() <= ts);
-    if (past.length === 0) return null;
-    const last = past[past.length - 1];
-    const v = last.navSol as { toNumber(): number } | number | string;
-    return typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : v?.toNumber() ?? null;
-  };
-  const now = Date.now();
-  const dayBase = at(now - 86400000) ?? navNum;
-  const weekBase = at(now - 7 * 86400000) ?? navNum;
-  const dayPct = dayBase > 0 ? r9(((navNum - dayBase) / dayBase) * 100) : 0;
-  const weekPct = weekBase > 0 ? r9(((navNum - weekBase) / weekBase) * 100) : 0;
-  return { dayPct, weekPct, nav: navNum };
-}
-
-function killLimits(rulesJson: unknown): { daily: number; weekly: number } {
-  const r = (rulesJson ?? {}) as Record<string, unknown>;
-  const daily = typeof r.dailyKillSwitchPct === 'number' && Number.isFinite(r.dailyKillSwitchPct) ? Math.abs(r.dailyKillSwitchPct as number) : 5;
-  const weekly = typeof r.weeklyLossLimitPct === 'number' && Number.isFinite(r.weeklyLossLimitPct) ? Math.abs(r.weeklyLossLimitPct as number) : 15;
-  return { daily: daily > 0 ? daily : 5, weekly: weekly > 0 ? weekly : 15 };
-}
 
 /**
  * T1 auto-fire engine (fund spec §7 target mode, sandbox paper-only).
@@ -149,9 +114,9 @@ export class AutoFireService implements OnModuleInit {
           continue;
         }
         const eps = epochRows.filter((e) => e.vaultId === vid);
-        const { dayPct, weekPct } = vaultLoss(eps as unknown as { navSol: unknown; createdAt: unknown }[]);
-        const { daily, weekly } = killLimits(v?.rulesJson);
-        if (dayPct <= -daily || weekPct <= -weekly) {
+        const halt = isHaltedVault(v?.status, v?.rulesJson, eps as unknown as { navSol: unknown; createdAt: unknown }[]);
+        const { dayPct, weekPct, daily, weekly } = halt;
+        if (halt.halted) {
           halted.add(vid);
           summary.haltedVaults.push(vid);
           try {
@@ -212,8 +177,8 @@ export class AutoFireService implements OnModuleInit {
               mode: 'paper',
               confirm: true,
               entryMode: 'immediate',
-              tp1Pct: 60,
-              stopPct: 30,
+              // No pinned tp1/stop: the engine ATR-tunes from 1h volatility
+              // (falls back to 60/30 when candles are missing).
             },
             { ...this.overrides, vaultId: botVault, triggeredBy: `bot:${bot.id}` },
           );

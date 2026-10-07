@@ -83,6 +83,8 @@ async function main(): Promise<void> {
   // Configurable live counts for exposure-cap asserts (shared reference).
   const liveCounts = { trader: 0, mint: 0 };
   const fakePrisma = {
+    vault: { findMany: async () => [{ id: 1, status: 'live', rulesJson: null }] },
+    epochCheckpoint: { findMany: async () => [] },
     copyOrder: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
         seq += 1;
@@ -98,6 +100,7 @@ async function main(): Promise<void> {
         if (where.symbol) return liveCounts.mint;
         return 0;
       },
+      findMany: async () => [],
     },
   } as never;
   const stubRugs = {

@@ -100,6 +100,7 @@ function makeFake() {
         return r;
       },
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
+      findMany: async () => [...db.epoch],
     },
     vaultTrader: {
       findMany: async ({ where }: { where: Row }) => db.traders.filter((r) => match(r, where)),

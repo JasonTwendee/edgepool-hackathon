@@ -84,7 +84,7 @@ function makeFake() {
       return r;
     },
   };
-  return { vault, vaultTrader, deposit, bot, db } as never;
+  return { vault, vaultTrader, deposit, bot, db, epochCheckpoint: { findMany: async () => [] } } as never;
 }
 
 async function main(): Promise<void> {

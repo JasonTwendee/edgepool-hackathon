@@ -111,6 +111,8 @@ async function main(): Promise<void> {
       { wallet: 'WB', weightBps: 2500, vaultId: 1, isActive: true },
     ];
     const fakePrisma = {
+      vault: { findMany: async () => [{ id: 1, status: 'live', rulesJson: null }] },
+      epochCheckpoint: { findMany: async () => [] },
       vaultTrader: { findMany: async () => [...traders] },
       copyOrder: {
         create: async ({ data }: { data: Row }) => {
@@ -124,6 +126,7 @@ async function main(): Promise<void> {
         },
         count: async () => 0,
         findFirst: async () => null,
+        findMany: async () => [],
       },
     } as never;
     const stubExecutor = {

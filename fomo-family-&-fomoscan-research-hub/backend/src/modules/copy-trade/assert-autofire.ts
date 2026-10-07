@@ -20,6 +20,9 @@ function makeWorld(cfg: {
   existingOrders?: Row[];
   vaults?: Row[];
   epochs?: Row[];
+  lastEpoch?: { navSol: number } | null;
+  wsolPx?: number;
+  candles?: Row[];
 }) {
   const orders: Row[] = [...(cfg.existingOrders ?? [])];
   let seq = 100;
@@ -40,10 +43,30 @@ function makeWorld(cfg: {
     count: async ({ where }: { where: Row }) => {
       if ((where as Row).masterWallet) return cfg.liveCounts?.trader ?? 0;
       if ((where as Row).symbol) return cfg.liveCounts?.mint ?? 0;
+      const w = (where ?? {}) as Row;
+      if (w.vaultId !== undefined) {
+        return orders.filter(
+          (o) =>
+            o.vaultId === w.vaultId &&
+            (w.status === undefined || o.status === w.status) &&
+            (!('closedAt' in w) || (w.closedAt === null ? o.closedAt == null : true)),
+        ).length;
+      }
       return 0;
     },
     findFirst: async ({ where }: { where: Row }) =>
       orders.find((o) => o.masterTxHash === (where as Row).masterTxHash) ?? null,
+    findMany: async ({ where }: { where: Row }) => {
+      const w = (where ?? {}) as Row;
+      return orders.filter(
+        (o) =>
+          (w.vaultId === undefined || o.vaultId === w.vaultId) &&
+          (w.tokenMint === undefined || o.tokenMint === w.tokenMint) &&
+          (w.status === undefined || o.status === w.status) &&
+          (!('closedAt' in w) || (w.closedAt === null ? o.closedAt == null : true)) &&
+          (!(w.masterWallet !== undefined) || o.masterWallet === w.masterWallet),
+      );
+    },
   };
   const prisma = {
     bot: {
@@ -95,16 +118,17 @@ function makeWorld(cfg: {
     loadVaultKeypair: () => Keypair.generate(),
     executeProof: async () => ({ signature: 'z'.padEnd(88, '9'), slot: 7 }),
   } as never;
+  const WSOL = 'So11111111111111111111111111111111111111112';
   const copy = new CopyTradeService(
     prisma,
     stubExecutor,
     { qualify: async () => ({ pass: true, reasons: [], verdict: {} }) } as never,
-    { bulkPrices: async () => ({}), tokenDetails: async () => null, candles: async () => [] } as never,
-    { status: async () => ({ lastEpoch: null }) } as never,
+    { bulkPrices: async (mints: string[]) => (cfg.wsolPx && mints.includes(WSOL) ? { [WSOL]: cfg.wsolPx } : {}), tokenDetails: async () => null, candles: async () => cfg.candles ?? [] } as never,
+    { status: async () => ({ lastEpoch: cfg.lastEpoch ?? null }) } as never,
   );
   const engine = new AutoFireService(prisma, copy, new AuditService(prisma));
   engine.overrides = { paperEnabled: true, maxUsd: 100, executor: stubExecutor, connection: {} as never };
-  return { engine, orders, audits, creates: () => creates };
+  return { engine, copy, orders, audits, creates: () => creates };
 }
 
 const SIG = {
@@ -118,6 +142,7 @@ const SIG = {
 };
 const TRADER = { id: 1, vaultId: 1, wallet: SIG.walletAddress, isActive: true };
 const BOT = { id: 7, name: 'auto-1', mode: 'AUTO', vaultId: 1 };
+const WSOL = 'So11111111111111111111111111111111111111112';
 
 async function main(): Promise<void> {
   // 1. No AUTO bots → zeros, no orders.
@@ -222,6 +247,74 @@ async function main(): Promise<void> {
     const s = await w.engine.tick();
     assert.equal(s.fired, 0);
     assert.deepEqual(s.haltedVaults, [1]);
+    assert.equal(w.creates(), 0);
+  }
+  // 10. ATR unpin: with candles, the engine tunes TP1/stop (not pinned 60/30).
+  {
+    const wild = Array.from({ length: 20 }, (_, i) => ({
+      open: 100, high: 150, low: 50, close: 100, volume: 1, timestamp: i,
+    }));
+    const w = makeWorld({ bots: [BOT], signals: [SIG], traders: [TRADER], wallets: [], candles: wild });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 1);
+    const row = w.orders.find((o) => o.id === s.orderIds[0]) as Row;
+    assert.equal(row.tp1Pct, 80); // wild regime: stop 40 → TP1 80 (was pinned 60)
+    assert.equal(row.stopPct, 40);
+  }
+  // 11. Max 10 open positions per vault → blocked.
+  {
+    const w = makeWorld({ bots: [BOT], signals: [SIG], traders: [TRADER], wallets: [] });
+    for (let i = 0; i < 10; i++) {
+      w.orders.push({ id: 200 + i, vaultId: 1, status: 'CONFIRMED', closedAt: null, masterTxHash: `old${i}`, symbol: '$OLD', tokenMint: `MOLD${i}`, amountUsd: 10 });
+    }
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 0);
+    assert.equal(s.blocked, 1);
+    assert.equal(w.creates(), 0);
+  }
+  // 12. Per-mint 2% NAV value cap → blocked (mint already holds the budget).
+  {
+    const w = makeWorld({
+      bots: [BOT],
+      signals: [SIG],
+      traders: [TRADER],
+      wallets: [],
+      lastEpoch: { navSol: 10 },
+      wsolPx: 100, // navUsd = 1000 → mint budget $20
+      existingOrders: [
+        { id: 301, vaultId: 1, status: 'CONFIRMED', closedAt: null, masterTxHash: 'oldm', symbol: '$TEST', tokenMint: SIG.tokenMint, amountUsd: 15 },
+      ],
+    });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 0);
+    assert.equal(s.blocked, 1);
+    assert.equal(w.creates(), 0);
+  }
+  // 13. executePaper kill gate: breached vault refuses even direct entries.
+  {
+    const now = Date.now();
+    const w = makeWorld({
+      bots: [],
+      signals: [],
+      traders: [TRADER],
+      wallets: [],
+      vaults: [{ id: 1, status: 'live', rulesJson: null }],
+      epochs: [
+        { id: 1, vaultId: 1, navSol: 100, createdAt: new Date(now - 2 * 86400000) },
+        { id: 2, vaultId: 1, navSol: 94, createdAt: new Date(now - 3600000) },
+      ],
+    });
+    const copy = w.copy as unknown as {
+      executePaper: (dto: Record<string, unknown>, ov: Record<string, unknown>) => Promise<unknown>;
+    };
+    await assert.rejects(
+      () =>
+        copy.executePaper(
+          { masterWallet: SIG.walletAddress, masterTxHash: 'sigK', symbol: '$TEST', action: 'BUY', tokenMint: SIG.tokenMint, amountUsd: 10, mode: 'paper', confirm: true },
+          { paperEnabled: true, maxUsd: 100, executor: (w.engine.overrides as Record<string, unknown>).executor, connection: {}, vaultId: 1 },
+        ),
+      /Kill-switch/,
+    );
     assert.equal(w.creates(), 0);
   }
 
