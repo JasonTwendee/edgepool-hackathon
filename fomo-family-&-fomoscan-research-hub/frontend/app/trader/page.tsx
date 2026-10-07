@@ -362,19 +362,23 @@ export default function TraderPage() {
               </button>
             </div>
           )}
+          {!(token && identity) && (
           <div className="space-y-2.5">
             <h2 className="font-display text-lg font-medium">Sign in</h2>
             <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you.</p>
-            <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EMAIL</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" autoComplete="username" className={inputCls} />
-            <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>PASSWORD</label>
-            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" autoComplete="current-password"
-              onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
-            <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-              style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-              Sign in
-            </button>
+            <>
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EMAIL</label>
+              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" autoComplete="username" className={inputCls} />
+              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>PASSWORD</label>
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" autoComplete="current-password"
+                onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
+              <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+                Sign in
+              </button>
+            </>
           </div>
+          )}
           {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
           <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
         </div>
