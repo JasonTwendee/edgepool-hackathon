@@ -91,6 +91,12 @@ samp {
     inset 0 0 60px rgba(3, 45, 42, 0.75);
   transform: translateY(-2px);
 }
+/* Featured (first) card stays static — no hover lift/glow. */
+.pool-card--featured:hover,
+.pool-card--featured:focus-within {
+  box-shadow: 0 0 0 1px var(--ep-aqua, #49E6D7);
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .pool-card {
     transition: none;
