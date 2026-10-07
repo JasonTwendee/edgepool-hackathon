@@ -10,7 +10,7 @@ Canonical examples: `backend/.env.example` (full contract incl. DB) + `frontend/
 |---|---|---|---|
 | `SOLANA_RPC_URL` | Có (default public) | `backend/src/config/solana.config.ts` | RPC Mainnet, `confirmed` |
 | `PORT` | Không (default 3000) | `backend/src/main.ts` | Cổng HTTP |
-| `HELIUS_API_KEY` | Không | `health.service` | Rỗng = disabled, health báo `heliusEnabled:false` |
+| `HELIUS_API_KEY` | Không (đã decommission 2026-10-07: Flux-only) | `health.service` | Rỗng = disabled, health báo `heliusEnabled:false`; mọi đường Helius (enrich/DAS/webhook) fail-soft khi thiếu key |
 | `JITO_BLOCK_ENGINE_URL` | Không (future) | `copy-trade` | Mặc định `https://mainnet.block-engine.jito.wtf` |
 | `FLUXRPC_API_KEY` | Có (thay Helius RPC) | `config` → mọi RPC reads | Key tại `fluxrpc.com/admin/apikeys`; live 02/10 |
 | `FLUXRPC_REGION` | Không (default `eu`) | `config` | `eu` \| `us` |
