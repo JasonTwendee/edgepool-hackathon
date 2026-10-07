@@ -95,6 +95,7 @@ function makeFake() {
         return r;
       },
       findMany: async () => [...db.apps],
+      findFirst: async ({ where }: { where: Row }) => db.apps.filter((r) => match(r, where)).sort((a, b) => (b.id as number) - (a.id as number))[0] ?? null,
       findUnique: async ({ where }: { where: Row }) => db.apps.find((r) => match(r, where)) ?? null,
       update: async ({ where, data }: { where: Row; data: Row }) => {
         const r = db.apps.find((x) => match(x, where)) as Row;
@@ -154,6 +155,13 @@ async function main(): Promise<void> {
   const app = (await svc.apply({ fomoHandle: '@newtrader', wallet: W(11), contact: 't@x.io' })) as Row;
   assert.equal(app.status, 'pending');
   await assert.rejects(() => svc.apply({ fomoHandle: 'ab', wallet: 'bad', contact: 't@x.io' }), /Invalid Solana/);
+  // 1b. Public status check: latest row wins, unknown wallet → null.
+  const ast = (await svc.applyStatus(W(11))) as Row;
+  assert.equal(ast.status, 'pending');
+  const none = (await svc.applyStatus(W(12))) as Row;
+  assert.equal(none.status, null);
+  const blank = (await svc.applyStatus('')) as Row;
+  assert.equal(blank.status, null);
 
   // 2. me(): pools + fees (claimable 0.15, paid 0) + basket status.
   const me = (await svc.me(KOL)) as Row;

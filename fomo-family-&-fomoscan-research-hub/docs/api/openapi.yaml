@@ -203,6 +203,26 @@ paths:
                   success: { type: boolean }
                   data: { type: object }
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/apply/status:
+    get:
+      summary: Check my application status by wallet (public)
+      operationId: partnerApplyStatus
+      parameters:
+        - name: wallet
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: '{status} or null'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
   /api/partner/me:
     get:
       summary: Trader portal dashboard root (KOL/ADMIN)

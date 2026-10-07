@@ -8,6 +8,7 @@ import {
   getStoredToken,
   loginAccount,
   partnerApply,
+  partnerApplyStatus,
   partnerClaim,
   partnerMe,
   partnerPauseTrader,
@@ -71,15 +72,118 @@ function downloadShareCard(poolName: string, navSol: number, poolId: number): vo
   a.click();
 }
 
-export default function TraderPage() {
-  const [token, setToken] = useState<string | null>(null);
-  const [tab, setTab] = useState<'signin' | 'apply'>('signin');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+/** Registration popup: partner application intake. */
+function ApplyModal({ onClose, onApplied }: { onClose: () => void; onApplied: (wallet: string) => void }) {
   const [fomo, setFomo] = useState('');
   const [x, setX] = useState('');
   const [wallet, setWallet] = useState('');
   const [contact, setContact] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function submit() {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await partnerApply({ fomoHandle: fomo.trim(), xHandle: x.trim() || undefined, wallet: wallet.trim(), contact: contact.trim() });
+      try {
+        localStorage.setItem('edgepool.applyWallet', wallet.trim());
+      } catch {
+        // private mode — state still works for this tab.
+      }
+      onApplied(wallet.trim());
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(13,15,24,0.72)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div className="w-full rounded-2xl p-6 space-y-2.5" style={{ maxWidth: 440, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }} onClick={(e) => e.stopPropagation()}>
+        <h2 className="font-display text-lg font-medium">Apply as a partner</h2>
+        <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Tell us where to find your track record. Applications are reviewed by the Edgepool team.</p>
+        <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>FOMO HANDLE</label>
+        <input value={fomo} onChange={(e) => setFomo(e.target.value)} placeholder="@yourhandle" className={inputCls} />
+        <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>X HANDLE</label>
+        <input value={x} onChange={(e) => setX(e.target.value)} placeholder="@yourhandle (optional)" className={inputCls} />
+        <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>TRADING WALLET</label>
+        <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="Base58 address (32+ chars)" className={`${inputCls} font-mono`} />
+        <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>CONTACT</label>
+        <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Email or Telegram" className={inputCls} />
+        {err && <p className="text-[11px]" style={{ color: 'var(--ep-neg, #F28881)' }}>{err}</p>}
+        <button onClick={() => void submit()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+          style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+          Submit application
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Post-apply status: what the applicant sees while Edgepool reviews. */
+function PendingView({ wallet, onReset }: { wallet: string; onReset: () => void }) {
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const check = useCallback(() => {
+    setBusy(true);
+    partnerApplyStatus(wallet)
+      .then((r) => setStatus(r.data.status))
+      .catch(() => setStatus(null))
+      .finally(() => setBusy(false));
+  }, [wallet]);
+
+  useEffect(() => {
+    check();
+  }, [check]);
+
+  return (
+    <div className="rounded-2xl p-8 text-center space-y-3" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+      <div className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-amber, #F0BE67)' }}>APPLICATION RECEIVED</div>
+      <h2 className="font-display text-xl font-medium">Your request is under review.</h2>
+      <p className="text-xs font-mono break-all" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+        {wallet.slice(0, 8)}…{wallet.slice(-6)} · status: {busy ? 'checking…' : (status ?? 'pending')}
+      </p>
+      <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+        {status === 'approved'
+          ? 'Approved — sign in with the account the Edgepool team created for you.'
+          : status === 'rejected'
+            ? 'This application was not approved — contact the Edgepool team.'
+            : 'The Edgepool team reviews every application by hand. Come back soon.'}
+      </p>
+      <div className="flex gap-2 justify-center flex-wrap">
+        <button onClick={check} disabled={busy} className="text-xs font-bold px-3 py-2 rounded-lg disabled:opacity-50"
+          style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
+          Refresh status
+        </button>
+        <button onClick={onReset} className="text-xs font-bold px-3 py-2 rounded-lg"
+          style={{ color: 'var(--ep-muted, #9397AB)' }}>
+          Use a different wallet
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function TraderPage() {
+  const [token, setToken] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [me, setMe] = useState<PartnerMe | null>(null);
@@ -92,6 +196,15 @@ export default function TraderPage() {
   const [poolName, setPoolName] = useState('');
   const [maxSlots, setMaxSlots] = useState('');
   const [reqFomo, setReqFomo] = useState('');
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [appliedWallet, setAppliedWallet] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('edgepool.applyWallet');
+    } catch {
+      return null;
+    }
+  });
+  const [applyStatus, setApplyStatus] = useState<string | null>(null);
   const [identity, setIdentity] = useState<{ username: string | null; role: string } | null>(null);
   const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
   const [undone, setUndone] = useState<{ wallet: string } | null>(null);
@@ -152,24 +265,6 @@ export default function TraderPage() {
     }
   }
 
-  async function apply() {
-    if (busy) return;
-    setBusy(true);
-    setMsg(null);
-    try {
-      const res = await partnerApply({ fomoHandle: fomo.trim(), xHandle: x.trim() || undefined, wallet: wallet.trim(), contact: contact.trim() });
-      setMsg(`Application #${res.data.id} received — the Edgepool team will review it.`);
-      setFomo('');
-      setX('');
-      setWallet('');
-      setContact('');
-    } catch (e) {
-      setMsg((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function saveSettings(patch: Record<string, unknown>, okMsg: string) {
     if (!token || poolId === null) return;
     setBusy(true);
@@ -186,6 +281,27 @@ export default function TraderPage() {
   }
 
   if (!token || !me) {
+    if (appliedWallet) {
+      return (
+        <>
+          <SiteHeader active="trader" />
+          <div className="mx-auto w-full" style={{ maxWidth: 1000, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+            <PendingView
+              wallet={appliedWallet}
+              onReset={() => {
+                setAppliedWallet(null);
+                try {
+                  localStorage.removeItem('edgepool.applyWallet');
+                } catch {
+                  // ignore
+                }
+              }}
+            />
+            <SiteFooter />
+          </div>
+        </>
+      );
+    }
     return (
       <>
         <SiteHeader active="trader" />
@@ -209,77 +325,71 @@ export default function TraderPage() {
           </p>
         </div>
         <div className="p-6 space-y-3">
-          {token && identity && (
-            <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
-              <span className="text-[11px]" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
-                Signed in as {identity.username ?? 'wallet'} ({identity.role}) — this portal needs a partner account.
-              </span>
-              <button
-                onClick={() => {
-                  clearSession();
-                  setToken(null);
-                  setMe(null);
-                  setIdentity(null);
-                }}
-                className="text-[11px] font-bold px-2 py-1 rounded-lg shrink-0"
-                style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
-                Sign out
-              </button>
-            </div>
-          )}
-          <div className="flex gap-2">
-            {(['signin', 'apply'] as const).map((t) => (
-              <button key={t} onClick={() => { setTab(t); setMsg(null); }} className="text-xs font-bold px-3 py-1.5 rounded-lg capitalize"
-                style={tab === t ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
-                {t === 'signin' ? 'Sign in' : 'Apply'}
-              </button>
-            ))}
-          </div>
-          {tab === 'signin' ? (
-            <div className="space-y-2.5">
-              <h2 className="font-display text-lg font-medium">Sign in</h2>
-              <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you.</p>
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EMAIL</label>
-              <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" autoComplete="username" className={inputCls} />
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>PASSWORD</label>
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" autoComplete="current-password"
-                onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
-              <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-                Sign in
-              </button>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Not a partner yet?</span>
-                <button onClick={() => setTab('apply')} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-                  style={{ border: '1px solid var(--ep-violet, #9184D9)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
-                  Apply to become a partner
+          {token && identity ? (
+            <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'rgba(240,190,103,0.08)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
+              <p className="text-[11px] font-bold" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+                You&apos;re not a partner.
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
+                Signed in as {identity.username ?? 'wallet'} ({identity.role}). This portal is for partner traders only.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                  style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
+                  Register as a partner
+                </button>
+                <button
+                  onClick={() => {
+                    clearSession();
+                    setToken(null);
+                    setMe(null);
+                    setIdentity(null);
+                  }}
+                  className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                  style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                  Sign out
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              <h2 className="font-display text-lg font-medium">Apply as a partner</h2>
-              <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Tell us where to find your track record. Applications are reviewed by the Edgepool team.</p>
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>FOMO HANDLE</label>
-              <input value={fomo} onChange={(e) => setFomo(e.target.value)} placeholder="@yourhandle" className={inputCls} />
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>X HANDLE</label>
-              <input value={x} onChange={(e) => setX(e.target.value)} placeholder="@yourhandle (optional)" className={inputCls} />
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>TRADING WALLET</label>
-              <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder="Base58 address (32+ chars)" className={`${inputCls} font-mono`} />
-              <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>CONTACT</label>
-              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Email or Telegram" className={inputCls} />
-              <button onClick={() => void apply()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-                Submit application
+            <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+              <p className="text-[11px] font-bold" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+                Partner area — sign in or register below.
+              </p>
+              <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                style={{ border: '1px solid var(--ep-violet, #9184D9)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
+                Apply to become a partner
               </button>
             </div>
           )}
+          <div className="space-y-2.5">
+            <h2 className="font-display text-lg font-medium">Sign in</h2>
+            <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you.</p>
+            <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EMAIL</label>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="you@example.com" autoComplete="username" className={inputCls} />
+            <label className="block text-[11px] font-mono tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>PASSWORD</label>
+            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" type="password" autoComplete="current-password"
+              onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
+            <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+              style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+              Sign in
+            </button>
+          </div>
           {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
           <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
         </div>
         </div>
         <SiteFooter />
         </div>
+        {applyOpen && (
+          <ApplyModal
+            onClose={() => setApplyOpen(false)}
+            onApplied={(w) => {
+              setAppliedWallet(w);
+              setApplyOpen(false);
+            }}
+          />
+        )}
       </>
     );
   }

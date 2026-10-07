@@ -16,6 +16,13 @@ export class PartnerController {
     return { success: true, data };
   }
 
+  @Get('apply/status')
+  async applyStatus(@Query() query: Record<string, string | string[] | undefined>): Promise<{ success: boolean; data: unknown }> {
+    const raw = query.wallet;
+    const data = await this.partner.applyStatus(typeof raw === 'string' ? raw : '');
+    return { success: true, data };
+  }
+
   @Get('me')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('KOL', 'ADMIN')
