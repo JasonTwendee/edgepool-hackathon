@@ -261,6 +261,10 @@ export function partnerApply(input: { fomoHandle: string; xHandle?: string; wall
   return fetchJson('/api/partner/apply', { method: 'POST', body: JSON.stringify(input) });
 }
 
+export function partnerApplyStatus(wallet: string): Promise<{ success: boolean; data: { status: string | null } }> {
+  return fetchJson(`/api/partner/apply/status?wallet=${encodeURIComponent(wallet)}`);
+}
+
 export function partnerMe(token: string): Promise<{ success: boolean; data: PartnerMe }> {
   return fetchJsonAuth('/api/partner/me', token);
 }

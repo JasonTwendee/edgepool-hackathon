@@ -76,8 +76,7 @@ export class PartnerService {
   }
 
   /** Public intake — always pending, Edgepool reviews in ADMIN console. */
-  async apply(input: { fomoHandle: string; xHandle?: string; wallet: string; contact: string }): Promise<unknown> {
-    const wallet = this.assertWallet(input.wallet);
+  async apply(input: { fomoHandle: string; xHandle?: string; wallet: string; contact: string }): Promise<unknown> {    const wallet = this.assertWallet(input.wallet);
     const fomoHandle = (input.fomoHandle ?? '').trim().replace(/^@/, '');
     if (fomoHandle.length < 2) fail('FOMO handle is required.');
     const row = await this.prisma.partnerApplication.create({
@@ -90,6 +89,18 @@ export class PartnerService {
       },
     });
     return { id: row.id, status: row.status };
+  }
+
+  /** Public status check so applicants see "under review" without an account. */
+  async applyStatus(wallet: string): Promise<{ status: string | null }> {
+    const clean = (wallet ?? '').trim();
+    if (!clean) return { status: null };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = await (this.prisma as any).partnerApplication.findFirst({
+      where: { wallet: clean },
+      orderBy: { id: 'desc' },
+    });
+    return { status: (row?.status as string) ?? null };
   }
 
   private async ownedVaults(user: PartnerUser): Promise<{ id: number }[]> {
