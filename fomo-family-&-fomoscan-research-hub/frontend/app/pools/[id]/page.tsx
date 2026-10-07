@@ -12,6 +12,7 @@ import {
 import { getStoredToken } from '../../../lib/api';
 import { connectBrowserWallet, signWithBrowserWallet } from '../../../lib/solana';
 import SignalStream from '../../../components/SignalStream';
+import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
 
 type Period = 'day' | 'week' | 'month' | 'all';
 const PERIODS: { key: Period; label: string }[] = [
@@ -126,7 +127,7 @@ export default function PoolDetailPage() {
         </div>
         <div className="ep-skel mt-5" style={{ width: 'min(300px,60%)', height: 40 }} />
         <div className="ep-skel mt-2" style={{ width: '100%', height: 120 }} />
-        <div className="grid gap-4 mt-4" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
+        <div className="ep-pool-grid grid gap-4 mt-4">
           <div className="ep-skel" style={{ height: 220 }} />
           <div className="ep-skel" style={{ height: 220 }} />
         </div>
@@ -136,7 +137,6 @@ export default function PoolDetailPage() {
 
   const pnl = pool.pnl[period];
   const positive = pnl.sol >= 0;
-  const myVal = pool.myHolding?.valueSol ?? 0;
   const locked = pool.masked;
   const isDemo = pool.name.startsWith('demo-');
   const pts = pool.navSeries.slice(-60);
@@ -146,30 +146,37 @@ export default function PoolDetailPage() {
   const W = 600;
   const H = 120;
   const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / Math.max(1, pts.length - 1)) * W).toFixed(1)},${(H - 6 - ((p.v - min) / span) * (H - 12)).toFixed(1)}`).join(' ');
+  const expByWallet: Record<string, number> = Object.fromEntries(pool.exposure.map((e) => [e.trader, e.pctNav]));
 
   return (
-    <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
-        <div className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-          {(['calm', 'advanced'] as const).map((v) => {
-            const active = (v === 'advanced') === advanced;
-            const href = v === 'advanced' ? `/pools/${id}?view=advanced` : `/pools/${id}`;
-            return (
-              <Link key={v} href={href} scroll={false} className="text-xs font-bold px-3 py-1.5 capitalize"
-                style={active ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
-                {v}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+    <>
+      <SiteHeader
+        active="pools"
+        viewToggle={
+          <div className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+            {(['calm', 'advanced'] as const).map((v) => {
+              const active = (v === 'advanced') === advanced;
+              const href = v === 'advanced' ? `/pools/${id}?view=advanced` : `/pools/${id}`;
+              return (
+                <Link key={v} href={href} scroll={false} className="text-xs font-bold px-3 py-1.5 capitalize"
+                  style={active ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', height: 38, display: 'flex', alignItems: 'center' } : { color: 'var(--ep-muted, #9397AB)', height: 38, display: 'flex', alignItems: 'center' }}>
+                  {v}
+                </Link>
+              );
+            })}
+          </div>
+        }
+      />
+      <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+      <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
       {pool.status === 'paused' && (
         <div className="mt-3 text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(240,190,103,0.12)', color: 'var(--ep-amber, #F0BE67)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
           This pool is paused by the owner — no new positions. Withdrawals still work.
         </div>
       )}
 
+      {!advanced && (
+      <>
       <div className="mt-3 flex items-center gap-2">
         <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
           ● {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {isDemo ? 'DEMO' : pool.kind === 'basket' ? 'FLAGSHIP' : 'PARTNER'}
@@ -177,23 +184,41 @@ export default function PoolDetailPage() {
       </div>
       <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>{pool.name}</h1>
       <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-        {isDemo ? 'Demo pool · scripted scenario (unlisted)' : pool.kind === 'basket' ? 'Edgepool basket · algorithm-picked traders' : 'Partner pool'} · {pool.traders.length} traders · {pool.slots.used}/{pool.slots.max} slots
+        {isDemo
+          ? 'Demo pool · scripted scenario (unlisted)'
+          : pool.kind === 'basket'
+            ? `Copies ${pool.traders.length} algorithm-ranked Fomo traders with the same entry, sizing and exit rules on every trade.`
+            : 'Partner pool'} · {pool.traders.length} traders · {pool.slots.used}/{pool.slots.max} slots
       </p>
       <div className="flex gap-2 mt-3 flex-wrap">
         {['2% cap per trader', 'Immediate entry · 1% NAV size', 'TP1 +60% · stop −30%', '−5% daily kill switch'].map((r) => (
           <span key={r} className="text-[11px] px-2.5 py-1 rounded-full" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', color: 'var(--ep-text-3, #B2B6CA)' }}>{r}</span>
         ))}
       </div>
+      </>
+      )}
 
       {advanced && pool.advanced ? (
         <div key="advanced" className="ep-fade">
-          <AdvancedView pool={pool} periodPnl={pnl} />
+          <AdvancedView
+            pool={pool}
+            period={period}
+            setPeriod={setPeriod}
+            periodPnl={pnl}
+            amount={amount}
+            setAmount={setAmount}
+            busy={busy}
+            onDeposit={() => void deposit()}
+          />
         </div>
       ) : (
-      <div key="calm" className="ep-fade grid gap-4 mt-5" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(300px,360px)' }}>
+      <div key="calm" className="ep-fade ep-pool-grid grid gap-4 mt-5">
         <div className="space-y-4 min-w-0">
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <div className="flex gap-1">
+            <div className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>
+              POOL PNL · THIS {period.toUpperCase()}
+            </div>
+            <div className="flex gap-1 mt-2">
               {PERIODS.map((p) => (
                 <button key={p.key} onClick={() => setPeriod(p.key)} className="text-xs font-bold px-3 py-1.5 rounded-lg"
                   style={period === p.key ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
@@ -217,7 +242,7 @@ export default function PoolDetailPage() {
               {[
                 ['Pool NAV', `${pool.navSol.toFixed(2)} SOL`],
                 ['NAV/share', pool.navPerShare.toFixed(4)],
-                ['My value', `${myVal.toFixed(4)} SOL`],
+                ['Today', `${pool.pnl.day.sol >= 0 ? '+' : ''}${pool.pnl.day.sol.toFixed(2)}`],
                 ['Since inception', `${pool.pnl.all.sol >= 0 ? '+' : ''}${pool.pnl.all.sol.toFixed(2)}`],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-lg p-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
@@ -229,7 +254,7 @@ export default function PoolDetailPage() {
           </section>
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <h2 className="font-display text-base font-medium">Open positions {pool.openCount > 0 && `(${pool.openCount})`}</h2>
+            <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Open positions {pool.openCount > 0 && `(${pool.openCount})`}</h2>
             {pool.openPositions.length === 0 ? (
               <p className="text-xs mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                 No open positions. This pool is flat, so withdrawals are instant.
@@ -250,7 +275,7 @@ export default function PoolDetailPage() {
           </section>
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <h2 className="font-display text-base font-medium">Live signals</h2>
+            <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Live signals</h2>
             <div className="mt-2 space-y-2">
               {pool.signals.length === 0 && (
                 <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>No signals in the recent window.</p>
@@ -279,13 +304,13 @@ export default function PoolDetailPage() {
           <SignalStream vaultId={pool.id} />
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <h2 className="font-display text-base font-medium">Trader basket</h2>
+            <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Trader basket</h2>
             <ul className="mt-2 space-y-2">
               {pool.traders.map((t) => (
                 <li key={t.wallet} className="flex items-center justify-between text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
                   <span className="font-bold">@{locked ? 'Trader •' : t.handle}</span>
                   <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                    {t.rank ? `rank #${t.rank}` : 'unranked'}
+                    {t.rank ? `rank #${t.rank}` : 'unranked'}{expByWallet[t.wallet] !== undefined ? ` · ${expByWallet[t.wallet].toFixed(1)}% NAV` : ''}
                   </span>
                 </li>
               ))}
@@ -293,10 +318,10 @@ export default function PoolDetailPage() {
           </section>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 ep-sticky-col">
           {pool.myHolding && pool.myHolding.shares > 0 && (
             <section className="rounded-2xl p-5" style={{ background: 'var(--ep-aqua-deep, #032D2A)', boxShadow: '0 0 0 1px var(--ep-aqua, #49E6D7)' }}>
-              <h2 className="font-display text-base font-medium">My position</h2>
+              <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>My position</h2>
               <div className="font-mono text-2xl mt-1">{pool.myHolding.valueSol.toFixed(4)} SOL</div>
               <div className="text-xs font-mono mt-1" style={{ color: 'var(--ep-aqua-100, #BBF6EE)' }}>
                 {pool.myHolding.returnsSol >= 0 ? '+' : ''}{pool.myHolding.returnsSol.toFixed(4)} SOL · {pool.myHolding.shares.toFixed(2)} shares · deposited {pool.myHolding.depositedSol.toFixed(2)}
@@ -304,22 +329,40 @@ export default function PoolDetailPage() {
             </section>
           )}
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <h2 className="font-display text-base font-medium">Deposit</h2>
+            <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Deposit</h2>
             <div className="text-xs font-mono mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
               NAV {pool.navSol.toFixed(2)} · {pool.navPerShare.toFixed(4)}/share · {pool.slots.used}/{pool.slots.max} slots
             </div>
-            <div className="flex gap-2 mt-3">
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                placeholder="0.00"
-                inputMode="decimal"
-                className="flex-1 min-w-0 font-mono text-xl px-3 py-2 rounded-lg outline-none"
-                style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
+            <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${Math.min(100, (pool.slots.used / Math.max(1, pool.slots.max)) * 100)}%`, background: 'var(--ep-aqua, #49E6D7)' }}
               />
+            </div>
+            <div className="text-[11px] font-mono mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              {Math.max(0, pool.slots.max - pool.slots.used)} depositors in · capped to protect execution
+            </div>
+            <label className="block text-[11px] font-mono mt-3 tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>
+              AMOUNT
+            </label>
+            <div className="flex gap-2 mt-1.5">
+              <div className="flex-1 min-w-0 flex items-center gap-1 rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)' }}>
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  className="flex-1 min-w-0 font-mono text-xl outline-none bg-transparent"
+                  style={{ color: 'var(--ep-text, #E9E9ED)' }}
+                />
+                <span className="font-mono text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>SOL</span>
+              </div>
               <button onClick={() => setAmount('0.5')} className="text-xs font-bold px-3 rounded-lg" style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
                 Min
               </button>
+            </div>
+            <div className="text-[11px] font-mono mt-1.5" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              ≈ {(Number(amount) > 0 && pool.navPerShare > 0 ? Number(amount) / pool.navPerShare : 0).toFixed(2)} shares · ≈ $—
             </div>
             <button
               onClick={() => void deposit()}
@@ -340,40 +383,103 @@ export default function PoolDetailPage() {
         </div>
       </div>
       )}
+      <SiteFooter />
     </div>
+    </>
   );
 }
 
-function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol: number; pct: number } }) {
+function AdvancedView({
+  pool,
+  period,
+  setPeriod,
+  periodPnl,
+  amount,
+  setAmount,
+  busy,
+  onDeposit,
+}: {
+  pool: PoolDetail;
+  period: Period;
+  setPeriod: (p: Period) => void;
+  periodPnl: { sol: number; pct: number };
+  amount: string;
+  setAmount: (v: string) => void;
+  busy: boolean;
+  onDeposit: () => void;
+}) {
   const adv = pool.advanced;
   if (!adv) return null;
   const card: React.CSSProperties = { background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' };
-  const tile: React.CSSProperties = { background: 'var(--ep-surface-sunk, #1A1C2A)' };
   const k = adv.kpis;
   const r = adv.risk;
+  const held = pool.myHolding && pool.myHolding.shares > 0;
+  const unrealByKey: Record<string, number | null> = Object.fromEntries(
+    pool.openPositions.map((p) => [`${p.token}|${p.trader}`, p.unrealizedPct]),
+  );
+  const left = Math.max(0, pool.slots.max - pool.slots.used);
+  const series = pool.navSeries.slice(-60);
+  const smin = series.length ? Math.min(...series.map((p) => p.v)) : 0;
+  const smax = series.length ? Math.max(...series.map((p) => p.v)) : 1;
+  const sspan = smax - smin || 1;
+  const CW = 600;
+  const CH = 150;
+  const cd = series.map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / Math.max(1, series.length - 1)) * CW).toFixed(1)},${(CH - 6 - ((p.v - smin) / sspan) * (CH - 12)).toFixed(1)}`).join(' ');
+  const chartUp = periodPnl.sol >= 0;
   return (
     <div className="space-y-4 mt-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-display text-lg font-medium">{pool.name}</h2>
-        <span className="font-mono text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-          {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {pool.slots.used}/{pool.slots.max} slots · Initial strategy settings under validation
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', color: 'var(--ep-muted, #9397AB)' }}>
+            {left} of {pool.slots.max} left
+          </span>
+          <span className="font-mono text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+            {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · Initial strategy settings under validation
+          </span>
+        </div>
       </div>
 
       <div className="rounded-2xl p-4" style={{ ...card, border: '1px solid var(--ep-aqua, #49E6D7)' }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-          {[
-            ['My position', pool.myHolding ? `${pool.myHolding.valueSol.toFixed(4)} SOL` : '—'],
-            ['My PnL', pool.myHolding ? `${pool.myHolding.returnsSol >= 0 ? '+' : ''}${pool.myHolding.returnsSol.toFixed(4)}` : '—'],
-            ['Shares', pool.myHolding ? pool.myHolding.shares.toFixed(2) : '—'],
-            ['Withdraw', pool.myHolding && pool.myHolding.shares > 0 ? 'available' : '—'],
-          ].map(([label, v]) => (
-            <div key={label}>
-              <div className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
-              <div className="text-sm font-mono font-bold">{v}</div>
+        {held ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            {[
+              ['My position', `${pool.myHolding!.valueSol.toFixed(4)} SOL`],
+              ['My PnL', `${pool.myHolding!.returnsSol >= 0 ? '+' : ''}${pool.myHolding!.returnsSol.toFixed(4)}`],
+              ['Shares', pool.myHolding!.shares.toFixed(2)],
+              ['Withdraw', 'available'],
+            ].map(([label, v]) => (
+              <div key={label}>
+                <div className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
+                <div className="text-sm font-mono font-bold">{v}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="text-sm flex-1 min-w-[200px]" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+              Deposit 0.5 SOL or more to unlock signals and open a position.
             </div>
-          ))}
-        </div>
+            <div className="flex gap-2 items-center">
+              <input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                placeholder="0.00"
+                inputMode="decimal"
+                className="w-28 font-mono text-sm px-3 py-2 rounded-lg outline-none"
+                style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
+              />
+              <button
+                onClick={onDeposit}
+                disabled={busy}
+                className="text-sm font-bold px-4 py-2 rounded-lg disabled:opacity-50"
+                style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}
+              >
+                Deposit SOL
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px,1fr))' }}>
@@ -385,15 +491,50 @@ function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol:
           ['Deployed % NAV', `${k.deployedPctNav.toFixed(1)}%`],
           ['From HWM', `${k.fromHwmPct >= 0 ? '+' : ''}${k.fromHwmPct.toFixed(1)}%`],
         ].map(([label, v]) => (
-          <div key={label} className="rounded-2xl p-3 text-center" style={card}>
-            <div className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{label}</div>
-            <div className="text-sm font-mono font-bold mt-1">{v}</div>
+          <div key={label} className="rounded-2xl p-3" style={card}>
+            <div className="font-mono text-[11px] tracking-widest text-left" style={{ color: 'var(--ep-faint, #75798C)' }}>{label.toUpperCase()}</div>
+            <div className="font-mono font-bold mt-1 text-left whitespace-nowrap" style={{ fontSize: 20 }}>{v}</div>
           </div>
         ))}
       </div>
 
       <div className="rounded-2xl p-4" style={card}>
-        <h3 className="font-display text-sm font-medium">Risk limits</h3>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>NAV PER SHARE</h3>
+          <div className="flex gap-1">
+            {PERIODS.map((p) => (
+              <button key={p.key} onClick={() => setPeriod(p.key)} className="text-[11px] font-bold px-2 py-0.5 rounded-md"
+                style={period === p.key ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {series.length > 1 && (
+          <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full mt-2" style={{ height: 150 }} aria-hidden>
+            {[0.25, 0.5, 0.75].map((f) => (
+              <line key={f} x1={0} x2={CW} y1={CH * f} y2={CH * f} stroke="var(--ep-border, #2E313F)" strokeWidth={1} />
+            ))}
+            <path d={`${cd} L${CW},${CH} L0,${CH} Z`} fill={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} opacity={0.1} />
+            <path d={cd} fill="none" stroke={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} strokeWidth={2} strokeLinecap="round" />
+          </svg>
+        )}
+        <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+          {[
+            ['Change', `${periodPnl.sol >= 0 ? '+' : ''}${periodPnl.sol.toFixed(2)}`],
+            ['Today', `${pool.pnl.day.sol >= 0 ? '+' : ''}${pool.pnl.day.sol.toFixed(2)}`],
+            ['Since inception', `${pool.pnl.all.sol >= 0 ? '+' : ''}${pool.pnl.all.sol.toFixed(2)}`],
+          ].map(([label, v]) => (
+            <div key={label}>
+              <div className="font-mono text-[10px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>{label.toUpperCase()}</div>
+              <div className="font-mono text-xs font-bold mt-0.5">{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4" style={card}>
+        <h3 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>RISK LIMITS</h3>
         {[
           ['Daily kill switch −5%', r.dayUsedPct, `${r.dayPct >= 0 ? '+' : ''}${r.dayPct.toFixed(1)}% today`],
           ['Weekly loss limit −15%', r.weekUsedPct, `${r.weekPct >= 0 ? '+' : ''}${r.weekPct.toFixed(1)}% week`],
@@ -408,29 +549,35 @@ function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol:
           </div>
         ))}
         <div className="text-[11px] font-mono mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-          Signals 24h: {r.signals24h} · Emergency exits 7d: {r.emergencyExits7d}
+          Armed · {r.dayUsedPct.toFixed(0)}% of daily limit used · Signals 24h: {r.signals24h} · Emergency exits 7d: {r.emergencyExits7d}
         </div>
       </div>
 
       <div className="rounded-2xl p-4 overflow-x-auto" style={card}>
-        <h3 className="font-display text-sm font-medium">Positions</h3>
+        <h3 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>POSITIONS</h3>
         <table className="w-full text-xs mt-2" style={{ minWidth: 1000 }}>
           <thead>
             <tr style={{ color: 'var(--ep-faint, #75798C)' }}>
-              {['Token', 'Trader', 'Move', 'Unrealized', 'Price ladder', 'Stop/floor', 'Stage'].map((h) => (
+              {['Token', 'Trader', 'Size', 'Unrealized', 'Price ladder', 'Stop/floor', 'Stage', 'Time stop'].map((h) => (
                 <th key={h} className="text-left font-medium px-2 py-1.5">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {adv.ladder.map((l, i) => (
+            {adv.ladder.map((l, i) => {
+              const u = unrealByKey[`${l.token}|${l.trader}`];
+              const deadline = new Date(l.createdAt).getTime() + 24 * 3600000 - Date.now();
+              const due = deadline <= 0;
+              const dh = Math.max(0, Math.floor(deadline / 3600000));
+              const dm = Math.max(0, Math.floor((deadline % 3600000) / 60000));
+              return (
               <tr key={i} style={{ borderTop: '1px solid var(--ep-row-rule, #26283A)' }}>
                 <td className="px-2 py-2 font-bold">{l.token}</td>
                 <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{l.trader}</td>
-                <td className="px-2 py-2 font-mono" style={{ color: (l.movePct ?? 0) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-                  {l.movePct === null ? '—' : `${l.movePct >= 0 ? '+' : ''}${l.movePct.toFixed(1)}%`}
+                <td className="px-2 py-2 font-mono">{l.sizeSol === null ? '—' : `${l.sizeSol.toFixed(2)}`}</td>
+                <td className="px-2 py-2 font-mono" style={{ color: (u ?? 0) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                  {u === undefined || u === null ? '—' : `${u >= 0 ? '+' : ''}${u.toFixed(1)}%`}
                 </td>
-                <td className="px-2 py-2 font-mono">—</td>
                 <td className="px-2 py-2" style={{ minWidth: 240 }}>
                   <LadderBar l={l} />
                 </td>
@@ -438,22 +585,26 @@ function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol:
                   {l.trailFloorPct !== null ? `floor +${l.trailFloorPct.toFixed(0)}%` : `${l.stopPct.toFixed(0)}%`}
                 </td>
                 <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{l.stage}</td>
+                <td className="px-2 py-2 font-mono" style={{ color: due ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-muted, #9397AB)' }}>
+                  {due ? 'due' : `${dh}h ${dm}m`}
+                </td>
               </tr>
-            ))}
+              );
+            })}
             {adv.ladder.length === 0 && (
-              <tr><td colSpan={7} className="px-2 py-4 text-center" style={{ color: 'var(--ep-muted, #9397AB)' }}>No open positions — pool is flat.</td></tr>
+              <tr><td colSpan={8} className="px-2 py-4 text-center" style={{ color: 'var(--ep-muted, #9397AB)' }}>No open positions — pool is flat.</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
       <div className="rounded-2xl p-4" style={card}>
-        <h3 className="font-display text-sm font-medium">Exposure per trader <span className="font-mono text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>(share of 2% cap)</span></h3>
+        <h3 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EXPOSURE PER TRADER <span style={{ color: 'var(--ep-faint, #75798C)' }}>(share of 2% cap)</span></h3>
         <div className="mt-2 space-y-2">
           {adv.exposure.map((e) => (
             <div key={e.trader}>
               <div className="flex justify-between text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                <span>{e.trader.slice(0, 8)}…</span><span>{e.pctNav.toFixed(2)}% NAV</span>
+                <span>{e.trader.slice(0, 8)}…</span><span>{e.pctNav.toFixed(2)}% NAV · {e.pnlSol >= 0 ? '+' : ''}{e.pnlSol.toFixed(2)}</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.capPct)}%`, background: e.capPct >= 100 ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-aqua, #49E6D7)' }} />
@@ -461,6 +612,28 @@ function AdvancedView({ pool, periodPnl }: { pool: PoolDetail; periodPnl: { sol:
             </div>
           ))}
           {adv.exposure.length === 0 && <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>No exposure.</p>}
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4" style={card}>
+        <h3 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>EXECUTION LOG</h3>
+        <div className="mt-2 space-y-1 font-mono text-[11px] max-h-48 overflow-y-auto">
+          {pool.log.length === 0 && (
+            <p style={{ color: 'var(--ep-muted, #9397AB)' }}>No executions yet.</p>
+          )}
+          {pool.log.map((l, i) => (
+            <div key={i} className="flex gap-2 whitespace-nowrap" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
+              <span style={{ color: 'var(--ep-faint, #75798C)' }}>
+                {new Date(l.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="font-bold" style={{ color: l.kind === 'skip' ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-violet-100, #D2CEFD)' }}>
+                {l.event.toUpperCase()}
+              </span>
+              <span className="font-bold">{l.token}</span>
+              <span style={{ color: 'var(--ep-muted, #9397AB)' }}>@{l.trader}</span>
+              <span className="truncate">{l.detail}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

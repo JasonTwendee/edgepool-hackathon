@@ -197,7 +197,8 @@ export interface PoolSummary {
   totalShares: number;
   slots: { used: number; max: number };
   maxTraders: number;
-  traders: { wallet: string; handle: string; rank: number | null }[];
+  traders: { wallet: string; handle: string; rank: number | null; weightBps: number }[];
+  spark: number[];
   pnl: Record<'day' | 'week' | 'month' | 'all', { sol: number; pct: number }>;
   myHolding?: { shares: number; valueSol: number; returnsSol: number } | null;
 }
@@ -208,7 +209,7 @@ export function listPools(): Promise<{ success: boolean; total: number; data: Po
 
 export interface PoolDetail extends PoolSummary {
   navSeries: { t: number; v: number }[];
-  openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null }[];
+  openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null; createdAt: string }[];
   openCount: number;
   signals: { token: string; trader: string; ageSec: number; note: string; steps: { label: string; state: string }[] }[];
   log: { at: string; token: string; trader: string; event: string; detail: string; kind: string }[];
@@ -218,7 +219,7 @@ export interface PoolDetail extends PoolSummary {
   advanced?: {
     kpis: { navSol: number; sharePrice: number; pnlSol: number | null; unrealizedSol: number; deployedPctNav: number; fromHwmPct: number };
     risk: { dayPct: number; dayLimitPct: number; dayUsedPct: number; weekPct: number; weekLimitPct: number; weekUsedPct: number; signals24h: number; emergencyExits7d: number };
-    ladder: { token: string; trader: string; entry: number | null; live: number | null; movePct: number | null; tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; stage: string }[];
+    ladder: { token: string; trader: string; entry: number | null; live: number | null; movePct: number | null; sizeSol: number | null; createdAt: string; tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; stage: string }[];
     exposure: { trader: string; pctNav: number; pnlSol: number; capPct: number }[];
   };
 }

@@ -11,6 +11,9 @@ import {
   type PortfolioOverview,
 } from '../../lib/api';
 import { connectBrowserWallet, signWithBrowserWallet } from '../../lib/solana';
+import { LoginModal, restoreSession } from '../../components/LoginModal';
+import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
+import type { FundSession } from '../../types/fund';
 
 function WithdrawModal({
   poolId,
@@ -103,6 +106,7 @@ function WithdrawModal({
         <div className="text-[11px] font-mono space-y-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
           <div className="flex justify-between"><span>Shares burned</span><span>{shares.toFixed(4)}</span></div>
           <div className="flex justify-between"><span>Est. SOL out</span><span>{sol.toFixed(4)}</span></div>
+          <div className="flex justify-between"><span>≈ USDC</span><span>$—</span></div>
           <div className="flex justify-between"><span>Mode</span><span>{flat ? 'Instant' : 'Queued · settles at checkpoint'}</span></div>
         </div>
         {err && <p className="text-[11px]" style={{ color: 'var(--ep-neg, #F28881)' }}>{err}</p>}
@@ -116,6 +120,41 @@ function WithdrawModal({
   );
 }
 
+function LoginOverlay({ onClose, onSession }: { onClose: () => void; onSession: () => void }) {
+  const [session, setSession] = useState<FundSession | null>(null);
+  useEffect(() => {
+    void restoreSession().then((s) => {
+      if (s) {
+        setSession(s);
+        onSession();
+      }
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(13,15,24,0.72)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div className="w-full" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <LoginModal
+          session={session}
+          onSession={(s) => {
+            setSession(s);
+            if (s) onSession();
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   const [data, setData] = useState<PortfolioOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +162,7 @@ export default function PortfolioPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [wd, setWd] = useState<{ poolId: number; poolName: string; maxShares: number; sharePrice: number; flat: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const token = getStoredToken();
@@ -168,13 +208,23 @@ export default function PortfolioPage() {
 
   if (error === 'NOT_CONNECTED') {
     return (
-      <div className="mx-auto w-full text-center" style={{ maxWidth: 1240, padding: '80px clamp(16px,4vw,40px)' }}>
-        <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)' }}>Portfolio</h1>
-        <p className="text-sm mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>Connect your wallet or sign in to see your positions.</p>
-        <Link href="/terminal" className="inline-block mt-4 text-sm font-bold px-4 py-2 rounded-lg" style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-          Sign in
-        </Link>
-      </div>
+      <>
+        <SiteHeader active="portfolio" />
+        <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+          <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>Portfolio</h1>
+          <div className="rounded-2xl p-8 mt-6 text-center" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+            <div className="font-mono" style={{ fontSize: 'clamp(30px,4vw,40px)' }}>0.00 SOL</div>
+            <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>Connect your wallet or sign in to see your positions.</p>
+            <button onClick={() => setLoginOpen(true)} className="mt-4 text-sm font-bold px-4 py-2 rounded-lg" style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+              Connect wallet
+            </button>
+          </div>
+          <SiteFooter />
+        </div>
+        {loginOpen && (
+          <LoginOverlay onClose={() => setLoginOpen(false)} onSession={() => { setLoginOpen(false); void refresh(); }} />
+        )}
+      </>
     );
   }
 
@@ -184,7 +234,9 @@ export default function PortfolioPage() {
     : 0;
 
   return (
-    <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+    <>
+      <SiteHeader active="portfolio" />
+      <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
       <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>Portfolio</h1>
       {error && <p className="text-xs mt-2" style={{ color: 'var(--ep-neg, #F28881)' }}>{error}</p>}
       {msg && <p className="text-xs mt-2" style={{ color: 'var(--ep-aqua-100, #BBF6EE)' }}>{msg}</p>}
@@ -330,10 +382,10 @@ export default function PortfolioPage() {
 
       <div className="mt-6">
         <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
-        <span className="text-sm mx-2" style={{ color: 'var(--ep-ghost, #595D6C)' }}>·</span>
-        <Link href="/terminal" className="text-sm" style={{ color: 'var(--ep-muted, #9397AB)' }}>Terminal</Link>
       </div>
+      <SiteFooter />
     </div>
+    </>
   );
 }
 
