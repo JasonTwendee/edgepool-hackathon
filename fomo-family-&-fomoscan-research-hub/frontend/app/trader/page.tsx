@@ -21,6 +21,7 @@ import {
 } from '../../lib/api';
 import { signWithBrowserWallet } from '../../lib/solana';
 import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
+import { Toaster, toast } from '../../components/Toaster';
 
 const inputCls =
   'w-full text-sm bg-[#0D0F18] border border-[#3F424D] rounded-lg px-3 py-2.5 text-[#E9E9ED] placeholder:text-[#4A4D5E] outline-none focus:border-[#E9E9ED]';
@@ -275,6 +276,7 @@ export default function TraderPage() {
               if (!token) return;
               void partnerClaim(token).then((r) => {
                 setMsg(`Claimed ${r.data.claimedSol.toFixed(4)} SOL across ${r.data.rows} rows (recorded; auto-paid at checkpoint).`);
+                toast(`Claimed ${r.data.claimedSol.toFixed(4)} SOL`);
                 return load(token);
               }).catch((e) => setMsg((e as Error).message));
             }}
@@ -419,6 +421,7 @@ export default function TraderPage() {
       </div>
       <SiteFooter />
     </div>
+    <Toaster />
     </>
   );
 }

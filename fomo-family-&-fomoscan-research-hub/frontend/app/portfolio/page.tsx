@@ -13,6 +13,7 @@ import {
 import { connectBrowserWallet, signWithBrowserWallet } from '../../lib/solana';
 import { LoginModal, restoreSession } from '../../components/LoginModal';
 import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
+import { Toaster, toast } from '../../components/Toaster';
 import type { FundSession } from '../../types/fund';
 
 function WithdrawModal({
@@ -37,6 +38,15 @@ function WithdrawModal({
   const [err, setErr] = useState<string | null>(null);
   const sol = Number(amount) || 0;
   const shares = sharePrice > 0 ? sol / sharePrice : 0;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function submit() {
     const token = getStoredToken();
@@ -375,6 +385,7 @@ export default function PortfolioPage() {
           onClose={() => setWd(null)}
           onDone={(m) => {
             setMsg(m);
+            toast(m);
             void refresh();
           }}
         />
@@ -385,6 +396,7 @@ export default function PortfolioPage() {
       </div>
       <SiteFooter />
     </div>
+    <Toaster />
     </>
   );
 }

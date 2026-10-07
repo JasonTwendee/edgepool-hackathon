@@ -26,8 +26,10 @@ function fmtTime(at: number): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-/** Pool terminal log: SSE replay + live ticks, monospace console, auto-scroll. */
-export default function SignalStream({ vaultId }: { vaultId: number }) {
+/** Pool terminal log: SSE replay + live ticks, monospace console, auto-scroll.
+ * Paywall: locked viewers (holding < 0.5 SOL) see the lock prompt only —
+ * live signal flow never leaks tokens, traders or sizes. */
+export default function SignalStream({ vaultId, locked }: { vaultId: number; locked: boolean }) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [live, setLive] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -63,6 +65,20 @@ export default function SignalStream({ vaultId }: { vaultId: number }) {
   }, [events, paused]);
 
   const shown = filter === 'ALL' ? events : events.filter((e) => e.kind === filter);
+
+  if (locked) {
+    return (
+      <section className="rounded-2xl p-4 text-center" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+        <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>TERMINAL LOG</h2>
+        <p className="text-sm mt-2" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+          Live signals unlock with a 0.5 SOL deposit.
+        </p>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+          Deposit to see every detect, entry and exit as it happens.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl p-4" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
