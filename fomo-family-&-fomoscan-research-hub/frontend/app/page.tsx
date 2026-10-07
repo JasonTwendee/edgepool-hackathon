@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowRight } from '@phosphor-icons/react';
+import { ArrowRight, UsersThree } from '@phosphor-icons/react';
 import { listPools, type PoolSummary } from '../lib/api';
 import { SiteFooter, SiteHeader } from '../components/SiteHeader';
 
@@ -19,15 +19,16 @@ function Sparkline({ points, positive }: { points: number[]; positive: boolean }
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
-  const w = 160;
-  const h = 72;
+  const w = 300;
+  const h = 100;
   const step = w / (points.length - 1);
   const d = points.map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - 4 - ((v - min) / span) * (h - 8)).toFixed(1)}`).join(' ');
   const color = positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)';
+  const fill = positive ? 'rgba(73,230,215,0.10)' : 'rgba(242,136,129,0.08)';
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
-      <path d={`${d} L${w},${h} L0,${h} Z`} fill={color} opacity={0.1} />
-      <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: '100%', height: 72, display: 'block' }} aria-hidden>
+      <path d={`${d} L${w},${h} L0,${h} Z`} fill={fill} stroke="none" />
+      <path d={d} fill="none" stroke={color} strokeWidth={1.75} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -52,6 +53,9 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       style={{
         borderRadius: 18,
         padding: 22,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
         background: featured
           ? 'radial-gradient(circle at top right, rgba(3,45,42,0.75), rgba(3,45,42,0) 60%), var(--ep-surface, #1D1F2C)'
           : 'radial-gradient(circle at top right, rgba(43,39,65,0.55), rgba(43,39,65,0) 60%), var(--ep-surface, #1D1F2C)',
@@ -59,7 +63,8 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
+        <span className="font-mono text-[11px] tracking-widest flex items-center gap-2" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ep-aqua, #49E6D7)', boxShadow: '0 0 8px var(--ep-aqua, #49E6D7)' }} />
           {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {featured ? 'FLAGSHIP' : 'PARTNER'}
         </span>
         {pool.myHolding && (
@@ -71,20 +76,22 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
           </span>
         )}
       </div>
-      <h2 className="font-display text-2xl font-medium mt-2" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
-        {pool.name}
-      </h2>
-      <p className="text-xs mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-        {featured ? 'Edgepool basket · algorithm-ranked traders' : `Partner pool · @${pool.traders[0]?.handle ?? 'partner'}`}
-      </p>
-      <div className="flex items-center gap-2 mt-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-display text-2xl font-medium" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+          {pool.name}
+        </h2>
+        <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+          {featured ? 'Edgepool basket · algorithm-ranked traders' : `Partner pool · @${pool.traders[0]?.handle ?? 'partner'}`}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
         <div className="flex" style={{ marginLeft: 0 }}>
           {pool.traders.slice(0, 5).map((t) => (
             <span
               key={t.wallet}
               title={`@${t.handle}${t.rank ? ` · rank #${t.rank}` : ''}`}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold -ml-2 first:ml-0 border"
-              style={{ background: 'var(--ep-violet-tint, #2B2741)', color: 'var(--ep-violet-100, #D2CEFD)', borderColor: 'var(--ep-surface, #1D1F2C)' }}
+              className="w-7 h-7 rounded-full grid place-items-center text-xs font-bold -ml-2 first:ml-0"
+              style={{ background: 'var(--ep-violet-tint, #2B2741)', color: 'var(--ep-violet-100, #D2CEFD)', boxShadow: '0 0 0 2px var(--ep-surface, #1D1F2C)' }}
             >
               {(t.handle || '?').slice(0, 1).toUpperCase()}
             </span>
@@ -94,40 +101,52 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
           {pool.traders.length} traders · {signalPct}% to signal trader
         </span>
       </div>
-      <div className="flex items-end justify-between gap-2 mt-3">
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <div className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>
+          <div className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>
             PNL · THIS {PERIOD_NOUN[period]}
           </div>
-          <div key={period} className="ep-fade font-mono whitespace-nowrap" style={{ fontSize: 24, color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-            {positive ? '+' : ''}{pnl.pct.toFixed(1)}% <span className="text-sm">({positive ? '+' : ''}{pnl.sol.toFixed(2)})</span>
+          <div key={period} className="ep-fade font-mono whitespace-nowrap" style={{ fontSize: 24, fontWeight: 500, color: positive ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+            {positive ? '+' : ''}{pnl.pct.toFixed(2)}%
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-mono text-sm whitespace-nowrap" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
-            NAV {pool.navSol.toFixed(2)}
+          <div className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>
+            NAV
           </div>
-          <Sparkline points={pool.spark.length >= 2 ? pool.spark : [pool.pnl.day.sol, pool.pnl.week.sol, pool.pnl.month.sol, pool.pnl.all.sol]} positive={positive} />
+          <div className="font-mono whitespace-nowrap" style={{ fontSize: 15, color: 'var(--ep-text, #E9E9ED)' }}>
+            {pool.navSol.toFixed(2)} SOL
+          </div>
         </div>
       </div>
-      <div className="mt-2 text-[11px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>
-        Depositor slots · {left} of {pool.slots.max} left
-      </div>
-      <div className="mt-1.5 rounded-full overflow-hidden" style={{ height: 6, background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${Math.min(100, (pool.slots.used / Math.max(1, pool.slots.max)) * 100)}%`, background: meterColor }}
-        />
+      <Sparkline points={pool.spark.length >= 2 ? pool.spark : [pool.pnl.day.sol, pool.pnl.week.sol, pool.pnl.month.sol, pool.pnl.all.sol]} positive={positive} />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1.5" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+            <UsersThree size={15} weight="regular" />
+            Depositor slots
+          </span>
+          <span className="font-mono">
+            <span style={{ color: meterColor }}>{left} of {pool.slots.max}</span>
+            <span style={{ color: 'var(--ep-faint, #75798C)' }}> left</span>
+          </span>
+        </div>
+        <div className="rounded-full overflow-hidden" style={{ height: 6, background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${Math.min(100, (pool.slots.used / Math.max(1, pool.slots.max)) * 100)}%`, background: meterColor }}
+          />
+        </div>
       </div>
       <Link
         href={`/pools/${pool.id}`}
-        className="mt-4 flex items-center justify-center gap-1.5 text-sm font-bold px-4 py-2.5"
+        className="flex items-center justify-center gap-2 font-medium px-4"
         style={
           full
-            ? { border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)', borderRadius: 10 }
+            ? { height: 46, fontSize: 15, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)', borderRadius: 10 }
             : featured
-              ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', borderRadius: 10 }
-              : { border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)', borderRadius: 10 }
+              ? { height: 46, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', borderRadius: 10 }
+              : { height: 46, fontSize: 15, border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)', borderRadius: 10 }
         }
       >
         {full ? 'Full · view pool' : 'Open pool'} <ArrowRight size={15} weight="bold" />
