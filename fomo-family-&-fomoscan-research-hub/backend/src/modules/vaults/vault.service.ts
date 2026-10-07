@@ -77,6 +77,36 @@ function lastNav(epochs: { navSol: any }[]): number {
   return last ? num(last.navSol) : 0;
 }
 
+/**
+ * Paywall (pool-math.ts): holding < 0.5 SOL sees $•••• / Trader • / •••.
+ * Percent PnL stays visible. Applied server-side so curl can't bypass the UI.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: any[], exposure: any[], advanced: any): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clean = (positions as any[]).map(({ notionalUsd, ...p }) => p);
+  if (!masked) return { positions: clean, signals, log, exposure, advanced };
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    positions: clean.map((p: any) => ({ ...p, token: '$••••', trader: 'Trader •', sizeSol: null, entryPriceUsd: null, livePriceUsd: null })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    signals: (signals as any[]).map((s: any) => ({ ...s, token: '$••••', trader: 'Trader •' })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    log: (log as any[]).map((l: any) => ({ ...l, token: '$••••', trader: 'Trader •' })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    exposure: (exposure as any[]).map((e: any) => ({ ...e, trader: 'Trader •' })),
+    advanced: advanced
+      ? {
+          ...advanced,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ladder: ((advanced as any).ladder as any[]).map((l: any) => ({
+            ...l, token: '$••••', trader: 'Trader •', entry: null, live: null, sizeSol: null,
+          })),
+        }
+      : advanced,
+  };
+}
+
 export interface WindowState {
   open: boolean;
   nextOpensAt: string;
@@ -698,18 +728,18 @@ export class VaultService {
     const holding = user ? await this.mine(vaultId, user) : null;
     const masked = !holding || holding.valueSol < 0.5;
     const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
+    const unmasked = maskPoolDetail(masked, positions, signals, log, exposure, advanced);
     return {
       ...base,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      openPositions: positions.map(({ notionalUsd, ...p }) => p),
+      openPositions: unmasked.positions,
       openCount: positions.length,
-      signals,
-      log,
-      exposure,
+      signals: unmasked.signals,
+      log: unmasked.log,
+      exposure: unmasked.exposure,
       myHolding: holding,
       masked,
-      advanced,
+      advanced: unmasked.advanced,
     };
   }
 

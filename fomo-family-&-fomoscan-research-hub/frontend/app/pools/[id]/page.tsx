@@ -13,6 +13,7 @@ import { getStoredToken } from '../../../lib/api';
 import { connectBrowserWallet, signWithBrowserWallet } from '../../../lib/solana';
 import SignalStream from '../../../components/SignalStream';
 import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
+import { Toaster, toast } from '../../../components/Toaster';
 
 type Period = 'day' | 'week' | 'month' | 'all';
 const PERIODS: { key: Period; label: string }[] = [
@@ -96,6 +97,7 @@ export default function PoolDetailPage() {
         `Deposit #${res.data.id} queued — settles at next epoch price.` +
           (signedBy ? ` Signed by ${signedBy.slice(0, 4)}…${signedBy.slice(-4)} (paper, no funds moved).` : ''),
       );
+      toast(`Deposited ${amt.toFixed(2)} SOL · signals unlocked`);
       setAmount('');
       await refresh();
     } catch (e) {
@@ -301,7 +303,7 @@ export default function PoolDetailPage() {
             </div>
           </section>
 
-          <SignalStream vaultId={pool.id} />
+          <SignalStream vaultId={pool.id} locked={locked} />
 
           <section className="rounded-2xl p-5" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
             <h2 className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>Trader basket</h2>
@@ -340,7 +342,7 @@ export default function PoolDetailPage() {
               />
             </div>
             <div className="text-[11px] font-mono mt-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-              {Math.max(0, pool.slots.max - pool.slots.used)} depositors in · capped to protect execution
+              {pool.slots.used} depositors in · capped to protect execution
             </div>
             <label className="block text-[11px] font-mono mt-3 tracking-widest" style={{ color: 'var(--ep-faint, #75798C)' }}>
               AMOUNT
@@ -385,6 +387,7 @@ export default function PoolDetailPage() {
       )}
       <SiteFooter />
     </div>
+    <Toaster />
     </>
   );
 }
@@ -410,6 +413,7 @@ function AdvancedView({
 }) {
   const adv = pool.advanced;
   if (!adv) return null;
+  const locked = !pool.myHolding || pool.myHolding.valueSol < 0.5;
   const card: React.CSSProperties = { background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' };
   const k = adv.kpis;
   const r = adv.risk;
@@ -572,9 +576,9 @@ function AdvancedView({
               const dm = Math.max(0, Math.floor((deadline % 3600000) / 60000));
               return (
               <tr key={i} style={{ borderTop: '1px solid var(--ep-row-rule, #26283A)' }}>
-                <td className="px-2 py-2 font-bold">{l.token}</td>
-                <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{l.trader}</td>
-                <td className="px-2 py-2 font-mono">{l.sizeSol === null ? '—' : `${l.sizeSol.toFixed(2)}`}</td>
+                <td className="px-2 py-2 font-bold">{locked ? '$••••' : l.token}</td>
+                <td className="px-2 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{locked ? 'Trader •' : l.trader}</td>
+                <td className="px-2 py-2 font-mono">{locked || l.sizeSol === null ? '•••' : `${l.sizeSol.toFixed(2)}`}</td>
                 <td className="px-2 py-2 font-mono" style={{ color: (u ?? 0) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
                   {u === undefined || u === null ? '—' : `${u >= 0 ? '+' : ''}${u.toFixed(1)}%`}
                 </td>
@@ -604,7 +608,7 @@ function AdvancedView({
           {adv.exposure.map((e) => (
             <div key={e.trader}>
               <div className="flex justify-between text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                <span>{e.trader.slice(0, 8)}…</span><span>{e.pctNav.toFixed(2)}% NAV · {e.pnlSol >= 0 ? '+' : ''}{e.pnlSol.toFixed(2)}</span>
+                <span>{locked ? 'Trader •' : `${e.trader.slice(0, 8)}…`}</span><span>{e.pctNav.toFixed(2)}% NAV · {e.pnlSol >= 0 ? '+' : ''}{e.pnlSol.toFixed(2)}</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden mt-1" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
                 <div className="h-full rounded-full" style={{ width: `${Math.min(100, e.capPct)}%`, background: e.capPct >= 100 ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-aqua, #49E6D7)' }} />
@@ -629,8 +633,8 @@ function AdvancedView({
               <span className="font-bold" style={{ color: l.kind === 'skip' ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-violet-100, #D2CEFD)' }}>
                 {l.event.toUpperCase()}
               </span>
-              <span className="font-bold">{l.token}</span>
-              <span style={{ color: 'var(--ep-muted, #9397AB)' }}>@{l.trader}</span>
+              <span className="font-bold">{locked ? '$••••' : l.token}</span>
+              <span style={{ color: 'var(--ep-muted, #9397AB)' }}>@{locked ? 'Trader •' : l.trader}</span>
               <span className="truncate">{l.detail}</span>
             </div>
           ))}
