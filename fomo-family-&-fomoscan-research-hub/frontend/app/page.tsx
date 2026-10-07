@@ -69,8 +69,8 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
         </span>
         {pool.myHolding && (
           <span
-            className="font-mono text-[11px] px-2 py-0.5 rounded-full whitespace-nowrap"
-            style={{ background: 'var(--ep-aqua-deep, #032D2A)', color: 'var(--ep-aqua-100, #BBF6EE)' }}
+            className="text-[11px] font-medium whitespace-nowrap"
+            style={{ padding: '3px 8px', borderRadius: 6, background: '#004B45', color: '#BBF6EE' }}
           >
             You hold {pool.myHolding.valueSol.toFixed(2)} SOL
           </span>
@@ -140,13 +140,13 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       </div>
       <Link
         href={`/pools/${pool.id}`}
-        className="flex items-center justify-center gap-2 font-medium px-4"
+        className={`flex items-center justify-center gap-2 font-medium px-4${!full && !featured ? ' pool-cta-partner' : ''}`}
         style={
           full
             ? { height: 46, fontSize: 15, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)', borderRadius: 10 }
             : featured
               ? { height: 46, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', borderRadius: 10 }
-              : { height: 46, fontSize: 15, border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)', borderRadius: 10 }
+              : { height: 46, fontSize: 15, borderRadius: 10 }
         }
       >
         {full ? 'Full · view pool' : 'Open pool'} <ArrowRight size={15} weight="bold" />
