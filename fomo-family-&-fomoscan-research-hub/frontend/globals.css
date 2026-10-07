@@ -75,6 +75,23 @@ samp {
   color: #e0fcf8;
 }
 
+/* Pool card partner CTA: neutral by default, aqua only on hover
+   (customer 2026-10-07). Featured solid + full neutral CTAs keep inline styles. */
+.pool-cta-partner {
+  border: 1px solid var(--ep-border-strong, #3F424D);
+  color: var(--ep-text, #E9E9ED);
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+}
+.pool-cta-partner:hover {
+  border-color: var(--ep-aqua, #49E6D7);
+  color: var(--ep-aqua, #49E6D7);
+  background-color: rgba(73, 230, 215, 0.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pool-cta-partner {
+    transition: none;
+  }
+}
 /* Pools index cards: neutral edge by default; aqua glow + lift only on real
    hover/focus (customer 2026-10-07 — no card may look hovered by default). */
 .pool-card {
