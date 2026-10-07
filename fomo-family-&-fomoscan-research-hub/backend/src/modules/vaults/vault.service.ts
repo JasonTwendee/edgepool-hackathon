@@ -988,6 +988,118 @@ export class VaultService {
     return evs;
   }
 
+  /**
+   * Pool app — fund-flow ledger (1 bot = 1 vault traceability).
+   * Every copy order mapped to vault money: allocated size, live MTM value,
+   * realized on exit — plus a vault-level cash reconciliation (deposits −
+   * withdrawals + realized + unrealized ≈ NAV). SOL equivalents use the
+   * current wSOL price (labeled as such). Same 0.5-SOL paywall as poolDetail.
+   */
+  async ledger(
+    vaultId: number,
+    user?: { id: number; wallet: string },
+  ): Promise<Record<string, unknown>> {
+    const { id } = await this.resolveVault(vaultId);
+    const [orders, epochs, deposits, withdrawals] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.prisma as any).copyOrder.findMany({ where: { vaultId: id }, orderBy: { id: 'desc' }, take: 200 }),
+      this.prisma.epochCheckpoint.findMany({ where: { vaultId: id }, orderBy: { id: 'asc' } }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.prisma as any).deposit.findMany({ where: { vaultId: id, status: 'SETTLED' } }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.prisma as any).withdrawal.findMany({ where: { vaultId: id, status: 'SETTLED' } }),
+    ]);
+    const last = epochs[epochs.length - 1];
+    const nav = last ? num(last.navSol) : 0;
+    const shares = last ? num(last.sharePrice) : 1;
+    let solPx = 0;
+    try {
+      const w = 'So11111111111111111111111111111111111111112';
+      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
+    } catch {
+      solPx = 0;
+    }
+    const mints = [
+      ...new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (orders as any[]).filter((o) => o.tokenMint && !o.closedAt).map((o) => o.tokenMint as string),
+      ),
+    ];
+    let px: Record<string, number> = {};
+    try {
+      px = this.prices && mints.length > 0 ? await this.prices.bulkPrices(mints) : {};
+    } catch {
+      px = {};
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = (orders as any[]).map((o) => {
+      const amountUsd = num(o.amountUsd);
+      const entry = num(o.entryPriceUsd);
+      const live = o.tokenMint && typeof px[o.tokenMint as string] === 'number' ? (px[o.tokenMint as string] as number) : null;
+      const qty = entry > 0 ? amountUsd / entry : 0;
+      const liveUsd = live !== null && entry > 0 ? r9(qty * live) : null;
+      const realized = o.closedAt ? num(o.realizedPnlUsd) : 0;
+      return {
+        id: o.id,
+        open: !o.closedAt,
+        token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
+        trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
+        status: o.status,
+        amountUsd: r9(amountUsd),
+        allocatedSol: solPx > 0 ? r9(amountUsd / solPx) : null,
+        liveValueUsd: liveUsd,
+        liveValueSol: liveUsd !== null && solPx > 0 ? r9(liveUsd / solPx) : null,
+        realizedUsd: r9(realized),
+        realizedSol: solPx > 0 ? r9(realized / solPx) : null,
+        closeReason: (o.closeReason as string | null) ?? null,
+        createdAt: new Date(o.createdAt as unknown as string).toISOString(),
+        closedAt: o.closedAt ? new Date(o.closedAt as unknown as string).toISOString() : null,
+      };
+    });
+    const openRows = rows.filter((r) => (r as { open: boolean }).open);
+    const openAllocatedUsd = r9(openRows.reduce((s, r) => s + (r as { amountUsd: number }).amountUsd, 0));
+    const unrealizedUsd = r9(
+      openRows.reduce((s, r) => {
+        const rr = r as { liveValueUsd: number | null; amountUsd: number };
+        return s + (rr.liveValueUsd !== null ? rr.liveValueUsd - rr.amountUsd : 0);
+      }, 0),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const realizedUsd = r9((orders as any[]).reduce((s, o) => s + (o.closedAt ? num(o.realizedPnlUsd) : 0), 0));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settledDepositsSol = r9((deposits as any[]).reduce((s: number, d: any) => s + num(d.amountSol), 0));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settledWithdrawalsSol = r9((withdrawals as any[]).reduce((s: number, w: any) => s + num(w.payoutSol), 0));
+    const holding = user ? await this.mine(id, user) : null;
+    const queuedIn = holding
+      ? (holding.queuedDeposits as { amountSol: number }[]).reduce((s, q) => s + num(q.amountSol), 0)
+      : 0;
+    const masked = !holding || holding.valueSol + queuedIn < 0.5;
+    const shown = masked
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? rows.map((r: any) => ({ ...r, token: '$••••', trader: 'Trader •' }))
+      : rows;
+    return {
+      vaultId: id,
+      statement: {
+        settledDepositsSol,
+        settledWithdrawalsSol,
+        openAllocatedUsd,
+        openAllocatedSol: solPx > 0 ? r9(openAllocatedUsd / solPx) : null,
+        realizedUsd,
+        realizedSol: solPx > 0 ? r9(realizedUsd / solPx) : null,
+        unrealizedUsd,
+        unrealizedSol: solPx > 0 ? r9(unrealizedUsd / solPx) : null,
+        navSol: r9(nav),
+        sharesOutstanding: last ? num(last.sharesOutstanding) : 0,
+        sharePrice: r9(shares),
+        solPriceUsd: solPx > 0 ? solPx : null,
+      },
+      orders: shown,
+      masked,
+    };
+  }
+
   async status(vaultId: number): Promise<VaultStatus> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;

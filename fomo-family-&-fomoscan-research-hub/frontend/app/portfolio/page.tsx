@@ -173,11 +173,13 @@ export default function PortfolioPage() {
   const [wd, setWd] = useState<{ poolId: number; poolName: string; maxShares: number; sharePrice: number; flat: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     const token = getStoredToken();
     if (!token) {
       setError('NOT_CONNECTED');
+      setLoading(false);
       return;
     }
     try {
@@ -186,6 +188,8 @@ export default function PortfolioPage() {
       setError(null);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -214,6 +218,11 @@ export default function PortfolioPage() {
   const min = vs.length ? Math.min(...vs) : 0;
   const max = vs.length ? Math.max(...vs) : 1;
   const span = max - min || 1;
+  const chartUp = tab === 'pnl'
+    ? (data?.returnsSol ?? 0) >= 0
+    : vs.length > 1
+      ? vs[vs.length - 1] >= vs[0]
+      : true;
   const d = curve.map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / Math.max(1, curve.length - 1)) * W).toFixed(1)},${(H - 6 - ((p.v - min) / span) * (H - 12)).toFixed(1)}`).join(' ');
 
   if (error === 'NOT_CONNECTED') {
@@ -259,6 +268,15 @@ export default function PortfolioPage() {
             Browse pools
           </Link>
         </div>
+      ) : loading && !data ? (
+        <div className="ep-enter" aria-hidden>
+          <div className="ep-skel mt-2" style={{ width: 'min(320px,70%)', height: 44 }} />
+          <div className="ep-skel mt-2" style={{ width: 180, height: 14 }} />
+          <div className="ep-skel mt-2" style={{ width: 240, height: 14 }} />
+          <div className="ep-skel mt-4" style={{ width: '100%', height: 120 }} />
+          <div className="ep-skel mt-6" style={{ width: '100%', height: 76 }} />
+          <div className="ep-skel mt-3" style={{ width: '100%', height: 76 }} />
+        </div>
       ) : (
         data && (
           <>
@@ -282,9 +300,9 @@ export default function PortfolioPage() {
               ))}
             </div>
             {curve.length > 1 && (
-              <svg viewBox={`0 0 ${W} ${H}`} className="w-full mt-2" style={{ height: 120 }} aria-hidden>
-                <path d={`${d} L${W},${H} L0,${H} Z`} fill="var(--ep-aqua, #49E6D7)" opacity={0.1} />
-                <path d={d} fill="none" stroke="var(--ep-aqua, #49E6D7)" strokeWidth={2} strokeLinecap="round" />
+              <svg key={tab} viewBox={`0 0 ${W} ${H}`} className="ep-fade w-full mt-2" style={{ height: 120 }} aria-hidden>
+                <path d={`${d} L${W},${H} L0,${H} Z`} fill={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} opacity={0.1} />
+                <path d={d} fill="none" stroke={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} strokeWidth={2} strokeLinecap="round" />
               </svg>
             )}
 

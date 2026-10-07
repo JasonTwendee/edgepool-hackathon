@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ChartLineUp, SquaresFour, Storefront, Wallet, X } from '@phosphor-icons/react';
 import { LoginModal, restoreSession } from './LoginModal';
-import { clearSession, getStoredToken, logout } from '../lib/api';
+import { clearSession, getCachedProfile, getStoredToken, logout } from '../lib/api';
 import type { FundSession } from '../types/fund';
 
 export type SiteNav = 'pools' | 'portfolio' | 'trader';
@@ -27,12 +27,30 @@ function shortAddr(wallet: string | undefined, username?: string | null): string
  * mobile bottom tab bar <760px). viewToggle slot = Calm/Advanced (pool page only).
  */
 export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle?: React.ReactNode }) {
-  const [session, setSession] = useState<FundSession | null>(null);
+  // Instant label from the cached profile (no "Connect wallet" flash on
+  // navigation); re-validated in background, cleared if the session is dead.
+  const [session, setSession] = useState<FundSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const token = getStoredToken();
+    const cached = token ? getCachedProfile() : null;
+    if (!token || !cached) return null;
+    return {
+      token,
+      user: { id: 0, wallet: cached.wallet, role: cached.role as FundSession['user']['role'], username: cached.username },
+      expiresAt: '',
+    };
+  });
   const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    void restoreSession().then(setSession);
+    let live = true;
+    void restoreSession().then((s) => {
+      if (live) setSession(s);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   async function logoutNow() {
