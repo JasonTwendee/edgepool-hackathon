@@ -92,7 +92,7 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
         className="sticky top-0 z-40"
         style={{ height: 64, background: 'rgba(22,24,38,0.9)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--ep-border, #2E313F)' }}
       >
-        <div className="h-full flex items-center justify-between gap-2" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 clamp(16px,4vw,40px)' }}>
+        <div className="h-full flex items-center gap-6" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 clamp(16px,4vw,40px)' }}>
           <Link href="/" className="flex items-center shrink-0" aria-label="Edgepool home">
             <img src="/brand/edgepool-horizontal-dark.svg" alt="edgepool" className="hidden min-[760px]:block" style={{ height: 26 }} />
             <img src="/brand/edgepool-symbol-dark.svg" alt="edgepool" className="block min-[760px]:hidden" style={{ height: 26 }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -110,6 +110,7 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
               </Link>
             ))}
           </nav>
+          <div className="flex-1" />
           <div className="flex items-center gap-2">
             {viewToggle}
           <div className="relative">
