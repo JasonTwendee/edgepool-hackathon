@@ -1,11 +1,12 @@
 /**
  * Shared kill-switch math (auto-fire halt + executePaper/deposit gates).
- * Pure functions — no DI, no Prisma. Loss is measured last-settled-NAV vs the
- * checkpoint before each window (same convention as the NAV series).
+ * Pure functions — no DI, no Prisma. Share-price returns exclude deposits and
+ * withdrawals. Legacy records without share prices use NAV consistently.
  */
 
 export interface EpsRow {
   navSol: unknown;
+  sharePrice?: unknown;
   createdAt: unknown;
 }
 
@@ -25,17 +26,20 @@ const num = (v: unknown): number => {
 };
 
 export function vaultLoss(epochs: EpsRow[]): { dayPct: number; weekPct: number; nav: number } {
+  const useShares = epochs.length > 0 && epochs.every((e) => num(e.sharePrice) > 0);
+  const value = (e: EpsRow): number => num(useShares ? e.sharePrice : e.navSol);
   const at = (ts: number): number | null => {
     const past = epochs.filter((e) => new Date(e.createdAt as unknown as string).getTime() <= ts);
-    return past.length > 0 ? num(past[past.length - 1].navSol) : null;
+    return past.length > 0 ? value(past[past.length - 1]) : null;
   };
   const navs = epochs.map((e) => num(e.navSol));
   const navNum = navs.length > 0 ? navs[navs.length - 1] : 0;
+  const current = epochs.length ? value(epochs[epochs.length - 1]) : 0;
   const now = Date.now();
-  const dayBase = at(now - 86400000) ?? navNum;
-  const weekBase = at(now - 7 * 86400000) ?? navNum;
-  const dayPct = dayBase > 0 ? r9(((navNum - dayBase) / dayBase) * 100) : 0;
-  const weekPct = weekBase > 0 ? r9(((navNum - weekBase) / weekBase) * 100) : 0;
+  const dayBase = at(now - 86400000) ?? current;
+  const weekBase = at(now - 7 * 86400000) ?? current;
+  const dayPct = dayBase > 0 ? r9(((current - dayBase) / dayBase) * 100) : 0;
+  const weekPct = weekBase > 0 ? r9(((current - weekBase) / weekBase) * 100) : 0;
   return { dayPct, weekPct, nav: navNum };
 }
 

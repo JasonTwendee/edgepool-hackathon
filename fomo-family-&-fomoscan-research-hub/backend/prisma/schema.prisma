@@ -246,6 +246,8 @@ model EpochCheckpoint {
   sharePrice        Decimal  @map("share_price") @db.Decimal(24, 12)
   sharesOutstanding Decimal  @map("shares_outstanding") @db.Decimal(24, 12)
   feeSol            Decimal  @map("fee_sol") @db.Decimal(24, 12) @default(0)
+  // Cumulative paper PnL already included in NAV; NULL on historical epochs.
+  pnlSol            Decimal? @map("pnl_sol") @db.Decimal(24, 12)
   createdAt         DateTime @map("created_at") @default(now()) @db.Timestamptz()
 
   payouts PartnerPayout[]

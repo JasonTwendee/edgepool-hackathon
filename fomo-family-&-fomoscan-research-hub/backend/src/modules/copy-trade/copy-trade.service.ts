@@ -12,6 +12,7 @@ import {
 import { RugCheckService } from '../../common/rugcheck/rugcheck.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { VaultService } from '../vaults/vault.service.js';
+import { remainingNotionalUsd } from '../../common/accounting/paper-position.js';
 import { isHaltedVault } from './kill-switch.js';
 
 export interface CopyRecord {
@@ -213,23 +214,23 @@ export class CopyTradeService {
     if (dto.confirm !== true) {
       fail('Explicit 1-click confirmation required (confirm:true).');
     }
-    if ((dto.amountUsd ?? 0) > maxUsd) {
-      fail(`Paper notional $${dto.amountUsd} exceeds cap $${maxUsd}.`);
+    if (dto.amountUsd !== undefined && (!Number.isFinite(dto.amountUsd) || dto.amountUsd <= 0)) {
+      fail('Source notional must be positive.');
     }
     // Solution v2 sizing: copy = min(master, 1% vault NAV, 0.1 SOL, maxUsd).
-    // Auto-scales down (never rejects the signal); skipped while the vault
+    // Auto-scales down; signals below one cent are refused. Skipped while the vault
     // has no settled epoch yet (bootstrap).
     let sizedCapUsd = maxUsd;
     let sizedNote: Record<string, unknown> = { mode: 'bootstrap' };
     let navUsd = 0;
+    let solPrice = 0;
     const market = overrides.market ?? this.market;
     const sizingVaultId = overrides.vaultId ?? 1;
     try {
       const st = await this.vaults.status(sizingVaultId);
+      const px = await market.bulkPrices([DEFAULT_SOL_MINT]);
+      solPrice = px[DEFAULT_SOL_MINT] ?? 0;
       if (st.lastEpoch) {
-        const WSOL = 'So11111111111111111111111111111111111111112';
-        const px = await market.bulkPrices([WSOL]);
-        const solPrice = px[WSOL] ?? 0;
         if (solPrice > 0) {
           navUsd = st.lastEpoch.navSol * solPrice;
           sizedCapUsd = Math.min(maxUsd, navUsd * 0.01, 0.1 * solPrice);
@@ -241,7 +242,7 @@ export class CopyTradeService {
         }
       }
     } catch {
-      // Sizing advisory skipped on feed failure — maxUsd cap still applies.
+      // Missing SOL prices are refused before quoting; no allocation is executed.
     }
     const masterUsd = dto.amountUsd ?? sizedCapUsd;
     // Dynamic allocation (G): slice the NAV budget by the trader's vault weight.
@@ -269,7 +270,8 @@ export class CopyTradeService {
       // Weight lookup skipped on failure — legacy budget applies.
     }
     const traderCap = sizedCapUsd * weightShare;
-    const copyUsd = Math.round(Math.min(masterUsd, traderCap) * 100) / 100;
+    const copyUsd = Math.floor((Math.min(masterUsd, traderCap) + Number.EPSILON) * 100) / 100;
+    if (!(copyUsd > 0)) fail('Copy allocation is below the minimum representable notional ($0.01).');
     // ATR regime auto-tune (R1): derive stop/TP/trail from 1h volatility unless
     // the caller pinned explicit values (explicit-wins) or opted out. Fail-open
     // to 60/30/20 defaults when candles are missing — paper still fires.
@@ -328,17 +330,13 @@ export class CopyTradeService {
     }
     // Deck §7.4 layer 2: per-mint ≤2% NAV by value (open CONFIRMED notional).
     if (navUsd > 0 && dto.tokenMint) {
-      const mintOpen = (await this.prisma.copyOrder.findMany({
+      const mintOpen = await this.prisma.copyOrder.findMany({
         where: { vaultId: sizingVaultId, tokenMint: dto.tokenMint, status: 'CONFIRMED', closedAt: null },
-        select: { amountUsd: true },
-      })) as { amountUsd: unknown }[];
-      const toUsd = (v: unknown): number =>
-        v === null || v === undefined ? 0 : typeof (v as { toNumber?: unknown }).toNumber === 'function'
-          ? ((v as { toNumber: () => number }).toNumber() as number)
-          : Number(v) || 0;
-      const mintUsd = mintOpen.reduce((s, o) => s + toUsd(o.amountUsd), 0);
-      if (mintUsd + masterUsd > navUsd * 0.02) {
-        fail(`Per-mint cap: ${(dto.symbol ?? dto.tokenMint).slice(0, 12)} open $${Math.round(mintUsd)} + $${masterUsd} entrant exceeds 2% NAV ($${Math.round(navUsd * 0.02)}).`);
+        select: { amountUsd: true, legs: { select: { fraction: true } } },
+      });
+      const mintUsd = mintOpen.reduce((sum, order) => sum + remainingNotionalUsd(order), 0);
+      if (mintUsd + copyUsd > navUsd * 0.02 + 1e-9) {
+        fail(`Per-mint cap: ${(dto.symbol ?? dto.tokenMint).slice(0, 12)} open $${Math.round(mintUsd)} + $${copyUsd} entrant exceeds 2% NAV ($${Math.round(navUsd * 0.02)}).`);
       }
     }
     // Kill-switch gate: halted vaults refuse NEW risk on every entry path
@@ -371,7 +369,7 @@ export class CopyTradeService {
         symbol: dto.symbol,
         action: dto.action,
         tokenMint: dto.tokenMint,
-        amountUsd: dto.amountUsd,
+        amountUsd: copyUsd,
         venue: dto.venue,
         mode: 'paper',
         status: 'PENDING',
@@ -427,10 +425,13 @@ export class CopyTradeService {
           rugNote = { mint: dto.tokenMint, pass: true, apiError: (e as Error).message.slice(0, 200) };
         }
       }
+      if (!Number.isFinite(solPrice) || solPrice <= 0) fail('SOL price unavailable for copy quote.');
+      const quoteLamports = Math.floor((copyUsd / solPrice) * 1e9);
+      if (quoteLamports <= 0) fail('Copy allocation is below one lamport.');
       const quote = await executor.fetchQuote({
         inputMint: DEFAULT_SOL_MINT,
-        outputMint: DEFAULT_USDC_MINT,
-        amount: '1000000',
+        outputMint: dto.tokenMint ?? DEFAULT_USDC_MINT,
+        amount: String(quoteLamports),
         slippageBps: dto.maxSlippageBps ?? 50,
       });
       await this.prisma.copyOrder.update({

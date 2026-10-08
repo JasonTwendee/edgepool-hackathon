@@ -107,7 +107,7 @@ async function main(): Promise<void> {
     qualify: async () => ({ pass: true, reasons: [], verdict: { mint: 'M', score: 1, rugged: false, riskNames: [] } }),
   } as never;
   const stubMarket = {
-    bulkPrices: async () => ({}),
+    bulkPrices: async () => ({ So11111111111111111111111111111111111111112: 100 }),
     tokenDetails: async () => null,
     candles: async () => [],
   } as never;
@@ -126,8 +126,8 @@ async function main(): Promise<void> {
     /confirm/i,
   );
   await assert.rejects(
-    () => svc.executePaper({ ...base, amountUsd: 101 }, { paperEnabled: true, maxUsd: 100 }),
-    /cap/i,
+    () => svc.executePaper({ ...base, amountUsd: -1 }, { paperEnabled: true, maxUsd: 100 }),
+    /positive/i,
   );
 
   // 6. Happy path (stubbed executor/connection) → CONFIRMED with signature.
@@ -254,7 +254,7 @@ async function main(): Promise<void> {
 
   // 11. Liquidity gate: mcap below floor → FAILED (strict).
   const thinMarket = {
-    bulkPrices: async () => ({}),
+    bulkPrices: async () => ({ So11111111111111111111111111111111111111112: 100 }),
     tokenDetails: async () => ({ marketCap: 1000 }),
   } as never;
   await assert.rejects(
@@ -288,7 +288,7 @@ async function main(): Promise<void> {
     open: 100, high: 150, low: 50, close: 100, volume: 1, timestamp: i,
   }));
   const tuneMarket = {
-    bulkPrices: async () => ({}),
+    bulkPrices: async () => ({ So11111111111111111111111111111111111111112: 100 }),
     tokenDetails: async () => null,
     candles: async () => wildCandles,
   } as never;
@@ -314,7 +314,7 @@ async function main(): Promise<void> {
   assert.equal(pinned.stopPct, 40);
   // No candles → fallback 60/30; autoTune:false → fixed defaults.
   const noCandleMarket = {
-    bulkPrices: async () => ({}),
+    bulkPrices: async () => ({ So11111111111111111111111111111111111111112: 100 }),
     tokenDetails: async () => null,
     candles: async () => [],
   } as never;

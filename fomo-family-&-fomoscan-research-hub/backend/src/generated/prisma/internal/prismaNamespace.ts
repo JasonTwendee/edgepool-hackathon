@@ -2134,6 +2134,7 @@ export const EpochCheckpointScalarFieldEnum = {
   sharePrice: 'sharePrice',
   sharesOutstanding: 'sharesOutstanding',
   feeSol: 'feeSol',
+  pnlSol: 'pnlSol',
   createdAt: 'createdAt'
 } as const
 

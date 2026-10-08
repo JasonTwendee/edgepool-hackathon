@@ -2,7 +2,8 @@ import { BadRequestException, Inject, Injectable, NotFoundException, Optional } 
 import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
-import { isHaltedVault } from '../copy-trade/kill-switch.js';
+import { paperPositionPnl, realizedPnlUsd, remainingNotionalUsd } from '../../common/accounting/paper-position.js';
+import { isHaltedVault, vaultLoss } from '../copy-trade/kill-switch.js';
 
 export interface VaultStatus {
   id: number;
@@ -68,6 +69,7 @@ export const PARTNER_FEE_SHARE = 0.75;
 /** Basket pools split the 20% fee 10/10 → partner share of the FEE is 50%. */
 export const BASKET_FEE_SHARE = 0.5;
 
+const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
 const f9 = (v: number): number => Math.floor(v * 1e9) / 1e9;
 
@@ -364,31 +366,20 @@ export class VaultService {
   async settleEpoch(vaultId: number, navSol?: number): Promise<SettleResult> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
-    // P1 NAV engine: omitted navSol = mark-to-market from open positions +
-    // realized since last epoch. Explicit navSol keeps legacy/manual behavior
-    // (ADMIN-only + audited at the controller layer).
-    // NOTE: pricing inputs are resolved OUTSIDE the DB transaction so the
-    // advisory lock is never held across network (price) calls.
-    if (navSol === undefined || navSol === null) {
-      navSol = await this.computeNav(vaultId);
-    }
-    if (!Number.isFinite(navSol) || (navSol as number) < 0) fail('navSol must be non-negative.');
-    const inputNav = navSol as number;
+    const automatic = navSol === undefined || navSol === null;
+    if (!automatic && (!Number.isFinite(navSol) || navSol! < 0)) fail('navSol must be non-negative.');
+    const prices = await this.navPrices(vaultId);
     // Atomic settlement (fix #2+#3): every ledger write runs inside a single
     // interactive transaction guarded by a per-vault pg advisory xact lock.
     // Crash mid-settle → rollback → retry safe; concurrent settles serialize
     // on the lock (no double-mint/double-burn); retry on the same NAV takes
-    // fee 0 via the HWM ratchet (idempotent retry without extra columns).
+    // automatic valuation is re-read under the lock before mint/burn.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = this.prisma as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const run = async (tx: Record<string, any>): Promise<SettleResult> => {
       if (typeof tx.$queryRaw === 'function') {
-        try {
-          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'vault-settle-' + vaultId}))`;
-        } catch {
-          // Mock clients in asserts have no pg — lock is a no-op there.
-        }
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'vault-settle-' + vaultId}))::text`;
       }
       const vault = await tx.vault.findUnique({ where: { id: vaultId } });
       if (!vault) fail(`Vault ${vaultId} not found.`);
@@ -410,6 +401,9 @@ export class VaultService {
       // Price on NAV excluding pending deposits (their cash hasn't entered yet —
       // otherwise newcomers would inflate their own mint price).
       const pendingIn = deposits.reduce((s: number, d: { amountSol: unknown }) => s + num(d.amountSol as never), 0);
+      const pnl = await this.navPnl(tx as PrismaService, vaultId, prices);
+      const last = await tx.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } });
+      const inputNav = automatic ? this.epochNav(last, pnl, pendingIn) : navSol!;
       if (totalShares > 0 && inputNav - pendingIn <= 0) {
         fail('NAV below pending deposits — cannot price this epoch.');
       }
@@ -454,9 +448,10 @@ export class VaultService {
         treasuryFee = Math.round((treasuryFee + fee) * 1e9) / 1e9;
         await tx.withdrawal.update({
           where: { id: w.id },
-          data: { status: 'SETTLED', sharePrice: dec(price), payoutSol: dec(payout), settledAt: new Date() },
+          data: { status: 'SETTLED', sharesRequested: dec(payoutShares), sharePrice: dec(price), payoutSol: dec(payout), settledAt: new Date() },
         });
         shares = Math.round((shares - payoutShares) * 1e9) / 1e9;
+        nav = r9(nav - gross);
         settledWithdrawals.push({ id: w.id, payoutSol: payout });
       }
       await tx.vault.update({
@@ -474,6 +469,7 @@ export class VaultService {
           sharePrice: dec(price),
           sharesOutstanding: dec(shares),
           feeSol: dec(feeSol),
+          pnlSol: dec(pnl.pnlSol),
         },
       });
       // Report §4 split: book partner/edgepool shares AFTER the epoch exists so
@@ -592,47 +588,64 @@ export class VaultService {
     };
   }
 
-  /**
-   * Pool app P1 — NAV engine. NAV = last settled NAV
-   * + unrealized of open pool orders (mark-to-market via DataStream)
-   * + realized gains closed since the last epoch.
-   * Orders without vaultId (legacy) are pool-agnostic and excluded.
-   */
-  async computeNav(vaultId: number): Promise<number> {
-    const { id } = await this.resolveVault(vaultId);
-    vaultId = id;
-    const [last, opens] = await Promise.all([
-      this.prisma.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } }),
-      this.prisma.copyOrder.findMany({ where: { vaultId, closedAt: null } }),
-    ]);
-    const base = last ? num(last.navSol) : 0;
-    const since = last ? new Date(last.createdAt as unknown as string) : new Date(0);
-    const closed = await this.prisma.copyOrder.findMany({
-      where: { vaultId, closedAt: { not: null } },
-    });
-    const realized = closed
-      .filter((o) => new Date(o.closedAt as unknown as string) >= since)
-      .reduce((s, o) => s + num(o.realizedPnlUsd), 0);
-    // Mark-to-market only BUY positions with known entry + mint.
-    const pricable = opens.filter(
-      (o) => (o.action ?? 'BUY') === 'BUY' && o.tokenMint && num(o.entryPriceUsd) > 0 && num(o.amountUsd) > 0,
-    );
-    let unrealized = 0;
-    if (pricable.length > 0) {
-      let px: Record<string, number> = {};
+  /** Resolve prices before taking the settlement lock; absent prices refuse NAV. */
+  private async navPrices(vaultId: number): Promise<Record<string, number>> {
+    const orders = await this.prisma.copyOrder.findMany({ where: { vaultId, status: 'CONFIRMED' } });
+    if (orders.length === 0) return {};
+    const mints = [WSOL_MINT, ...orders.filter((o) => !o.closedAt && o.tokenMint).map((o) => o.tokenMint!)];
+    if (!this.prices) fail('Prices unavailable for NAV calculation.');
+    try {
+      return await this.prices.bulkPrices([...new Set(mints)]);
+    } catch {
+      return fail('Prices unavailable for NAV calculation.');
+    }
+  }
+
+  private async navPnl(db: PrismaService, vaultId: number, prices: Record<string, number>) {
+    const orders = await db.copyOrder.findMany({ where: { vaultId, status: 'CONFIRMED' }, include: { legs: true } });
+    if (orders.length === 0) return { pnlSol: 0, orders };
+    const solPrice = prices[WSOL_MINT];
+    if (!Number.isFinite(solPrice) || solPrice <= 0) fail('SOL price unavailable for NAV calculation.');
+    let pnlUsd = 0;
+    for (const order of orders) {
       try {
-        px = this.prices ? await this.prices.bulkPrices([...new Set(pricable.map((o) => o.tokenMint as string))]) : {};
+        const pnl = paperPositionPnl(order, order.tokenMint ? prices[order.tokenMint] : undefined);
+        pnlUsd += pnl.realizedUsd + pnl.unrealizedUsd;
       } catch {
-        px = {};
-      }
-      for (const o of pricable) {
-        const live = px[o.tokenMint as string];
-        if (!Number.isFinite(live)) continue;
-        const qty = num(o.amountUsd) / num(o.entryPriceUsd);
-        unrealized += qty * live - num(o.amountUsd);
+        fail(`Order ${order.id} cannot be valued: entry/token price missing.`);
       }
     }
-    return r9(Math.max(0, base + unrealized + realized));
+    return { pnlSol: r9(pnlUsd / solPrice), orders };
+  }
+
+  private epochNav(last: { navSol: unknown; pnlSol?: unknown; createdAt: Date } | null, pnl: { pnlSol: number; orders: { createdAt: Date }[] }, pendingIn: number): number {
+    const previousPnl = last?.pnlSol == null ? 0 : num(last.pnlSol as never);
+    if (last && last.pnlSol == null && pnl.orders.some((o) => !o.createdAt || o.createdAt <= last.createdAt)) {
+      fail('Historical NAV has no PnL baseline. Review NAV and use an explicit ADMIN settlement before automatic settlement.');
+    }
+    const nav = r9((last ? num(last.navSol as never) : 0) + pendingIn + pnl.pnlSol - previousPnl);
+    if (!Number.isFinite(nav) || nav < 0) fail('Computed NAV is negative or invalid.');
+    return nav;
+  }
+
+  /** Pending deposits plus the change in cumulative PnL since the last epoch. */
+  async computeNav(vaultId: number): Promise<number> {
+    const { id } = await this.resolveVault(vaultId);
+    const prices = await this.navPrices(id);
+    const [last, deposits, pnl] = await Promise.all([
+      this.prisma.epochCheckpoint.findFirst({ where: { vaultId: id }, orderBy: { id: 'desc' } }),
+      this.prisma.deposit.findMany({ where: { vaultId: id, status: 'QUEUED' } }),
+      this.navPnl(this.prisma, id, prices),
+    ]);
+    return this.epochNav(last, pnl, deposits.reduce((sum, d) => sum + num(d.amountSol), 0));
+  }
+
+  private async solPriceBestEffort(): Promise<number> {
+    try {
+      return this.prices ? ((await this.prices.bulkPrices([WSOL_MINT]))[WSOL_MINT] ?? 0) : 0;
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -648,7 +661,7 @@ export class VaultService {
   private async poolPositions(vaultId: number): Promise<{ positions: any[]; nav: number }> {
     const [epochs, orders] = await Promise.all([
       this.prisma.epochCheckpoint.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
-      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100 }),
+      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100, include: { legs: true } }),
     ]);
     const nav = lastNav(epochs);
     const mints = [...new Set(orders.filter((o) => o.tokenMint).map((o) => o.tokenMint as string))];
@@ -659,26 +672,21 @@ export class VaultService {
       px = {};
     }
     // wSOL price for SOL-denominated size (best-effort; null when unpriced).
-    let solPx = 0;
-    try {
-      const w = 'So11111111111111111111111111111111111111112';
-      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
-    } catch {
-      solPx = 0;
-    }
+    const solPx = await this.solPriceBestEffort();
     const positions = orders
       .filter((o) => !o.closedAt && o.status === 'CONFIRMED')
       .map((o) => {
         const entry = num(o.entryPriceUsd);
         const live = o.tokenMint && typeof px[o.tokenMint as string] === 'number' ? (px[o.tokenMint as string] as number) : null;
-        const qty = entry > 0 ? num(o.amountUsd) / entry : 0;
-        const unreal = live !== null && entry > 0 ? r9(qty * live - num(o.amountUsd)) : null;
+        const remaining = remainingNotionalUsd(o);
+        const qty = entry > 0 ? remaining / entry : 0;
+        const unreal = live !== null && entry > 0 ? r9((qty * live - remaining) * (o.action === 'SELL' ? -1 : 1)) : null;
         return {
           token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
           trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
-          sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
-          notionalUsd: num(o.amountUsd),
-          unrealizedPct: unreal !== null && num(o.amountUsd) > 0 ? r9((unreal / num(o.amountUsd)) * 100) : null,
+          sizeSol: solPx > 0 ? r9(remaining / solPx) : null,
+          notionalUsd: remaining,
+          unrealizedPct: unreal !== null && remaining > 0 ? r9((unreal / remaining) * 100) : null,
           stage: o.closeReason ?? 'OPEN',
           entryPriceUsd: entry > 0 ? entry : null,
           livePriceUsd: live,
@@ -695,7 +703,7 @@ export class VaultService {
     if (!base) fail(`Vault ${vaultId} not found.`);
     const [epochs, orders] = await Promise.all([
       this.prisma.epochCheckpoint.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
-      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100 }),
+      this.prisma.copyOrder.findMany({ where: { vaultId }, orderBy: { id: 'desc' }, take: 100, include: { legs: true } }),
     ]);
     const nav = lastNav(epochs);
     const { positions } = await this.poolPositions(vaultId);
@@ -740,16 +748,10 @@ export class VaultService {
     const exp = new Map<string, number>();
     for (const o of orders.filter((o) => !o.closedAt && o.status === 'CONFIRMED')) {
       const k = (o.masterWallet as string) ?? '—';
-      exp.set(k, (exp.get(k) ?? 0) + num(o.amountUsd));
+      exp.set(k, (exp.get(k) ?? 0) + remainingNotionalUsd(o));
     }
     // USD→SOL approx via wSOL price for %NAV exposure.
-    let solPx = 0;
-    try {
-      const w = 'So11111111111111111111111111111111111111112';
-      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
-    } catch {
-      solPx = 0;
-    }
+    const solPx = await this.solPriceBestEffort();
     const exposure = [...exp.entries()].map(([trader, usd]) => ({
       trader,
       pctNav: nav > 0 && solPx > 0 ? r9(((usd / solPx) / nav) * 100) : 0,
@@ -785,13 +787,7 @@ export class VaultService {
    */
   async portfolioOverview(user: { id: number; wallet: string }): Promise<Record<string, unknown>> {
     const vaults = await this.prisma.vault.findMany({ orderBy: { id: 'asc' } });
-    let solPx = 0;
-    try {
-      const w = 'So11111111111111111111111111111111111111112';
-      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
-    } catch {
-      solPx = 0;
-    }
+    const solPx = await this.solPriceBestEffort();
     const poolsOut: Record<string, unknown>[] = [];
     let totalValue = 0;
     let totalDeposited = 0;
@@ -881,14 +877,7 @@ export class VaultService {
     const now = Date.now();
     const dayAgo = now - 86400000;
     const weekAgo = now - 7 * 86400000;
-    const navAt = (ts: number): number | null => {
-      const past = epochs.filter((e) => new Date(e.createdAt as unknown as string).getTime() <= ts);
-      return past.length > 0 ? num(past[past.length - 1].navSol) : null;
-    };
-    const dayBase = navAt(dayAgo) ?? nav;
-    const weekBase = navAt(weekAgo) ?? nav;
-    const dayPct = dayBase > 0 ? r9(((nav - dayBase) / dayBase) * 100) : 0;
-    const weekPct = weekBase > 0 ? r9(((nav - weekBase) / weekBase) * 100) : 0;
+    const { dayPct, weekPct } = vaultLoss(epochs);
     const open = orders.filter((o) => !o.closedAt && o.status === 'CONFIRMED');
     const mints = [...new Set(open.filter((o) => o.tokenMint).map((o) => o.tokenMint as string))];
     let px: Record<string, number> = {};
@@ -902,13 +891,14 @@ export class VaultService {
     for (const o of open) {
       const live = o.tokenMint ? (px[o.tokenMint as string] as number | undefined) : undefined;
       const entry = num(o.entryPriceUsd);
+      const remaining = remainingNotionalUsd(o);
       if (typeof live === 'number' && live > 0 && entry > 0 && solPx > 0) {
-        const qty = num(o.amountUsd) / entry;
-        const unrealUsd = qty * live - num(o.amountUsd);
+        const qty = remaining / entry;
+        const unrealUsd = qty * live - remaining;
         unrealSol = r9(unrealSol + unrealUsd / solPx);
-        deployedUsd += num(o.amountUsd);
+        deployedUsd += remaining;
       } else if (solPx > 0) {
-        deployedUsd += num(o.amountUsd);
+        deployedUsd += remaining;
       }
     }
     const deployedPctNav = nav > 0 && solPx > 0 ? r9((deployedUsd / solPx / nav) * 100) : 0;
@@ -936,11 +926,12 @@ export class VaultService {
       const entry = num(o.entryPriceUsd);
       const live = o.tokenMint ? ((px[o.tokenMint as string] as number | undefined) ?? null) : null;
       const movePct = entry > 0 && typeof live === 'number' ? r9(((live - entry) / entry) * 100) : null;
+      const remaining = remainingNotionalUsd(o);
       return {
         token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
         trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
         entry, live, movePct,
-        sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
+        sizeSol: solPx > 0 ? r9(remaining / solPx) : null,
         createdAt: new Date(o.createdAt as unknown as string).toISOString(),
         tp1Pct: r9(tp1), tp1Hit: legs.includes('TP1'),
         tp2Pct: r9(tp2), tp2Hit: legs.includes('TP2'),
@@ -1018,7 +1009,7 @@ export class VaultService {
     const { id } = await this.resolveVault(vaultId);
     const [orders, epochs, deposits, withdrawals] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (this.prisma as any).copyOrder.findMany({ where: { vaultId: id }, orderBy: { id: 'desc' }, take: 200 }),
+      (this.prisma as any).copyOrder.findMany({ where: { vaultId: id, status: 'CONFIRMED' }, orderBy: { id: 'desc' }, include: { legs: true } }),
       this.prisma.epochCheckpoint.findMany({ where: { vaultId: id }, orderBy: { id: 'asc' } }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.prisma as any).deposit.findMany({ where: { vaultId: id, status: 'SETTLED' } }),
@@ -1028,13 +1019,7 @@ export class VaultService {
     const last = epochs[epochs.length - 1];
     const nav = last ? num(last.navSol) : 0;
     const shares = last ? num(last.sharePrice) : 1;
-    let solPx = 0;
-    try {
-      const w = 'So11111111111111111111111111111111111111112';
-      solPx = this.prices ? ((await this.prices.bulkPrices([w]))[w] ?? 0) : 0;
-    } catch {
-      solPx = 0;
-    }
+    const solPx = await this.solPriceBestEffort();
     const mints = [
       ...new Set(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1052,9 +1037,10 @@ export class VaultService {
       const amountUsd = num(o.amountUsd);
       const entry = num(o.entryPriceUsd);
       const live = o.tokenMint && typeof px[o.tokenMint as string] === 'number' ? (px[o.tokenMint as string] as number) : null;
-      const qty = entry > 0 ? amountUsd / entry : 0;
-      const liveUsd = live !== null && entry > 0 ? r9(qty * live) : null;
-      const realized = o.closedAt ? num(o.realizedPnlUsd) : 0;
+      const remainingUsd = remainingNotionalUsd(o);
+      const qty = entry > 0 ? remainingUsd / entry : 0;
+      const liveUsd = live !== null && entry > 0 ? r9(remainingUsd + (qty * live - remainingUsd) * (o.action === 'SELL' ? -1 : 1)) : null;
+      const realized = realizedPnlUsd(o);
       return {
         id: o.id,
         open: !o.closedAt,
@@ -1062,6 +1048,7 @@ export class VaultService {
         trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
         status: o.status,
         amountUsd: r9(amountUsd),
+        remainingUsd: r9(remainingUsd),
         allocatedSol: solPx > 0 ? r9(amountUsd / solPx) : null,
         liveValueUsd: liveUsd,
         liveValueSol: liveUsd !== null && solPx > 0 ? r9(liveUsd / solPx) : null,
@@ -1073,15 +1060,15 @@ export class VaultService {
       };
     });
     const openRows = rows.filter((r) => (r as { open: boolean }).open);
-    const openAllocatedUsd = r9(openRows.reduce((s, r) => s + (r as { amountUsd: number }).amountUsd, 0));
+    const openAllocatedUsd = r9(openRows.reduce((s, r) => s + (r as { remainingUsd: number }).remainingUsd, 0));
     const unrealizedUsd = r9(
       openRows.reduce((s, r) => {
-        const rr = r as { liveValueUsd: number | null; amountUsd: number };
-        return s + (rr.liveValueUsd !== null ? rr.liveValueUsd - rr.amountUsd : 0);
+        const rr = r as { liveValueUsd: number | null; remainingUsd: number };
+        return s + (rr.liveValueUsd !== null ? rr.liveValueUsd - rr.remainingUsd : 0);
       }, 0),
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const realizedUsd = r9((orders as any[]).reduce((s, o) => s + (o.closedAt ? num(o.realizedPnlUsd) : 0), 0));
+    const realizedUsd = r9(rows.reduce((sum, row) => sum + row.realizedUsd, 0));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settledDepositsSol = r9((deposits as any[]).reduce((s: number, d: any) => s + num(d.amountSol), 0));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

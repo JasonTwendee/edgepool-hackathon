@@ -86,6 +86,7 @@ function makeFake() {
       },
       count: async ({ where }: { where: Row }) => db.withdrawal.filter((r) => match(r, where)).length,
     },
+    copyOrder: { findMany: async () => [] },
     epochCheckpoint: {
       create: async ({ data }: { data: Row }) => {
         const r = { id: nid(), ...data, createdAt: new Date() };

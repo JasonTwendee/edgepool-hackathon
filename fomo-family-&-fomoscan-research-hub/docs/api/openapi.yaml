@@ -2017,7 +2017,7 @@ components:
         masterTxHash: { type: string }
         symbol: { type: string }
         action: { type: string }
-        amountUsd: { type: number }
+        amountUsd: { type: number, description: Source trade USD; paper execution scales down and records the actual copied allocation }
         venue: { type: string }
         masterWallet: { type: string }
         masterHandle: { type: string }
@@ -2113,7 +2113,7 @@ components:
       required: []
       properties:
         vaultId: { type: integer }
-        navSol: { type: number, description: Omitted = NAV engine mark-to-market (ADMIN manual override is audited) }
+        navSol: { type: number, description: Omitted = automatic NAV with cumulative PnL baseline and queued deposits; missing prices or ambiguous historical baseline refuse settlement. Explicit NAV is an audited ADMIN override including queued deposits }
         reason: { type: string, description: Audit reason for manual settle }
     VaultSettleResult:
       type: object
@@ -2177,7 +2177,7 @@ components:
       required: [id, wallet, role, createdAt]
       properties:
         id: { type: integer }
-        wallet: { type: string, description: Base58 wallet OR cred:<username> for account login }
+        wallet: { type: string, description: 'Base58 wallet OR cred:<username> for account login' }
         username: { type: string, nullable: true, description: Credential username (null for wallet-only users) }
         email: { type: string, nullable: true }
         role: { type: string, enum: [USER, KOL, ADMIN] }

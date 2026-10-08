@@ -142,11 +142,11 @@ async function main(): Promise<void> {
   const db3 = {
     vault: [{ id: 9, name: 'nav', kind: 'basket', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, environment: 'SANDBOX', createdAt: new Date(now - 30 * 86400000) }],
     orders: [
-      { id: 1, vaultId: 9, action: 'BUY', tokenMint: 'M1', amountUsd: 5, entryPriceUsd: 1, closedAt: null },
-      { id: 2, vaultId: 9, action: 'BUY', tokenMint: 'M1', amountUsd: 4, entryPriceUsd: 1, realizedPnlUsd: 2, closedAt: new Date(now - 86400000) },
+      { id: 1, vaultId: 9, status: 'CONFIRMED', action: 'BUY', tokenMint: 'M1', amountUsd: 5, entryPriceUsd: 1, closedAt: null },
+      { id: 2, vaultId: 9, status: 'CONFIRMED', action: 'BUY', tokenMint: 'M1', amountUsd: 4, entryPriceUsd: 1, realizedPnlUsd: 2, closedAt: new Date(now - 86400000) },
       { id: 3, vaultId: 99, action: 'BUY', tokenMint: 'M1', amountUsd: 100, entryPriceUsd: 1, closedAt: null },
     ],
-    epochs3: [{ id: 1, vaultId: 9, navSol: 10, sharePrice: 1, createdAt: new Date(now - 9 * 86400000) }],
+    epochs3: [{ id: 1, vaultId: 9, navSol: 10, pnlSol: 0, sharePrice: 1, createdAt: new Date(now - 9 * 86400000) }],
   };
   const match3 = (r: Row, w: Row): boolean =>
     Object.entries(w).every(([k, v]) => {
@@ -155,6 +155,7 @@ async function main(): Promise<void> {
       return r[k] === v;
     });
   const prisma3 = {
+    deposit: { findMany: async () => [] },
     vault: {
       findUnique: async ({ where }: { where: Row }) => db3.vault.find((r) => match3(r, where)) ?? null,
     },
@@ -165,11 +166,11 @@ async function main(): Promise<void> {
       findMany: async ({ where }: { where: Row }) => db3.orders.filter((r) => match3(r, where)),
     },
   } as never;
-  const navSvc = new VaultService(prisma3, { bulkPrices: async () => ({ M1: 2 }) } as never);
-  assert.equal(await navSvc.computeNav(9), 17);
-  // No prices provider → unrealized skipped, base + realized only.
+  const navSvc = new VaultService(prisma3, { bulkPrices: async () => ({ M1: 2, So11111111111111111111111111111111111111112: 100 }) } as never);
+  assert.equal(await navSvc.computeNav(9), 10.07);
+  // Missing prices must refuse NAV instead of silently skipping positions.
   const navSvc2 = new VaultService(prisma3);
-  assert.equal(await navSvc2.computeNav(9), 12);
+  await assert.rejects(() => navSvc2.computeNav(9), /Prices unavailable/);
 
   // 4. Deposit gates: min 0.5 SOL + slots (full blocks newcomers only).
   const gateDb: { vault: Row[]; deposits: Row[] } = {
@@ -223,7 +224,7 @@ async function main(): Promise<void> {
     copyOrderLeg: { findMany: async () => [{ orderId: 1, leg: 'TP1' }] },
   } as never;
   // minimal pools() stub path: reuse real pools() via tiny vault row
-  const dSvc = new VaultService(dFake, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const dSvc = new VaultService(dFake, { bulkPrices: async () => ({ M1: 2, So11111111111111111111111111111111111111112: 100 }) } as never);
   // resolveVault(1) fails (no vault) — point at vault id through stub:
   const dFake2 = {
     ...(dFake as unknown as Record<string, unknown>),
@@ -232,7 +233,7 @@ async function main(): Promise<void> {
       findUnique: async () => ({ id: 9, name: 'd', kind: 'basket', status: 'live', listing: 'public', feeBps: 0, hwmSharePrice: 1, totalShares: 10, maxSlots: 100, maxTraders: 5, environment: 'SANDBOX', createdAt: new Date(now - 30 * 86400000) }),
     },
   } as never;
-  const dSvc2 = new VaultService(dFake2, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const dSvc2 = new VaultService(dFake2, { bulkPrices: async () => ({ M1: 2, So11111111111111111111111111111111111111112: 100 }) } as never);
   const det = (await dSvc2.poolDetail(9)) as Row;
   assert.equal((det.openPositions as Row[]).length, 1);
   assert.equal((((det.openPositions as Row[])[0] as Row).unrealizedPct as number), 100); // 10→20 on $10
@@ -259,7 +260,7 @@ async function main(): Promise<void> {
           : [],
     },
   } as never;
-  const dSvc3 = new VaultService(dFake3, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const dSvc3 = new VaultService(dFake3, { bulkPrices: async () => ({ M1: 2, So11111111111111111111111111111111111111112: 100 }) } as never);
   const det3 = (await dSvc3.poolDetail(9, { id: 7, wallet: 'alice' })) as Row;
   assert.equal(det3.masked, false);
   assert.equal((((det3.openPositions as Row[])[0] as Row).token as string), 'T1');

@@ -144,3 +144,40 @@ Xem `DATA_FLOW.md`. Tóm tắt: poll → `lastSignatures` → `OnChainTransactio
   force-close TIME → deposit2 + settle → withdraw QUEUED pending + notification;
   performance theo bot; reset xóa business rows (giữ audit). Manual-only.
 - Cả hai paper-only (qua `executePaper`, devnet-check bên trong); 1-click cũ giữ nguyên.
+
+
+## Paper sizing and epoch NAV
+
+- Paper order `amountUsd` records the copied allocation, not the source trade.
+  Budget remains `min(source USD, 1% NAV, 0.1 SOL, max USD)`, sliced by trader
+  weight and floored to cents. The 2% mint gate uses remaining principal after
+  filled legs plus the new allocation. Quote input uses that allocation in
+  lamports and targets `tokenMint` (USDC fallback when omitted). Quotes and the
+  devnet self-transfer proof still do not execute real swaps.
+- Cumulative paper PnL is realized leg PnL plus unrealized PnL on remaining
+  principal. USD PnL is converted with the current wSOL/USD mark; this is a
+  paper accounting convention, not reconciliation to actual wallet balances
+  or historical swap fees/fills.
+- `vault_epochs.pnl_sol` records the cumulative PnL already included in NAV.
+  Automatic pre-settle NAV = last post-settle NAV + queued deposits + current
+  cumulative PnL SOL minus the previous PnL baseline. Missing SOL/token prices
+  or entry prices refuse settlement instead of silently omitting positions.
+- Settlement reads the latest checkpoint and queue under the per-vault
+  Postgres advisory transaction lock. Post-settle NAV subtracts performance
+  fees and gross redeemed share value; withdrawal fees are booked separately
+  in treasury. Loss gates use share-price returns when available, excluding
+  deposit/withdraw cash flows; historical records without share prices retain
+  the NAV fallback.
+- Apply the additive migration `20261008000000_epoch_pnl_baseline` and regenerate
+  Prisma before using this code. Historical epochs have a NULL baseline.
+  If confirmed orders already existed at their checkpoint, automatic settlement
+  refuses until an ADMIN reviews balances and submits an explicit `navSol`.
+  That override must include queued deposits and exclude previously redeemed
+  capital; it establishes the baseline while executing queued settlement.
+  No automatic migration or rewrite of historical balances is performed.
+- Regression evidence: [paper position asserts](../../backend/src/common/accounting/assert-paper-position.ts)
+  and [isolated Postgres verification](../../backend/src/modules/vaults/verify-accounting-postgres.ts).
+  Run the latter from `backend/` with `POSTGRES_HOST=localhost`,
+  `POSTGRES_PORT=55433`, and test credentials/database via `POSTGRES_*`, then
+  `npx --no-install tsx src/modules/vaults/verify-accounting-postgres.ts`.
+  The script refuses non-local databases and names without `_test` suffix.

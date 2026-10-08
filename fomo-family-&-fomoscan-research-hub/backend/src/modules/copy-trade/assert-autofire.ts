@@ -76,7 +76,7 @@ function makeWorld(cfg: {
     transaction: { findMany: async () => [...cfg.signals] },
     vaultTrader: {
     findMany: async ({ where }: { where: { vaultId: { in: number[] }; isActive: boolean } }) =>
-      cfg.traders.filter((t) => where.vaultId.in.includes(t.vaultId as number) && t.isActive === where.isActive),
+      cfg.traders.filter((t) => (typeof where.vaultId === 'number' ? t.vaultId === where.vaultId : where.vaultId.in.includes(t.vaultId as number)) && t.isActive === where.isActive),
     },
     trackedWallet: { findMany: async () => [...cfg.wallets] },
     vault: {
@@ -112,9 +112,10 @@ function makeWorld(cfg: {
       findMany: async () => [...audits],
     },
   } as never;
+  const quotes: Row[] = [];
   const stubExecutor = {
     assertDevnet: async () => undefined,
-    fetchQuote: async () => ({ outAmount: '119344', otherAmountThreshold: '118748' }),
+    fetchQuote: async (params: Row) => { quotes.push(params); return { outAmount: '119344', otherAmountThreshold: '118748' }; },
     loadVaultKeypair: () => Keypair.generate(),
     executeProof: async () => ({ signature: 'z'.padEnd(88, '9'), slot: 7 }),
   } as never;
@@ -123,12 +124,12 @@ function makeWorld(cfg: {
     prisma,
     stubExecutor,
     { qualify: async () => ({ pass: true, reasons: [], verdict: {} }) } as never,
-    { bulkPrices: async (mints: string[]) => (cfg.wsolPx && mints.includes(WSOL) ? { [WSOL]: cfg.wsolPx } : {}), tokenDetails: async () => null, candles: async () => cfg.candles ?? [] } as never,
+    { bulkPrices: async (mints: string[]) => (mints.includes(WSOL) ? { [WSOL]: cfg.wsolPx ?? 100 } : {}), tokenDetails: async () => null, candles: async () => cfg.candles ?? [] } as never,
     { status: async () => ({ lastEpoch: cfg.lastEpoch ?? null }) } as never,
   );
   const engine = new AutoFireService(prisma, copy, new AuditService(prisma));
   engine.overrides = { paperEnabled: true, maxUsd: 100, executor: stubExecutor, connection: {} as never };
-  return { engine, copy, orders, audits, creates: () => creates };
+  return { engine, copy, orders, audits, quotes, creates: () => creates };
 }
 
 const SIG = {
@@ -316,6 +317,35 @@ async function main(): Promise<void> {
       /Kill-switch/,
     );
     assert.equal(w.creates(), 0);
+  }
+
+  // Small pools size the copied allocation, not the source-wallet trade.
+  {
+    const traders = Array.from({ length: 5 }, (_, i) => ({ ...TRADER, wallet: i ? `W${i}` : SIG.walletAddress, weightBps: 2000 }));
+    const w = makeWorld({ bots: [BOT], signals: [{ ...SIG, amountUsd: dec(1000) }], traders, wallets: [], lastEpoch: { navSol: 1 }, wsolPx: 100 });
+    const result = await w.engine.tick();
+    assert.equal(result.fired, 1);
+    const order = w.orders.find((o) => o.id === result.orderIds[0])!;
+    assert.equal(order.amountUsd, 0.2);
+    assert.equal(w.quotes[0].amount, '2000000');
+    assert.equal(w.quotes[0].outputMint, SIG.tokenMint);
+    // A second allocation exactly reaching the 2% mint cap is allowed.
+    const boundary = makeWorld({ bots: [BOT], signals: [SIG], traders, wallets: [], lastEpoch: { navSol: 1 }, wsolPx: 100,
+      existingOrders: [{ id: 500, vaultId: 1, status: 'CONFIRMED', closedAt: null, symbol: '$OTHER', tokenMint: SIG.tokenMint, amountUsd: 1.8 }] });
+    assert.equal((await boundary.engine.tick()).fired, 1);
+    const over = makeWorld({ bots: [BOT], signals: [SIG], traders, wallets: [], lastEpoch: { navSol: 1 }, wsolPx: 100,
+      existingOrders: [{ id: 500, vaultId: 1, status: 'CONFIRMED', closedAt: null, symbol: '$OTHER', tokenMint: SIG.tokenMint, amountUsd: 1.81 }] });
+    assert.equal((await over.engine.tick()).blocked, 1);
+    const partial = makeWorld({ bots: [BOT], signals: [SIG], traders, wallets: [], lastEpoch: { navSol: 1 }, wsolPx: 100,
+      existingOrders: [{ id: 501, vaultId: 1, status: 'CONFIRMED', closedAt: null, symbol: '$OTHER', tokenMint: SIG.tokenMint, amountUsd: 3.6, legs: [{ fraction: 0.5 }] }] });
+    assert.equal((await partial.engine.tick()).fired, 1);
+    const dust = makeWorld({ bots: [BOT], signals: [SIG], traders, wallets: [], lastEpoch: { navSol: 0.001 }, wsolPx: 100 });
+    assert.equal((await dust.engine.tick()).fired, 0);
+    assert.equal(dust.creates(), 0);
+    const unpriced = makeWorld({ bots: [BOT], signals: [SIG], traders, wallets: [], lastEpoch: { navSol: 1 }, wsolPx: Number.NaN });
+    assert.equal((await unpriced.engine.tick()).fired, 0);
+    assert.equal(unpriced.quotes.length, 0);
+
   }
 
   console.log('autofire asserts: ALL GREEN');
