@@ -727,3 +727,36 @@ export function runDemoScenario(token: string): Promise<{ success: boolean; data
 export function resetDemo(token: string): Promise<{ success: boolean; data: unknown }> {
   return fetchJsonAuth('/api/demo/reset', token, { method: 'POST' });
 }
+
+export interface DemoSeedResult {
+  vaultId: number;
+  botId: number;
+  traders: string[];
+  depositSol: number;
+  sharePrice: number;
+  environment: 'sandbox';
+}
+
+/** Seed one demo pool (ADMIN). Used by the pool-detail demo console. */
+export function seedDemo(token: string, opts: { name?: string; depositSol?: number; traderCount?: number }): Promise<{ success: boolean; data: DemoSeedResult }> {
+  return fetchJsonAuth('/api/demo/seed', token, { method: 'POST', body: JSON.stringify(opts) });
+}
+
+export interface DemoReplayResult {
+  vaultId: number;
+  botId: number;
+  signals: number;
+  fired: number;
+  failed: number;
+  orderIds: number[];
+  forceClosed: number;
+  deposit2: number;
+  settleNavSol: number;
+  withdrawal: { id: number; status: string; pending: boolean; message: string } | null;
+  environment: 'sandbox';
+}
+
+/** Replay real BUYs into one demo pool (ADMIN). */
+export function replayDemo(token: string, opts: { vaultId?: number; botId?: number; days?: number; limit?: number }): Promise<{ success: boolean; data: DemoReplayResult }> {
+  return fetchJsonAuth('/api/demo/replay', token, { method: 'POST', body: JSON.stringify(opts) });
+}

@@ -291,7 +291,7 @@
   "stackProfile": "generic+dual-stack-override",
   "surfaces": {
     "poolIndex": "frontend/app/page.tsx (pool cards: NAV, PnL Day/Week/Month/All, slots, traders)",
-    "poolDetail": "frontend/app/pools/[id]/page.tsx (Calm default + ?view=advanced: KPIs, risk bars, ladder, exposure)",
+    "poolDetail": "frontend/app/pools/[id]/page.tsx (Calm default + ?view=advanced: KPIs, risk bars, ladder, exposure; ADMIN-only demo console inline)",
     "siteChrome": "frontend/components/SiteHeader.tsx (64px header + wallet button + mobile tab bar + footer)",
     "toaster": "frontend/components/Toaster.tsx (bottom-center 2.8s toasts)",
     "portfolio": "frontend/app/portfolio/page.tsx (totals, Value/PnL chart, my pools, exposures, pending, history)",

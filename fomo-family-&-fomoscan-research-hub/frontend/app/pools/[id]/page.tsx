@@ -5,12 +5,20 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, LockSimple, PauseCircle, UsersThree, XLogo } from '@phosphor-icons/react';
 import {
+  getAuthMe,
   getPoolDetail,
+  listBots,
   queueVaultDeposit,
   depositChallenge,
+  replayDemo,
+  resetDemo,
+  seedDemo,
+  vaultOrders,
   type PoolDetail,
+  type VaultOrderJourney,
 } from '../../../lib/api';
 import { getStoredToken } from '../../../lib/api';
+import { JourneyRail } from '../../../components/JourneyRail';
 import { connectBrowserWallet, getInjectedProvider, signWithBrowserWallet } from '../../../lib/solana';
 import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
 import { Toaster, toast } from '../../../components/Toaster';
@@ -47,6 +55,13 @@ export default function PoolDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
+  // Admin demo console (ADMIN role only; never rendered for the public).
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [demoBusy, setDemoBusy] = useState(false);
+  const [demoMsg, setDemoMsg] = useState<string | null>(null);
+  const [demoReplay, setDemoReplay] = useState<{ signals: number; fired: number; failed: number; forceClosed: number; settleNavSol: number } | null>(null);
+  const [spawnedId, setSpawnedId] = useState<number | null>(null);
+  const [journeys, setJourneys] = useState<VaultOrderJourney[]>([]);
 
   const refresh = useCallback(async () => {
     if (!Number.isFinite(id)) return;
@@ -61,8 +76,14 @@ export default function PoolDetailPage() {
   useEffect(() => {
     void refresh();
     setHasWallet(getInjectedProvider() !== null);
-    const t = setInterval(() => void refresh(), 180000);
-    return () => clearInterval(t);
+    const t = getStoredToken();
+    if (t) {
+      void getAuthMe(t)
+        .then((r) => setIsAdmin(r.data.role === 'ADMIN'))
+        .catch(() => setIsAdmin(false));
+    }
+    const timer = setInterval(() => void refresh(), 180000);
+    return () => clearInterval(timer);
   }, [refresh]);
 
   async function deposit() {
@@ -108,6 +129,72 @@ export default function PoolDetailPage() {
       setMsg((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadJourneys(vaultId: number) {
+    const token = getStoredToken();
+    if (!token) return;
+    try {
+      const r = await vaultOrders(token, vaultId);
+      setJourneys(r.data);
+    } catch (e) {
+      setDemoMsg((e as Error).message);
+    }
+  }
+
+  async function spawnDemo() {
+    const token = getStoredToken();
+    if (!token || !pool || demoBusy) return;
+    setDemoBusy(true);
+    setDemoMsg(null);
+    try {
+      const r = await seedDemo(token, { name: `pool-${pool.id}`, depositSol: 10, traderCount: 3 });
+      setSpawnedId(r.data.vaultId);
+      setDemoMsg(`Demo pool #${r.data.vaultId} seeded — open it to run the replay.`);
+    } catch (e) {
+      setDemoMsg((e as Error).message);
+    } finally {
+      setDemoBusy(false);
+    }
+  }
+
+  async function replayHere() {
+    const token = getStoredToken();
+    if (!token || !pool || demoBusy) return;
+    setDemoBusy(true);
+    setDemoMsg(null);
+    try {
+      const bots = await listBots();
+      const bot = bots.data.filter((b) => b.vaultId === pool.id).sort((a, b) => b.id - a.id)[0];
+      if (!bot) throw new Error('This demo pool has no bot — reset and re-seed it from /terminal.');
+      const r = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 10 });
+      setDemoReplay({ signals: r.data.signals, fired: r.data.fired, failed: r.data.failed, forceClosed: r.data.forceClosed, settleNavSol: r.data.settleNavSol });
+      setDemoMsg(`Replayed ${r.data.signals} real signals → ${r.data.fired} entered · NAV ${r.data.settleNavSol}.`);
+      await refresh();
+      await loadJourneys(pool.id);
+    } catch (e) {
+      setDemoMsg((e as Error).message);
+    } finally {
+      setDemoBusy(false);
+    }
+  }
+
+  async function resetDemos() {
+    const token = getStoredToken();
+    if (!token || demoBusy) return;
+    setDemoBusy(true);
+    try {
+      await resetDemo(token);
+      setJourneys([]);
+      setDemoReplay(null);
+      setSpawnedId(null);
+      setDemoMsg('Demo pools deleted (audit kept).');
+      await refresh();
+    } catch (e) {
+      setDemoMsg((e as Error).message);
+    } finally {
+      setDemoBusy(false);
     }
   }
 
@@ -516,6 +603,68 @@ export default function PoolDetailPage() {
           </section>
         </div>
       </div>
+      )}
+      {isAdmin && (
+        <section className="flex flex-col mt-7" style={{ padding: '18px 20px', borderRadius: 14, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)', gap: 12 }}>
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+              Demo console · admin only
+            </span>
+            {pool.name.startsWith('demo-') && (
+              <button onClick={() => void loadJourneys(pool.id)} disabled={demoBusy} className="font-medium text-xs disabled:opacity-50"
+                style={{ height: 30, padding: '0 12px', borderRadius: 8, border: '1px solid #3F424D', color: '#CFD3E5' }}>
+                Refresh journeys
+              </button>
+            )}
+          </div>
+          {pool.name.startsWith('demo-') ? (
+            <>
+              <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                Replay real ledger BUYs into this demo pool, then watch each signal travel Detect → Qualify → Enter → Manage → Exit below.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button onClick={() => void replayHere()} disabled={demoBusy}
+                  className="font-bold text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+                  {demoBusy ? 'Running…' : 'Run demo replay'}
+                </button>
+                <button onClick={() => void resetDemos()} disabled={demoBusy}
+                  className="font-medium text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, border: '1px solid #3F424D', color: '#CFD3E5' }}>
+                  Reset demo pools
+                </button>
+              </div>
+              {demoReplay && (
+                <div className="text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                  signals {demoReplay.signals} · fired {demoReplay.fired} · failed {demoReplay.failed} · closed {demoReplay.forceClosed} · NAV {demoReplay.settleNavSol}
+                </div>
+              )}
+              {journeys.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {journeys.slice(0, 10).map((j) => (
+                    <JourneyRail key={j.id} j={j} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                Demo runs never write into live pools. Spawn an unlisted demo pool to run the replay there.
+              </p>
+              <div className="flex gap-2 flex-wrap items-center">
+                <button onClick={() => void spawnDemo()} disabled={demoBusy}
+                  className="font-bold text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+                  {demoBusy ? 'Seeding…' : 'Spawn demo pool'}
+                </button>
+                {spawnedId !== null && (
+                  <Link href={`/pools/${spawnedId}`} className="font-medium text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
+                    Open demo pool #{spawnedId} →
+                  </Link>
+                )}
+              </div>
+            </>
+          )}
+          {demoMsg && <p className="text-[11px] font-mono break-all" style={{ color: 'var(--ep-muted, #9397AB)' }}>{demoMsg}</p>}
+        </section>
       )}
       <SiteFooter />
     </div>
