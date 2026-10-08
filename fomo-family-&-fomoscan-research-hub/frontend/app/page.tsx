@@ -140,13 +140,11 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       </div>
       <Link
         href={`/pools/${pool.id}`}
-        className={`flex items-center justify-center gap-2 font-medium px-4${!full && !featured ? ' pool-cta-partner' : ''}`}
+        className={`flex items-center justify-center gap-2 font-medium px-4${!full ? ' pool-cta-partner' : ''}`}
         style={
           full
             ? { height: 46, fontSize: 15, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)', borderRadius: 10 }
-            : featured
-              ? { height: 46, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', borderRadius: 10 }
-              : { height: 46, fontSize: 15, borderRadius: 10 }
+            : { height: 46, fontSize: 15, borderRadius: 10 }
         }
       >
         {full ? 'Full · view pool' : 'Open pool'} <ArrowRight size={15} weight="bold" />
