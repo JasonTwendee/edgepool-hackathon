@@ -259,7 +259,7 @@ export interface PortfolioOverview {
   totalDepositedSol: number;
   totalWithdrawnSol: number;
   returnsSol: number;
-  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; openCount: number; flat: boolean; queued: number }[];
+  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; sharePrice: number; avgEntrySol: number; sharePricePct: number; openCount: number; flat: boolean; queued: number }[];
   exposures: { poolId: number; poolName: string; token: string; trader: string; unrealizedPct: number | null; mySizeSol: number }[];
   pending: { id: number; poolId: number; poolName: string; shares: number; createdAt: string; nextCheckpointAt: string | null }[];
   history: { date: string; type: string; poolId: number; poolName: string; tx: string; amountSol: number; sharesDelta: number; status: string }[];
@@ -314,6 +314,27 @@ export function partnerClaim(token: string): Promise<{ success: boolean; data: {
 
 export function partnerPoolTraders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: { wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[] }> {
   return fetchJsonAuth(`/api/partner/pools/${poolId}/traders`, token);
+}
+
+export interface VaultOrderJourney {
+  id: number;
+  token: string;
+  trader: string;
+  status: string;
+  error: string | null;
+  masterTxHash: string | null;
+  createdAt: string;
+  qualify: { pass: boolean; score: number | null; reasons: string[] } | null;
+  entry: { priceUsd: number | null; amountUsd: number; tp1Pct: number | null; stopPct: number | null; trailPct: number | null; entryMode: string | null; venue: string | null; sizedCopyUsd: number | null };
+  legs: { leg: string; fraction: number; exitPriceUsd: number | null; realizedPnlUsd: number | null; closedAt: string | null }[];
+  closeReason: string | null;
+  exitPriceUsd: number | null;
+  realizedPnlUsd: number | null;
+  closedAt: string | null;
+}
+
+export function vaultOrders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: VaultOrderJourney[] }> {
+  return fetchJsonAuth(`/api/vaults/${poolId}/orders`, token);
 }
 
 export function partnerUpdateSettings(token: string, poolId: number, patch: Record<string, unknown>): Promise<{ success: boolean; data: unknown }> {

@@ -130,6 +130,15 @@ export class VaultsController {
     return { success: true, data };
   }
 
+  @Get(':id/orders')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async orders(@Param('id') id: string): Promise<{ success: boolean; total: number; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const data = (await this.vaults.ordersJourney(Number.isFinite(parsed) ? parsed : -1)) as unknown[];
+    return { success: true, total: data.length, data };
+  }
+
   @Get(':id/earnings')
   async earnings(
     @Param('id') id: string,

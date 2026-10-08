@@ -290,7 +290,7 @@ export class DemoService {
     if (orderIds.length === 0) return 0;
     const open = await this.prisma.copyOrder.findMany({
       where: { id: { in: orderIds }, closedAt: null },
-      select: { id: true, amountUsd: true, entryPriceUsd: true, tokenMint: true },
+      select: { id: true, vaultId: true, symbol: true, tokenMint: true, masterHandle: true, masterWallet: true, amountUsd: true, entryPriceUsd: true },
     });
     if (open.length === 0) return 0;
     const mints = [...new Set(open.map((o) => o.tokenMint).filter((m): m is string => !!m))];
@@ -315,6 +315,21 @@ export class DemoService {
         data: { exitPriceUsd: exit, closeReason: done > 0 ? 'TP1_HIT' : 'TIME_STOP', closedAt: new Date(), realizedPnlUsd: total },
       });
       closed++;
+      // Terminal stream: force-closes were silent — emit the EXIT leg like
+      // manage.tick does so the demo narrative shows the full journey.
+      try {
+        if (o.vaultId) {
+          emitSignal({
+            vaultId: o.vaultId as number,
+            kind: 'EXIT',
+            token: o.symbol ?? (o.tokenMint ?? '').slice(0, 8),
+            trader: o.masterHandle ?? (o.masterWallet ?? '').slice(0, 8),
+            note: `TIME ${(remaining * 100).toFixed(0)}% scratch (${realized >= 0 ? '+' : ''}$${realized})`,
+          });
+        }
+      } catch {
+        // stream-only; persist already succeeded above
+      }
     }
     return closed;
   }

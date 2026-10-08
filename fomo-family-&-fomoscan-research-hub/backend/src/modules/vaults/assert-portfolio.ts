@@ -78,6 +78,9 @@ async function main(): Promise<void> {
   assert.equal(ov.totalDepositedSol, 10);
   assert.equal(((ov.pools as Row[]).length), 1);
   assert.equal((((ov.pools as Row[])[0] as Row).openCount as number), 1);
+  assert.equal((((ov.pools as Row[])[0] as Row).sharePrice as number), 1.2);
+  assert.equal((((ov.pools as Row[])[0] as Row).avgEntrySol as number), 1); // 10 SOL / 10 shares
+  assert.equal((((ov.pools as Row[])[0] as Row).sharePricePct as number), 20); // 1.2/1 − 1
   const exp = (ov.exposures as Row[])[0] as Row;
   assert.equal(exp.poolId, 1);
   assert.ok((exp.mySizeSol as number) > 0); // $100 notional × 100% share

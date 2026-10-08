@@ -140,13 +140,11 @@ function PoolCard({ pool, period, index }: { pool: PoolSummary; period: Period; 
       </div>
       <Link
         href={`/pools/${pool.id}`}
-        className={`flex items-center justify-center gap-2 font-medium px-4${!full && !featured ? ' pool-cta-partner' : ''}`}
+        className={`flex items-center justify-center gap-2 font-medium px-4${!full ? ' pool-cta-partner' : ''}`}
         style={
           full
             ? { height: 46, fontSize: 15, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)', borderRadius: 10 }
-            : featured
-              ? { height: 46, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18', borderRadius: 10 }
-              : { height: 46, fontSize: 15, borderRadius: 10 }
+            : { height: 46, fontSize: 15, borderRadius: 10 }
         }
       >
         {full ? 'Full · view pool' : 'Open pool'} <ArrowRight size={15} weight="bold" />
@@ -236,13 +234,13 @@ export default function PoolsPage() {  const [pools, setPools] = useState<PoolSu
     <>
       <SiteHeader active="pools" />
       <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 0' }}>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display font-medium" style={{ fontSize: 'clamp(30px,4vw,44px)', letterSpacing: '-0.03em', color: 'var(--ep-text, #E9E9ED)' }}>
             Pools
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-            Each pool copies its own basket of ranked onchain traders under fixed risk rules. Signals unlock with a 0.5 SOL deposit.
+            Each pool copies its own basket of ranked onchain traders under fixed risk rules.<br />Signals unlock with a 0.5 SOL deposit.
           </p>
         </div>
         <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
@@ -250,11 +248,11 @@ export default function PoolsPage() {  const [pools, setPools] = useState<PoolSu
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
-              className="text-xs font-bold px-3 py-1.5 rounded-lg"
+              className="font-medium"
               style={
                 period === p.key
-                  ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }
-                  : { color: 'var(--ep-muted, #9397AB)' }
+                  ? { height: 32, padding: '0 14px', borderRadius: 6, fontSize: 13, background: '#2E313F', color: '#E9E9ED' }
+                  : { height: 32, padding: '0 14px', borderRadius: 6, fontSize: 13, background: 'transparent', color: 'var(--ep-muted, #9397AB)' }
               }
             >
               {p.label}

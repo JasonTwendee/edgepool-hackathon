@@ -348,6 +348,30 @@ paths:
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/vaults/{id}/orders:
+    get:
+      summary: Per-signal phase journeys for a vault (ADMIN, terminal demo tab)
+      operationId: getVaultOrderJourneys
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Journeys
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
+                  data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/partner/pools/{id}/traders:
     get:
       summary: Per-trader table for owned pool (owner/ADMIN)

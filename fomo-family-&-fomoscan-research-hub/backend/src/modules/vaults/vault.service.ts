@@ -822,6 +822,8 @@ export class VaultService {
         kind: (v.kind as string) ?? 'basket', status: (v.status as string) ?? 'live',
         shares: m.shares, valueSol: m.valueSol, returnsSol: m.returnsSol,
         depositedSol: m.depositedSol, withdrawnSol: m.withdrawnSol,
+        sharePrice: m.sharePrice, avgEntrySol: m.avgEntrySol,
+        sharePricePct: m.avgEntrySol > 0 ? r9((m.sharePrice / m.avgEntrySol - 1) * 100) : 0,
         openCount: pos.positions.length,
         flat: pos.positions.length === 0,
         queued: m.queuedDeposits.length + m.queuedWithdrawals.length,
@@ -1101,6 +1103,76 @@ export class VaultService {
     };
   }
 
+  /**
+   * Admin console — per-signal phase journeys for one vault (terminal demo
+   * tab). Read-only: each order mapped to its Detect → Qualify → Enter →
+   * Manage → Exit evidence (master tx, qualify verdict, entry params, legs,
+   * exit reason + realized). No masking here — ADMIN-only route.
+   */
+  async ordersJourney(vaultId: number): Promise<unknown[]> {
+    const { id } = await this.resolveVault(vaultId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orders = (await (this.prisma as any).copyOrder.findMany({
+      where: { vaultId: id },
+      orderBy: { id: 'desc' },
+      take: 50,
+      include: { legs: true },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    })) as any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return orders.map((o: any) => {
+      const q = ((o.quoteJson ?? {}) as Record<string, unknown>) ?? {};
+      const qual = (q.qualify ?? null) as { pass?: unknown; reasons?: unknown; score?: unknown } | null;
+      const sized = (q.sized ?? null) as Record<string, unknown> | null;
+      const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+      const opt = (v: unknown): number | null => {
+        if (v === null || v === undefined) return null;
+        const n = num(v as { toNumber(): number } | number | string);
+        return Number.isFinite(n) ? n : null;
+      };
+      const reasons = Array.isArray(qual?.reasons) ? (qual.reasons as unknown[]).filter((r): r is string => typeof r === 'string') : [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legs = (((o.legs ?? []) as any[]) ?? []).map((l: any) => ({
+        leg: l.leg as string,
+        fraction: num(l.fraction),
+        exitPriceUsd: opt(l.exitPriceUsd),
+        realizedPnlUsd: opt(l.realizedPnlUsd),
+        closedAt: l.closedAt ? new Date(l.closedAt as unknown as string).toISOString() : null,
+      }));
+      return {
+        id: o.id,
+        token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
+        trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
+        status: o.status,
+        error: str(o.error),
+        masterTxHash: str(o.masterTxHash),
+        createdAt: new Date(o.createdAt as unknown as string).toISOString(),
+        qualify: qual
+          ? {
+            pass: qual.pass === true,
+            score: typeof qual.score === 'number' ? qual.score : null,
+            reasons,
+          }
+          : null,
+        entry: {
+          priceUsd: opt(o.entryPriceUsd),
+          amountUsd: num(o.amountUsd),
+          tp1Pct: opt(o.tp1Pct),
+          stopPct: opt(o.stopPct),
+          trailPct: opt(o.trailPct),
+          entryMode: str(o.entryMode),
+          venue: str(o.venue),
+          sizedCopyUsd: typeof sized?.copyUsd === 'number' ? (sized.copyUsd as number) : null,
+        },
+        legs,
+        closeReason: str(o.closeReason),
+        exitPriceUsd: opt(o.exitPriceUsd),
+        realizedPnlUsd: o.closedAt ? (opt(o.realizedPnlUsd) ?? 0) : null,
+        closedAt: o.closedAt ? new Date(o.closedAt as unknown as string).toISOString() : null,
+      };
+    });
+  }
+
   async status(vaultId: number): Promise<VaultStatus> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
@@ -1158,6 +1230,7 @@ export class VaultService {
     vaultId: number;
     vaultName: string;
     sharePrice: number;
+    avgEntrySol: number;
     shares: number;
     valueSol: number;
     depositedSol: number;
@@ -1205,6 +1278,7 @@ export class VaultService {
       vaultId,
       vaultName: vault.name,
       sharePrice: price,
+      avgEntrySol: minted > 0 ? r9(deposited / minted) : price,
       shares,
       valueSol: value,
       depositedSol: deposited,
