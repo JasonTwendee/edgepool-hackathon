@@ -259,7 +259,7 @@ export interface PortfolioOverview {
   totalDepositedSol: number;
   totalWithdrawnSol: number;
   returnsSol: number;
-  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; openCount: number; flat: boolean; queued: number }[];
+  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; sharePrice: number; avgEntrySol: number; sharePricePct: number; openCount: number; flat: boolean; queued: number }[];
   exposures: { poolId: number; poolName: string; token: string; trader: string; unrealizedPct: number | null; mySizeSol: number }[];
   pending: { id: number; poolId: number; poolName: string; shares: number; createdAt: string; nextCheckpointAt: string | null }[];
   history: { date: string; type: string; poolId: number; poolName: string; tx: string; amountSol: number; sharesDelta: number; status: string }[];

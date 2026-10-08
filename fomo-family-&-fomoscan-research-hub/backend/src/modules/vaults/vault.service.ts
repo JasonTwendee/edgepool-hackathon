@@ -826,6 +826,8 @@ export class VaultService {
         kind: (v.kind as string) ?? 'basket', status: (v.status as string) ?? 'live',
         shares: m.shares, valueSol: m.valueSol, returnsSol: m.returnsSol,
         depositedSol: m.depositedSol, withdrawnSol: m.withdrawnSol,
+        sharePrice: m.sharePrice, avgEntrySol: m.avgEntrySol,
+        sharePricePct: m.avgEntrySol > 0 ? r9((m.sharePrice / m.avgEntrySol - 1) * 100) : 0,
         openCount: pos.positions.length,
         flat: pos.positions.length === 0,
         queued: m.queuedDeposits.length + m.queuedWithdrawals.length,
@@ -1171,6 +1173,7 @@ export class VaultService {
     vaultId: number;
     vaultName: string;
     sharePrice: number;
+    avgEntrySol: number;
     shares: number;
     valueSol: number;
     depositedSol: number;
@@ -1218,6 +1221,7 @@ export class VaultService {
       vaultId,
       vaultName: vault.name,
       sharePrice: price,
+      avgEntrySol: minted > 0 ? r9(deposited / minted) : price,
       shares,
       valueSol: value,
       depositedSol: deposited,
