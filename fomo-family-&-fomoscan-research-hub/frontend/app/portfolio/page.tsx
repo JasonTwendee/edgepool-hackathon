@@ -11,6 +11,7 @@ import {
   type PortfolioOverview,
 } from '../../lib/api';
 import { connectBrowserWallet, signWithBrowserWallet } from '../../lib/solana';
+import { CaretDown, CaretUp, LockSimple, X } from '@phosphor-icons/react';
 import { LoginModal, restoreSession } from '../../components/LoginModal';
 import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
 import { Toaster, toast } from '../../components/Toaster';
@@ -91,38 +92,46 @@ function WithdrawModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(13,15,24,0.72)', backdropFilter: 'blur(6px)' }} onClick={onClose}>
-      <div className="w-full rounded-2xl p-5 space-y-3" style={{ maxWidth: 440, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }} onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-base font-medium">Withdraw · {poolName}</h2>
-        <div className="text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-          {maxShares.toFixed(4)} shares available
+      <div className="w-full flex flex-col" role="dialog" aria-modal="true" aria-label="Withdraw" style={{ maxWidth: 440, padding: 24, borderRadius: 18, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px #3F424D, 0 24px 60px rgba(0,0,0,0.5)', gap: 14 }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center">
+          <span className="font-display font-medium" style={{ fontSize: 22 }}>Withdraw</span>
+          <button onClick={onClose} aria-label="Close" className="grid place-items-center" style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
+            <X size={16} weight="regular" />
+          </button>
         </div>
-        <input
-          value={amount}
-          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-          placeholder="0.00"
-          inputMode="decimal"
-          className="w-full font-mono text-xl px-3 py-2 rounded-lg outline-none"
-          style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
-        />
-        <div className="flex gap-2">
+        <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>{poolName} · {maxShares.toFixed(4)} SOL available</span>
+        <div className="flex items-center gap-2" style={{ height: 54, borderRadius: 10, boxShadow: 'inset 0 0 0 1px #3F424D', background: '#161826', padding: '0 14px' }}>
+          <input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+            placeholder="0.00"
+            aria-label="Withdraw amount in SOL"
+            inputMode="decimal"
+            className="flex-1 min-w-0 font-mono outline-none bg-transparent"
+            style={{ fontSize: 20, fontWeight: 500, color: 'var(--ep-text, #E9E9ED)' }}
+          />
+          <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>SOL</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
           {[0.25, 0.5, 1].map((f) => (
-            <button key={f} onClick={() => setAmount(((maxShares * sharePrice * f) || 0).toFixed(4))}
-              className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
-              style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+            <button key={f} onClick={() => setAmount(((maxShares * sharePrice * f) || 0).toFixed(2))}
+              className="font-medium" style={{ height: 34, borderRadius: 8, fontSize: 13, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
               {f === 1 ? 'Max' : `${f * 100}%`}
             </button>
           ))}
         </div>
-        <div className="text-[11px] font-mono space-y-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-          <div className="flex justify-between"><span>Shares burned</span><span>{shares.toFixed(4)}</span></div>
-          <div className="flex justify-between"><span>Est. SOL out</span><span>{sol.toFixed(4)}</span></div>
-          <div className="flex justify-between"><span>≈ USDC</span><span>$—</span></div>
-          <div className="flex justify-between"><span>Mode</span><span>{flat ? 'Instant' : 'Queued · settles at checkpoint'}</span></div>
+        <div className="flex flex-col gap-2 text-[13px]" style={{ padding: '12px 14px', borderRadius: 10, background: '#161826' }}>
+          <div className="flex justify-between"><span style={{ color: 'var(--ep-muted, #9397AB)' }}>Shares burned</span><span className="font-mono">{shares.toFixed(4)}</span></div>
+          <div className="flex justify-between"><span style={{ color: 'var(--ep-muted, #9397AB)' }}>Est. SOL out</span><span className="font-mono">{sol > 0 ? sol.toFixed(2) + ' SOL' : '0.00 SOL'}</span></div>
+          <div className="flex justify-between"><span style={{ color: 'var(--ep-muted, #9397AB)' }}>≈ USDC</span><span className="font-mono">$—</span></div>
         </div>
-        {err && <p className="text-[11px]" style={{ color: 'var(--ep-neg, #F28881)' }}>{err}</p>}
+        <span className="text-[13px]" style={{ lineHeight: 1.45, color: '#CFD3E5' }}>
+          {flat ? 'Instant · this pool is flat, so SOL is sent now.' : 'Queued · settles at the next checkpoint.'}
+        </span>
+        {err && <span className="text-xs" style={{ color: 'var(--ep-neg, #F28881)' }}>{err}</span>}
         <button onClick={() => void submit()} disabled={busy}
-          className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
-          style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+          className="w-full font-medium disabled:opacity-50"
+          style={{ height: 50, borderRadius: 10, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
           {flat ? 'Withdraw now' : 'Request withdrawal'}
         </button>
       </div>
@@ -212,29 +221,26 @@ export default function PortfolioPage() {
       });
   }, [data, tab]);
 
-  const W = 600;
-  const H = 120;
+  const W = 300;
+  const H = 100;
   const vs = curve.map((p) => p.v);
   const min = vs.length ? Math.min(...vs) : 0;
   const max = vs.length ? Math.max(...vs) : 1;
   const span = max - min || 1;
-  const chartUp = tab === 'pnl'
-    ? (data?.returnsSol ?? 0) >= 0
-    : vs.length > 1
-      ? vs[vs.length - 1] >= vs[0]
-      : true;
-  const d = curve.map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / Math.max(1, curve.length - 1)) * W).toFixed(1)},${(H - 6 - ((p.v - min) / span) * (H - 12)).toFixed(1)}`).join(' ');
+  const d = curve.map((p, i) => `${i === 0 ? 'M' : 'L'}${((i / Math.max(1, curve.length - 1)) * W).toFixed(1)},${(92 - ((p.v - min) / span) * 80).toFixed(1)}`).join(' ');
 
   if (error === 'NOT_CONNECTED') {
     return (
       <>
         <SiteHeader active="portfolio" />
-        <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
-          <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>Portfolio</h1>
-          <div className="rounded-2xl p-8 mt-6 text-center" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-            <div className="font-mono" style={{ fontSize: 'clamp(30px,4vw,40px)' }}>0.00 SOL</div>
-            <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>Connect your wallet or sign in to see your positions.</p>
-            <button onClick={() => setLoginOpen(true)} className="mt-4 text-sm font-bold px-4 py-2 rounded-lg" style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+        <div className="mx-auto w-full flex flex-col" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px', gap: 24 }}>
+          <h1 className="font-display font-medium" style={{ fontSize: 'clamp(30px,4vw,40px)', letterSpacing: '-0.03em', lineHeight: 1.05 }}>Portfolio</h1>
+          <div className="grid items-center" style={{ padding: 'clamp(24px,4vw,48px)', borderRadius: 18, background: 'radial-gradient(60% 120% at 100% 0%, rgba(3,45,42,0.7), transparent 65%), var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 32 }}>
+            <div className="flex flex-col gap-3">
+              <span className="font-display font-medium" style={{ fontSize: 'clamp(22px,3vw,30px)', letterSpacing: '-0.02em' }}>Connect a wallet to see your pools</span>
+              <span className="text-[15px]" style={{ lineHeight: 1.5, color: 'var(--ep-muted, #9397AB)' }}>Your value, PnL, positions and withdrawals live here once you&apos;ve deposited into a pool.</span>
+            </div>
+            <button onClick={() => setLoginOpen(true)} className="font-medium" style={{ height: 50, borderRadius: 10, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
               Connect wallet
             </button>
           </div>
@@ -255,17 +261,20 @@ export default function PortfolioPage() {
   return (
     <>
       <SiteHeader active="portfolio" />
-      <div className="mx-auto w-full" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px' }}>
-      <h1 className="font-display font-medium" style={{ fontSize: 'clamp(28px,3.5vw,40px)', letterSpacing: '-0.03em' }}>Portfolio</h1>
+      <div className="mx-auto w-full flex flex-col" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px', gap: 24 }}>
+      <h1 className="font-display font-medium" style={{ fontSize: 'clamp(30px,4vw,40px)', letterSpacing: '-0.03em', lineHeight: 1.05 }}>Portfolio</h1>
       {error && <p className="text-xs mt-2" style={{ color: 'var(--ep-neg, #F28881)' }}>{error}</p>}
       {msg && <p className="text-xs mt-2" style={{ color: 'var(--ep-aqua-100, #BBF6EE)' }}>{msg}</p>}
 
       {empty ? (
-        <div className="text-center mt-10">
-          <div className="font-mono" style={{ fontSize: 'clamp(30px,4vw,40px)' }}>0.00 SOL</div>
-          <p className="text-sm mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>No deposits yet</p>
-          <Link href="/" className="inline-block mt-4 text-sm font-bold px-4 py-2 rounded-lg" style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-            Browse pools
+        <div className="flex justify-between items-center gap-6 flex-wrap" style={{ padding: 'clamp(24px,4vw,48px)', borderRadius: 18, border: '1px dashed #3F424D' }}>
+          <div className="flex flex-col gap-2.5">
+            <span className="font-mono font-medium" style={{ fontSize: 32 }}>0.00 SOL</span>
+            <span className="font-display font-medium" style={{ fontSize: 22 }}>No deposits yet</span>
+            <span className="text-[15px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Pick a pool and deposit 0.5 SOL or more to unlock its live signals.</span>
+          </div>
+          <Link href="/" className="font-medium flex items-center" style={{ height: 50, padding: '0 24px', borderRadius: 10, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
+            Browse pools →
           </Link>
         </div>
       ) : loading && !data ? (
@@ -279,121 +288,197 @@ export default function PortfolioPage() {
         </div>
       ) : (
         data && (
-          <>
-            <div className="font-mono mt-2" style={{ fontSize: 'clamp(30px,4vw,40px)' }}>
-              {data.totalValueSol.toFixed(4)} <span className="text-lg">SOL</span>
-            </div>
-            <div className="text-xs" style={{ color: 'var(--ep-ghost, #595D6C)' }}>≈ $—</div>
-            <div className="font-mono text-sm mt-1" style={{ color: data.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-              {data.returnsSol >= 0 ? '+' : ''}{data.returnsSol.toFixed(4)} SOL ({pnlPct.toFixed(1)}%)
-            </div>
-            <div className="text-[11px] font-mono mt-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-              Deposited {data.totalDepositedSol.toFixed(2)} · Withdrawn {data.totalWithdrawnSol.toFixed(2)}
-            </div>
-
-            <div className="flex gap-1 mt-3">
-              {(['value', 'pnl'] as const).map((t) => (
-                <button key={t} onClick={() => setTab(t)} className="text-xs font-bold px-3 py-1.5 rounded-lg capitalize"
-                  style={tab === t ? { background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' } : { color: 'var(--ep-muted, #9397AB)' }}>
-                  {t === 'value' ? 'Value' : 'PnL'}
-                </button>
-              ))}
-            </div>
-            {curve.length > 1 && (
-              <svg key={tab} viewBox={`0 0 ${W} ${H}`} className="ep-fade w-full mt-2" style={{ height: 120 }} aria-hidden>
-                <path d={`${d} L${W},${H} L0,${H} Z`} fill={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} opacity={0.1} />
-                <path d={d} fill="none" stroke={chartUp ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)'} strokeWidth={2} strokeLinecap="round" />
-              </svg>
-            )}
-
-            <h2 className="font-display text-base font-medium mt-6">My pools</h2>
-            <div className="space-y-2 mt-2">
-              {data.pools.map((p) => (
-                <div key={p.vaultId} className="rounded-2xl p-4" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <Link href={`/pools/${p.vaultId}`} className="font-bold text-sm">{p.poolName}</Link>
-                    <span className="font-mono text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>{p.kind}</span>
-                    <span className="font-mono text-sm font-bold">{p.valueSol.toFixed(4)} SOL</span>
-                    <span className="font-mono text-xs" style={{ color: p.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-                      {p.returnsSol >= 0 ? '+' : ''}{p.returnsSol.toFixed(4)}
-                    </span>
-                    <span className="text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                      {p.flat ? 'Flat · instant exit' : `${p.openCount} open · queued exit`}
-                    </span>
-                    <div className="flex gap-2">
-                      <button onClick={() => setExpanded(expanded === p.vaultId ? null : p.vaultId)}
-                        className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg" style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
-                        Detail
-                      </button>
-                      <button onClick={() => setWd({ poolId: p.vaultId, poolName: p.poolName, maxShares: p.shares, sharePrice: p.valueSol > 0 && p.shares > 0 ? p.valueSol / p.shares : 1, flat: p.flat })}
-                        className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg" style={{ border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)' }}>
-                        Withdraw
-                      </button>
-                    </div>
-                  </div>
-                  {expanded === p.vaultId && (
-                    <div className="mt-2 text-[11px] font-mono rounded-lg p-2.5 space-y-1" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', color: 'var(--ep-text-3, #B2B6CA)' }}>
-                      <div className="flex justify-between"><span>Cash-flow PnL</span><span>{p.returnsSol.toFixed(4)} SOL</span></div>
-                      <div className="flex justify-between"><span>Share-price PnL</span><span>{p.depositedSol > 0 ? (((p.valueSol + p.withdrawnSol) / p.depositedSol - 1) * 100).toFixed(1) : '0.0'}%</span></div>
-                      <div className="flex justify-between"><span>Shares / Deposited / Withdrawn</span><span>{p.shares.toFixed(2)} / {p.depositedSol.toFixed(2)} / {p.withdrawnSol.toFixed(2)}</span></div>
-                    </div>
-                  )}
+          <div className="flex flex-col" style={{ gap: 24 }}>
+            <div className="grid items-center" style={{ padding: '24px 28px', borderRadius: 18, background: 'radial-gradient(60% 120% at 0% 0%, rgba(3,45,42,0.6), transparent 65%), var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 32 }}>
+              <div className="flex flex-col gap-3">
+                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Total value</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono font-medium" style={{ fontSize: 'clamp(30px,4vw,40px)', letterSpacing: '-0.02em' }}>{data.totalValueSol.toFixed(2)} SOL</span>
+                  <span className="font-mono" style={{ fontSize: 13, color: 'var(--ep-ghost, #595D6C)' }}>≈ $—</span>
                 </div>
-              ))}
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="font-mono" style={{ fontSize: 20, color: data.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                    {data.returnsSol >= 0 ? '+' : ''}{data.returnsSol.toFixed(2)} SOL
+                  </span>
+                  <span className="font-mono" style={{ fontSize: 15, color: data.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                    {pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(2)}%
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>total PnL</span>
+                </div>
+                <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                  Deposited {data.totalDepositedSol.toFixed(2)} SOL · Withdrawn {data.totalWithdrawnSol.toFixed(2)} SOL
+                </span>
+              </div>
+              <div className="flex flex-col gap-2 min-w-0">
+                <div className="flex justify-between items-center gap-2 flex-wrap">
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>
+                    {tab === 'value' ? 'Portfolio value · since first deposit' : 'Total PnL · since first deposit'}
+                  </span>
+                  <div className="flex p-[3px] rounded-lg" style={{ background: '#161826', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+                    {(['value', 'pnl'] as const).map((t) => (
+                      <button key={t} onClick={() => setTab(t)} className="font-medium capitalize"
+                        style={tab === t ? { height: 28, padding: '0 14px', borderRadius: 6, fontSize: 12, background: '#2E313F', color: '#E9E9ED' } : { height: 28, padding: '0 14px', borderRadius: 6, fontSize: 12, background: 'transparent', color: 'var(--ep-muted, #9397AB)' }}>
+                        {t === 'value' ? 'Value' : 'PnL'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {curve.length > 1 && (
+                  <svg key={tab} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="ep-fade w-full block" style={{ height: 130 }} aria-hidden>
+                    <path d={`M0 25H${W}M0 50H${W}M0 75H${W}`} stroke="#2E313F" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                    <path d={`${d} L${W},${H} L0,${H} Z`} fill="rgba(73,230,215,0.09)" />
+                    <path d={d} fill="none" stroke="#49E6D7" strokeWidth={1.75} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
             </div>
 
-            {data.exposures.length > 0 && (
-              <>
-                <h2 className="font-display text-base font-medium mt-6">Open positions across pools</h2>
-                <ul className="mt-2 space-y-2">
-                  {data.exposures.slice(0, 20).map((e, i) => (
-                    <li key={i} className="flex items-center justify-between text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-                      <span className="font-bold">{e.token}</span>
-                      <span style={{ color: 'var(--ep-muted, #9397AB)' }}>{e.poolName}</span>
-                      <span className="font-mono">{e.mySizeSol.toFixed(4)} SOL</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-
-            {data.pending.length > 0 && (
-              <>
-                <h2 className="font-display text-base font-medium mt-6">Pending withdrawals</h2>
-                <ul className="mt-2 space-y-2">
-                  {data.pending.map((q) => (
-                    <PendingRow key={q.id} q={q} onCancel={refresh} />
-                  ))}
-                </ul>
-              </>
-            )}
-
-            <h2 className="font-display text-base font-medium mt-6">History</h2>
-            <div className="mt-2 rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', color: 'var(--ep-faint, #75798C)' }}>
-                    <th className="text-left font-medium px-3 py-2">Date</th>
-                    <th className="text-left font-medium px-3 py-2">Type</th>
-                    <th className="text-left font-medium px-3 py-2">Pool</th>
-                    <th className="text-right font-medium px-3 py-2">SOL</th>
-                    <th className="text-right font-medium px-3 py-2">Shares</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.history.slice(0, 50).map((h, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid var(--ep-row-rule, #26283A)' }}>
-                      <td className="px-3 py-2 font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{h.date.slice(0, 10)}</td>
-                      <td className="px-3 py-2">{h.type}</td>
-                      <td className="px-3 py-2">{h.poolName}</td>
-                      <td className="px-3 py-2 text-right font-mono">{h.amountSol.toFixed(4)}</td>
-                      <td className="px-3 py-2 text-right font-mono">{h.sharesDelta >= 0 ? '+' : ''}{h.sharesDelta.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="overflow-hidden" style={{ borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+              <div className="font-mono text-[11px] tracking-widest uppercase" style={{ padding: '16px 22px', color: 'var(--ep-faint, #75798C)' }}>My pools</div>
+              {data.pools.map((p) => {
+                const qSol = data.pending.filter((q) => q.poolId === p.vaultId).reduce((a, q) => a + q.shares, 0) * p.sharePrice;
+                const isFlat = p.flat && qSol <= 0;
+                const status = qSol > 0 ? `${qSol.toFixed(2)} SOL queued` : isFlat ? 'Flat · instant exit' : `${p.openCount} open · queued exit`;
+                const stGreen = isFlat && qSol <= 0;
+                const open = expanded === p.vaultId;
+                return (
+                  <div key={p.vaultId} style={{ borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                    <div className="grid items-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,150px),1fr))', gap: '12px 18px', padding: '16px 22px', fontSize: 13 }}>
+                      <span className="flex flex-col gap-0.5" style={{ gridColumn: 'span 2' }}>
+                        <Link href={`/pools/${p.vaultId}`} className="font-medium" style={{ fontSize: 15, color: 'var(--ep-text, #E9E9ED)' }}>{p.poolName}</Link>
+                        <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{p.kind === 'basket' ? 'Edgepool basket · algorithm-ranked' : `Partner pool · @${p.poolName.replace(/^Edgepool /, '')}`}</span>
+                      </span>
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-mono">{p.valueSol.toFixed(2)} SOL</span>
+                        <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-ghost, #595D6C)' }}>≈ $—</span>
+                      </span>
+                      <span className="flex flex-col gap-0.5">
+                        <span className="font-mono" style={{ color: p.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                          {p.returnsSol >= 0 ? '+' : ''}{p.returnsSol.toFixed(2)} SOL
+                        </span>
+                        <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
+                          {p.sharePricePct >= 0 ? '+' : ''}{p.sharePricePct.toFixed(1)}% share price
+                        </span>
+                      </span>
+                      <span className="justify-self-start text-[11px]" style={{ padding: '4px 8px', borderRadius: 6, background: stGreen ? '#004B45' : '#2E313F', color: stGreen ? '#BBF6EE' : '#CFD3E5' }}>
+                        {status}
+                      </span>
+                      <span className="flex justify-end gap-2">
+                        <button onClick={() => setExpanded(open ? null : p.vaultId)}
+                          className="font-medium flex items-center gap-1.5" style={{ height: 34, padding: '0 12px', borderRadius: 8, fontSize: 12, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
+                          Detail {open ? <CaretUp size={13} weight="regular" /> : <CaretDown size={13} weight="regular" />}
+                        </button>
+                        <button onClick={() => setWd({ poolId: p.vaultId, poolName: p.poolName, maxShares: p.shares, sharePrice: p.sharePrice > 0 ? p.sharePrice : 1, flat: p.flat })}
+                          className="font-medium" style={{ height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
+                          Withdraw
+                        </button>
+                      </span>
+                    </div>
+                    {open && (
+                      <div className="grid text-xs" style={{ margin: '0 22px 16px', padding: '14px 18px', borderRadius: 10, background: '#161826', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,260px),1fr))', gap: '16px 24px' }}>
+                        <div className="flex flex-col gap-1">
+                          <span style={{ color: 'var(--ep-faint, #75798C)' }}>Cash-flow PnL · value − deposited + withdrawn</span>
+                          <span className="font-mono" style={{ fontSize: 13, color: '#CFD3E5' }}>
+                            {p.valueSol.toFixed(2)} − {p.depositedSol.toFixed(2)} + {p.withdrawnSol.toFixed(2)} = {p.returnsSol >= 0 ? '+' : ''}{p.returnsSol.toFixed(2)} SOL
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span style={{ color: 'var(--ep-faint, #75798C)' }}>Share-price PnL · avg entry → now</span>
+                          <span className="font-mono" style={{ fontSize: 13, color: '#CFD3E5' }}>
+                            {p.avgEntrySol.toFixed(4)} → {p.sharePrice.toFixed(4)} SOL ({p.sharePricePct >= 0 ? '+' : ''}{p.sharePricePct.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </>
+
+            <div className="grid items-start" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: 20 }}>
+              <div style={{ padding: '18px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column' }}>
+                <div className="flex justify-between items-baseline gap-2 flex-wrap" style={{ paddingBottom: 8 }}>
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Open positions across pools</span>
+                  <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>My exposure = my share of the pool</span>
+                </div>
+                {data.pools.filter((pl) => pl.valueSol < 0.5 && data.exposures.some((e) => e.poolId === pl.vaultId)).map((pl) => (
+                  <div key={pl.vaultId} className="flex items-center gap-2 text-xs" style={{ marginBottom: 8, padding: '9px 12px', borderRadius: 8, background: '#2B2741', color: '#D2CEFD' }}>
+                    <LockSimple size={14} weight="regular" />
+                    Hold 0.5 SOL or more in {pl.poolName.replace(/^Edgepool /, '')} to see its tokens.
+                  </div>
+                ))}
+                {data.exposures.length === 0 && (
+                  <span style={{ padding: '12px 0', borderTop: '1px solid var(--ep-border, #2E313F)', fontSize: 13, color: 'var(--ep-muted, #9397AB)' }}>
+                    None of your pools have open positions right now.
+                  </span>
+                )}
+                {data.exposures.slice(0, 20).map((e, i) => {
+                  const masked = (data.pools.find((pl) => pl.vaultId === e.poolId)?.valueSol ?? 0) < 0.5;
+                  const up = (e.unrealizedPct ?? 0) >= 0;
+                  return (
+                    <div key={i} className="grid items-center text-[13px]" style={{ gridTemplateColumns: '1fr auto', gap: 12, padding: '10px 0', borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium" style={{ letterSpacing: masked ? '0.12em' : 0 }}>{masked ? '$••••' : e.token}</span>
+                        <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                          {e.poolName.replace(/^Edgepool /, '')} · my exposure {masked ? '•••' : `${e.mySizeSol.toFixed(4)} SOL`}
+                        </span>
+                      </div>
+                      <span className="font-mono" style={{ color: up ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                        {e.unrealizedPct === null || e.unrealizedPct === undefined ? '—' : `${up ? '+' : ''}${e.unrealizedPct.toFixed(1)}%`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col" style={{ gap: 20 }}>
+                <div style={{ padding: '18px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pending withdrawals</span>
+                  {data.pending.length === 0 && (
+                    <span className="text-[13px]" style={{ color: 'var(--ep-faint, #75798C)' }}>Nothing queued. Pools that are flat pay out instantly.</span>
+                  )}
+                  {data.pending.map((q) => {
+                    const pl = data.pools.find((pp) => pp.vaultId === q.poolId);
+                    return (
+                      <PendingRow
+                        key={q.id}
+                        q={q}
+                        poolName={pl?.poolName ?? q.poolName}
+                        estSol={q.shares * (pl?.sharePrice ?? 1)}
+                        onCancel={refresh}
+                      />
+                    );
+                  })}
+                </div>
+
+                <div style={{ padding: '18px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column' }}>
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)', paddingBottom: 6 }}>Deposit and withdrawal history</span>
+                  {data.history.slice(0, 20).map((h, i) => {
+                    const flat = data.pools.find((pl) => pl.vaultId === h.poolId)?.flat ?? false;
+                    const label = h.type === 'deposit' ? 'Deposit' : h.type === 'withdrawal_settled' ? (flat ? 'Withdrawal · instant' : 'Withdrawal') : h.type === 'withdrawal_cancelled' ? 'Withdrawal · cancelled' : 'Withdrawal · queued';
+                    const amt = h.type === 'deposit' ? h.amountSol : -h.amountSol;
+                    return (
+                      <div key={i} className="grid items-center text-xs" style={{ gridTemplateColumns: '56px 1fr auto', gap: 12, padding: '9px 0', borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                        <span style={{ color: 'var(--ep-faint, #75798C)' }}>
+                          {new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                        <span className="flex flex-col gap-[1px]">
+                          <span>{label}</span>
+                          <span style={{ color: 'var(--ep-faint, #75798C)' }}>{h.poolName.replace(/^Edgepool /, '')}{h.tx && h.tx !== '—' ? ` · ${h.tx}` : ''}</span>
+                        </span>
+                        <span className="flex flex-col items-end gap-[1px]">
+                          <span className="font-mono">{amt >= 0 ? '+' : '−'}{Math.abs(amt).toFixed(2)} SOL</span>
+                          <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
+                            {h.sharesDelta >= 0 ? '+' : ''}{h.sharesDelta.toFixed(4)}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         )
       )}
 
@@ -409,9 +494,6 @@ export default function PortfolioPage() {
         />
       )}
 
-      <div className="mt-6">
-        <Link href="/" className="text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
-      </div>
       <SiteFooter />
     </div>
     <Toaster />
@@ -419,7 +501,7 @@ export default function PortfolioPage() {
   );
 }
 
-function PendingRow({ q, onCancel }: { q: PortfolioOverview['pending'][number]; onCancel: () => void }) {
+function PendingRow({ q, poolName, estSol, onCancel }: { q: PortfolioOverview['pending'][number]; poolName: string; estSol: number; onCancel: () => void }) {
   const target = q.nextCheckpointAt ? new Date(q.nextCheckpointAt).getTime() : null;
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -437,14 +519,14 @@ function PendingRow({ q, onCancel }: { q: PortfolioOverview['pending'][number]; 
   }
 
   return (
-    <li className="flex items-center justify-between gap-2 text-xs rounded-lg px-3 py-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-      <span className="font-mono">#{q.id} · {q.poolName} · {q.shares.toFixed(2)} shares</span>
-      <span className="flex items-center gap-2">
-        <span className="font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{label}</span>
-        <button onClick={() => void cancel()} className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
-          Cancel
-        </button>
+    <div className="flex justify-between items-center gap-3 flex-wrap text-[13px]" style={{ padding: '12px 14px', borderRadius: 10, background: '#161826' }}>
+      <span><b className="font-medium">{estSol.toFixed(2)} SOL</b> <span style={{ color: 'var(--ep-muted, #9397AB)' }}>· {poolName.replace(/^Edgepool /, '')}</span></span>
+      <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+        Settles in <span className="font-mono" style={{ color: 'var(--ep-aqua, #49E6D7)', padding: '1px 6px', borderRadius: 5, background: 'rgba(73,230,215,0.1)' }}>{label}</span>
       </span>
-    </li>
+      <button onClick={() => void cancel()} className="font-medium text-xs" style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
+        Cancel
+      </button>
+    </div>
   );
 }
