@@ -1,8 +1,8 @@
 # Test Index
 
-## Current state (2026-10-06)
+## Current state (2026-10-08)
 
-- No `jest`/`vitest` runner. Verification = **25 `assert-*.ts` suites** run with `tsx`
+- No `jest`/`vitest` runner. Verification = **26 `assert-*.ts` suites** run with `tsx`
   (mocked Prisma — no network/secrets), plus typecheck + FE build + live smoke.
 - CI (`ci.yml`) runs every suite: `for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do npx tsx "$f" || exit 1; done`
 - Run one suite: `cd backend && npx tsx src/modules/vaults/assert-pools.ts` → `… asserts: ALL GREEN`
@@ -11,6 +11,7 @@
 
 | Suite | Covers |
 |---|---|
+| `common/accounting/assert-paper-position.ts` | remaining exposure, partial realized PnL, BUY/SELL marks, missing-price rejection |
 | `common/fomoscan/assert-fomoscan.ts` | FomoScan client, throttle, leaderboard parse |
 | `common/market/assert-datastream.ts` | DataStream prices/candles |
 | `common/rugcheck/assert-rugcheck.ts` | Qualify rug/mcap gate |
@@ -44,3 +45,21 @@ curl -s http://localhost:3000/api/health                       # BE direct
 curl -s http://localhost:3001/api/health                       # via FE rewrites (must be green)
 curl -s https://edgepool-dev.tailec308e.ts.net/api/vaults/pools # prod pools
 ```
+
+
+## Isolated Postgres accounting verification
+
+`backend/src/modules/vaults/verify-accounting-postgres.ts` is an opt-in integration
+check, not part of the no-network assert loop. After migrating a dedicated local
+database ending in `_test`, set `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, and `POSTGRES_DB`, then run from `backend/`:
+
+```bash
+npx --no-install tsx src/modules/vaults/verify-accounting-postgres.ts
+```
+
+It uses two independent Prisma clients, deterministic price inputs and real
+Postgres transactions. It checks concurrent mint/burn, multiple epochs, partial
+exits, cash flows, performance/withdrawal fees, full redemption, rollback, legacy
+PnL baselines and unavailable price failures. It removes only its own test rows
+and closes both clients. No real trades or external market calls are made.
