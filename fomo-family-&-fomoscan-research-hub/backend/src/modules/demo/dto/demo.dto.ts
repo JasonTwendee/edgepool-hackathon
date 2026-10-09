@@ -1,4 +1,4 @@
-import { IsInt, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 /** POST /api/demo/seed body. All optional — sane demo defaults. */
 export class SeedDto {
@@ -42,4 +42,24 @@ export class ReplayDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  skipClose?: boolean;
+}
+
+/** POST /api/demo/partial-close body (demo vaults only). */
+export class PartialCloseDto {
+  @IsInt()
+  @Min(1)
+  vaultId!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  orderId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  fraction?: number;
 }

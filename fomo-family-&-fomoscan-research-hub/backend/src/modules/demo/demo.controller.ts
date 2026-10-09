@@ -3,7 +3,7 @@ import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { DemoService } from './demo.service.js';
-import { ReplayDto, SeedDto } from './dto/demo.dto.js';
+import { ReplayDto, PartialCloseDto, SeedDto } from './dto/demo.dto.js';
 
 @Controller('api/demo')
 export class DemoController {
@@ -41,7 +41,24 @@ export class DemoController {
   ): Promise<{ success: boolean; data: unknown }> {
     const dto = await validateDto(ReplayDto, body);
     const data = await this.demo.replay(
-      { vaultId: dto.vaultId, botId: dto.botId, days: dto.days, limit: dto.limit },
+      { vaultId: dto.vaultId, botId: dto.botId, days: dto.days, limit: dto.limit, skipClose: dto.skipClose },
+      this.actor(req),
+    );
+    return { success: true, data };
+  }
+
+  @Post('partial-close')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('demo.partial_close_tick')
+  async partialClose(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(PartialCloseDto, body);
+    const data = await this.demo.partialClose(
+      { vaultId: dto.vaultId, orderId: dto.orderId, fraction: dto.fraction },
       this.actor(req),
     );
     return { success: true, data };

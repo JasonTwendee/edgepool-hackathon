@@ -8,11 +8,14 @@ import {
   getAuthMe,
   getPoolDetail,
   listBots,
+  partialCloseDemo,
   queueVaultDeposit,
   depositChallenge,
   replayDemo,
+  requestVaultWithdraw,
   resetDemo,
   seedDemo,
+  settleVault,
   vaultOrders,
   type PoolDetail,
   type VaultOrderJourney,
@@ -59,9 +62,12 @@ export default function PoolDetailPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoMsg, setDemoMsg] = useState<string | null>(null);
-  const [demoReplay, setDemoReplay] = useState<{ signals: number; fired: number; failed: number; forceClosed: number; settleNavSol: number } | null>(null);
+  const [demoReplay, setDemoReplay] = useState<{ signals: number; fired: number; failed: number; forceClosed: number; settleNavSol: number | null | undefined } | null>(null);
   const [spawnedId, setSpawnedId] = useState<number | null>(null);
   const [journeys, setJourneys] = useState<VaultOrderJourney[]>([]);
+  type FlowState = 'wait' | 'run' | 'done' | 'fail';
+  const [flowBusy, setFlowBusy] = useState(false);
+  const [flowSteps, setFlowSteps] = useState<{ key: string; label: string; state: FlowState; detail: string }[]>([]);
 
   const refresh = useCallback(async () => {
     if (!Number.isFinite(id)) return;
@@ -189,12 +195,101 @@ export default function PoolDetailPage() {
       setJourneys([]);
       setDemoReplay(null);
       setSpawnedId(null);
+      setFlowSteps([]);
       setDemoMsg('Demo pools deleted (audit kept).');
       await refresh();
     } catch (e) {
       setDemoMsg((e as Error).message);
     } finally {
       setDemoBusy(false);
+    }
+  }
+
+  /** Guided full lifecycle on this demo pool: deposit → settle → trade →
+   * partial exit → settle → withdraw → settle. One click, each phase renders
+   * on the page before the next starts. */
+  async function runFullFlow() {
+    const token = getStoredToken();
+    if (!token || !pool || demoBusy || flowBusy) return;
+    setFlowBusy(true);
+    setDemoMsg(null);
+    const steps: { key: string; label: string; state: 'wait' | 'run' | 'done' | 'fail'; detail: string }[] = [
+      { key: 'deposit', label: 'Deposit 2 SOL', state: 'wait', detail: '' },
+      { key: 'settle1', label: 'Settle · mint shares', state: 'wait', detail: '' },
+      { key: 'replay', label: 'Replay real signals', state: 'wait', detail: '' },
+      { key: 'partial', label: 'Partial exit at live price', state: 'wait', detail: '' },
+      { key: 'settle2', label: 'Settle · book realized', state: 'wait', detail: '' },
+      { key: 'withdraw', label: 'Request withdrawal', state: 'wait', detail: '' },
+      { key: 'settle3', label: 'Settle · pay out', state: 'wait', detail: '' },
+    ];
+    const paint = (key: string, state: 'wait' | 'run' | 'done' | 'fail', detail = '') =>
+      setFlowSteps((prev) => prev.map((s) => (s.key === key ? { ...s, state, detail } : s)));
+    setFlowSteps(steps);
+    const fresh = async (): Promise<PoolDetail> => {
+      const r = await getPoolDetail(pool.id);
+      setPool(r.data);
+      return r.data;
+    };
+    try {
+      // 1. Deposit.
+      paint('deposit', 'run');
+      const dep = await queueVaultDeposit({ vaultId: pool.id, amountSol: 2 }, token);
+      paint('deposit', 'done', `deposit #${dep.data.id} queued · 2 SOL`);
+      // 2. Settle the deposit.
+      paint('settle1', 'run');
+      let cur = await fresh();
+      const s1 = await settleVault(token, pool.id, Math.round((cur.navSol + 2) * 1e9) / 1e9);
+      paint('settle1', 'done', `epoch #${s1.data.epochId} · price ${s1.data.sharePrice.toFixed(4)}`);
+      cur = await fresh();
+      await loadJourneys(pool.id);
+      // 3. Fire real signals (positions stay open for the visible exit).
+      paint('replay', 'run');
+      const bots = await listBots();
+      const bot = bots.data.filter((b) => b.vaultId === pool.id).sort((a, b) => b.id - a.id)[0];
+      if (!bot) throw new Error('This demo pool has no bot.');
+      const rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 5, skipClose: true });
+      paint('replay', 'done', `${rep.data.signals} signals · ${rep.data.fired} entered`);
+      cur = await fresh();
+      await loadJourneys(pool.id);
+      if (rep.data.fired === 0) throw new Error('No signal entered — try again (scope caps rotate).');
+      // 4. Partial exit at the live price.
+      paint('partial', 'run');
+      const pc = await partialCloseDemo(token, { vaultId: pool.id, fraction: 0.4 });
+      const solPx = pc.data.solPx > 0 ? pc.data.solPx : 0;
+      const realizedSol = solPx > 0 ? pc.data.realizedPnlUsd / solPx : 0;
+      paint('partial', 'done', `${pc.data.leg} ${(pc.data.fraction * 100).toFixed(0)}% @ $${pc.data.exitPriceUsd} (${pc.data.realizedPnlUsd >= 0 ? '+' : ''}$${pc.data.realizedPnlUsd})`);
+      cur = await fresh();
+      await loadJourneys(pool.id);
+      // 5. Settle the realized leg.
+      paint('settle2', 'run');
+      const s2 = await settleVault(token, pool.id, Math.round((cur.navSol + realizedSol) * 1e9) / 1e9);
+      paint('settle2', 'done', `epoch #${s2.data.epochId} · NAV ${s2.data.navSol.toFixed(2)}`);
+      cur = await fresh();
+      // 6. Withdraw half of my shares.
+      paint('withdraw', 'run');
+      const myShares = cur.myHolding?.shares ?? 0;
+      if (myShares <= 0) throw new Error('No shares to withdraw (deposit did not settle?).');
+      const wShares = Math.max(0.0001, Math.floor((myShares / 2) * 10000) / 10000);
+      const wd = await requestVaultWithdraw({ vaultId: pool.id, shares: wShares }, token);
+      const payoutEst = wShares * cur.navPerShare;
+      paint('withdraw', 'done', `withdrawal #${wd.data.id} queued · ${wShares} shares`);
+      // 7. Settle the withdrawal.
+      paint('settle3', 'run');
+      const s3 = await settleVault(token, pool.id, Math.round(Math.max(0, cur.navSol - payoutEst) * 1e9) / 1e9);
+      const paid = s3.data.settledWithdrawals.find((w) => w.id === wd.data.id);
+      paint('settle3', 'done', paid ? `paid ${paid.payoutSol.toFixed(4)} SOL` : 'settled');
+      await fresh();
+      await loadJourneys(pool.id);
+      setDemoMsg('Full lifecycle complete: deposit → trade → partial exit → settle → withdraw.');
+    } catch (e) {
+      setFlowSteps((prev) => {
+        const running = prev.find((s) => s.state === 'run');
+        if (!running) return prev;
+        return prev.map((s) => (s.key === running.key ? { ...s, state: 'fail' as const, detail: (e as Error).message } : s));
+      });
+      setDemoMsg((e as Error).message);
+    } finally {
+      setFlowBusy(false);
     }
   }
 
@@ -621,17 +716,39 @@ export default function PoolDetailPage() {
             <>
               <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                 Replay real ledger BUYs into this demo pool, then watch each signal travel Detect → Qualify → Enter → Manage → Exit below.
+                Or run the full lifecycle in one go: deposit → settle → trade → partial exit → settle → withdraw.
               </p>
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => void replayHere()} disabled={demoBusy}
+                <button onClick={() => void runFullFlow()} disabled={demoBusy || flowBusy}
                   className="font-bold text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-                  {demoBusy ? 'Running…' : 'Run demo replay'}
+                  {flowBusy ? 'Running flow…' : 'Run full flow'}
                 </button>
-                <button onClick={() => void resetDemos()} disabled={demoBusy}
+                <button onClick={() => void replayHere()} disabled={demoBusy || flowBusy}
+                  className="font-medium text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
+                  {demoBusy ? 'Running…' : 'Replay signals only'}
+                </button>
+                <button onClick={() => void resetDemos()} disabled={demoBusy || flowBusy}
                   className="font-medium text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, border: '1px solid #3F424D', color: '#CFD3E5' }}>
                   Reset demo pools
                 </button>
               </div>
+              {flowSteps.length > 0 && (
+                <div className="flex flex-col gap-1.5 rounded-lg p-3" style={{ background: '#161826' }}>
+                  {flowSteps.map((s) => (
+                    <div key={s.key} className="flex items-center gap-2 text-[11px] font-mono">
+                      <span className="rounded-full shrink-0" style={{
+                        width: 8, height: 8,
+                        background: s.state === 'done' ? '#73DEA4' : s.state === 'run' ? '#49E6D7' : s.state === 'fail' ? '#F28881' : '#595D6C',
+                        boxShadow: s.state === 'run' ? '0 0 8px #49E6D7' : undefined,
+                      }} />
+                      <span className="w-36 shrink-0" style={{ color: '#A7AABF' }}>{s.label}</span>
+                      <span className="break-all" style={{ color: s.state === 'fail' ? '#F28881' : '#CFD3E5' }}>
+                        {s.state === 'wait' ? '···' : s.state === 'run' ? 'running…' : s.detail}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {demoReplay && (
                 <div className="text-[11px] font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                   signals {demoReplay.signals} · fired {demoReplay.fired} · failed {demoReplay.failed} · closed {demoReplay.forceClosed} · NAV {demoReplay.settleNavSol}

@@ -117,7 +117,7 @@ export class DemoService {
   }
 
   async replay(
-    opts: { vaultId?: number; botId?: number; days?: number; limit?: number },
+    opts: { vaultId?: number; botId?: number; days?: number; limit?: number; skipClose?: boolean },
     actor: string,
   ) {
     const { vaultId, botId } = await this.resolveDemoPair(opts.vaultId, opts.botId);
@@ -188,6 +188,31 @@ export class DemoService {
       }
     }
     const managed = await this.manage.tick(100).catch(() => null);
+    // Guided-flow mode: leave positions open for the visible partial exit —
+    // no force-close, no scripted settle, no withdrawal yet.
+    if (opts.skipClose === true) {
+      await this.audit.record({
+        actor,
+        action: 'demo.replay',
+        target: `vault:${vaultId}`,
+        reason: `bot:${botId} signals=${signals.length} fired=${fired} failed=${failed} skippedClose`,
+      });
+      return {
+        vaultId,
+        botId,
+        signals: signals.length,
+        fired,
+        failed,
+        orderIds,
+        managed,
+        forceClosed: 0,
+        skippedClose: true,
+        deposit2: 0,
+        settleNavSol: null,
+        withdrawal: null,
+        environment: 'sandbox' as const,
+      };
+    }
     const forceClosed = await this.closeRemainder(orderIds);
     // Second deposit at the new price (no retro profit) + one epoch settle.
     const realizedSum = await this.demoRealized(orderIds);
@@ -332,6 +357,93 @@ export class DemoService {
       }
     }
     return closed;
+  }
+
+  /**
+   * Guided-flow partial exit (demo vaults only): sell a fraction of one open
+   * order at the live price. TP1 leg when the live price reached the target,
+   * otherwise a TIME scratch leg. Honest paper math — realized from the live
+   * print, order stays open unless the remainder hits zero.
+   */
+  async partialClose(
+    opts: { vaultId: number; orderId?: number; fraction?: number },
+    actor: string,
+  ): Promise<Record<string, unknown>> {
+    const v = await this.prisma.vault.findUnique({ where: { id: opts.vaultId } });
+    if (!v || !(v.name as string).startsWith(DEMO_PREFIX)) fail(`Vault ${opts.vaultId} is not a demo vault.`);
+    const frac = Math.min(Math.max(typeof opts.fraction === 'number' ? opts.fraction : 0.4, 0.05), 1);
+    let order;
+    if (opts.orderId !== undefined) {
+      order = await this.prisma.copyOrder.findUnique({ where: { id: opts.orderId } });
+      if (!order || (order.vaultId as number) !== (v.id as number)) fail(`Order ${opts.orderId} is not in demo vault ${v.id}.`);
+      if ((order.closedAt as unknown) !== null && (order.closedAt as unknown) !== undefined) fail(`Order ${opts.orderId} is already closed.`);
+    } else {
+      const open = await this.prisma.copyOrder.findMany({
+        where: { vaultId: v.id, closedAt: null, status: 'CONFIRMED' },
+        orderBy: { id: 'asc' },
+      });
+      order = open[0] ?? null;
+      if (!order) fail(`Demo vault ${v.id} has no open orders to partially exit.`);
+    }
+    const mints = order.tokenMint ? [order.tokenMint as string] : [];
+    const WSOL = 'So11111111111111111111111111111111111111112';
+    let spot: Record<string, number> = {};
+    let solPx = 0;
+    try {
+      const px = await this.market.bulkPrices([...new Set([...mints, WSOL])]);
+      solPx = px[WSOL] ?? 0;
+      spot = px;
+    } catch {
+      spot = {};
+    }
+    const entry = num(order.entryPriceUsd);
+    const live = (order.tokenMint && spot[order.tokenMint as string]) || null;
+    const tp1 = num(order.tp1Pct);
+    const hit = entry > 0 && live !== null && tp1 > 0 && live >= entry * (1 + tp1 / 100);
+    const legs = await this.prisma.copyOrderLeg.findMany({ where: { orderId: order.id } });
+    const done = legs.reduce((s, l) => s + Number(l.fraction ?? 0), 0);
+    const remaining = Math.max(0, 1 - done);
+    const take = Math.min(frac, remaining);
+    if (take <= 1e-9) fail(`Order ${order.id} is already fully exited.`);
+    const exit = live ?? (entry > 0 ? entry : 0);
+    const realized = entry > 0 && live !== null
+      ? Math.round((((live - entry) / entry) * num(order.amountUsd) * take) * 100) / 100
+      : 0;
+    const leg = hit ? 'TP1' : 'TIME';
+    await this.prisma.copyOrderLeg.create({
+      data: { orderId: order.id, leg, fraction: take, exitPriceUsd: exit, realizedPnlUsd: realized, closedAt: new Date() },
+    });
+    const all = await this.prisma.copyOrderLeg.findMany({ where: { orderId: order.id } });
+    const total = Math.round(all.reduce((s, l) => s + Number(l.realizedPnlUsd ?? 0), 0) * 100) / 100;
+    const closesFully = remaining - take <= 1e-9;
+    await this.prisma.copyOrder.update({
+      where: { id: order.id },
+      data: closesFully
+        ? { exitPriceUsd: exit, closeReason: leg === 'TP1' ? 'TP1_HIT' : 'TIME_STOP', closedAt: new Date(), realizedPnlUsd: total }
+        : { exitPriceUsd: exit, realizedPnlUsd: total },
+    });
+    await this.audit.record({
+      actor,
+      action: 'demo.partial_close',
+      target: `order:${order.id}`,
+      reason: `${leg} frac=${take} exit=${exit} realized=$${realized}`,
+    });
+    try {
+      emitSignal({
+        vaultId: v.id as number,
+        kind: 'EXIT',
+        token: (order.symbol as string | null) ?? ((order.tokenMint as string | null) ?? '').slice(0, 8),
+        trader: (order.masterHandle as string | null) ?? ((order.masterWallet as string | null) ?? '').slice(0, 8),
+        note: `${leg} ${(take * 100).toFixed(0)}% @${exit} (${realized >= 0 ? '+' : ''}$${realized})`,
+      });
+    } catch {
+      // stream-only
+    }
+    return {
+      orderId: order.id, leg, fraction: take, exitPriceUsd: exit,
+      realizedPnlUsd: realized, remaining: Math.max(0, remaining - take),
+      closed: closesFully, solPx, environment: 'sandbox' as const,
+    };
   }
 
   private async demoRealized(orderIds: number[]): Promise<number> {

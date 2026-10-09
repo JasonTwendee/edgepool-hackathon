@@ -1584,6 +1584,25 @@ paths:
         '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/demo/partial-close:
+    post:
+      summary: Partial exit at the live price, demo vaults only (ADMIN, guided flow)
+      operationId: demoPartialClose
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Leg booked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/demo/reset:
     post:
       summary: Delete demo business rows, keep audit (ADMIN, audited)

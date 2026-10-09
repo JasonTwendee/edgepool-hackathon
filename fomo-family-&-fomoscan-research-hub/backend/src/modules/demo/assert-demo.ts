@@ -34,6 +34,7 @@ function makeWorld(seed: {
   bots?: Row[];
   orders?: Row[];
   legs?: Row[];
+  prices?: Row;
 }) {
   const db = {
     wallets: seed.wallets ?? [],
@@ -118,6 +119,12 @@ function makeWorld(seed: {
     },
     copyOrder: {
       findMany: async ({ where }: { where?: Row }) => (!where ? [...db.orders] : db.orders.filter((r) => match(r, where))),
+      findUnique: async ({ where }: { where: Row }) => db.orders.find((r) => match(r, where)) ?? null,
+      update: async ({ where, data }: { where: Row; data: Row }) => {
+        const r = db.orders.find((x) => match(x, where)) as Row;
+        Object.assign(r, data);
+        return r;
+      },
       deleteMany: async ({ where }: { where: Row }) => {
         const before = db.orders.length;
         db.orders = db.orders.filter((r) => !match(r, where));
@@ -190,7 +197,15 @@ function makeWorld(seed: {
       return { id: audits.length };
     },
   } as never;
-  const market = { bulkPrices: async () => ({}) } as never;
+  const market = {
+    bulkPrices: async (mints: string[]) => {
+      const out: Row = {};
+      for (const m of mints) {
+        if (seed.prices && m in seed.prices) out[m] = (seed.prices as Row)[m];
+      }
+      return out;
+    },
+  } as never;
   const svc = new DemoService(prisma, copy, manage, vaults, bots, audit, market);
   return { svc, audits, fired, db };
 }
@@ -329,6 +344,54 @@ async function main(): Promise<void> {
     }
     assert.ok(w.audits.some((a) => a.action === 'demo.scenario'));
     assert.equal(r.environment, 'sandbox');
+  }
+
+  // 9. Replay skipClose: fires live, leaves positions open, no scripted settle.
+  {
+    const w = makeWorld({
+      signals: [SIG('s1', 'WA'), SIG('s2', 'WB')],
+      vaults: [{ id: 1, name: 'demo-fund-x' }],
+      bots: [{ id: 7, name: 'demo-bot-x', vaultId: 1 }],
+    });
+    const r = await w.svc.replay({ vaultId: 1, botId: 7, days: 7, limit: 10, skipClose: true }, 'admin');
+    assert.equal(r.fired, 2);
+    assert.equal((r as Row).skippedClose, true);
+    assert.equal((r as Row).forceClosed, 0);
+    assert.equal((r as Row).settleNavSol, null);
+  }
+  // 10. Partial close: TP1 leg at target, TIME scratch below it, demo-only guard.
+  {
+    const WSOL = 'So11111111111111111111111111111111111111112';
+    const w = makeWorld({
+      vaults: [{ id: 1, name: 'demo-fund-x' }],
+      orders: [
+        { id: 21, vaultId: 1, status: 'CONFIRMED', symbol: '$T', masterHandle: 't', masterWallet: 'W', tokenMint: 'M1', amountUsd: 100, entryPriceUsd: 10, tp1Pct: 60, stopPct: 30, closedAt: null, realizedPnlUsd: 0 },
+        { id: 22, vaultId: 1, status: 'CONFIRMED', symbol: '$U', masterHandle: 't', masterWallet: 'W', tokenMint: 'M2', amountUsd: 100, entryPriceUsd: 10, tp1Pct: 60, stopPct: 30, closedAt: null, realizedPnlUsd: 0 },
+      ],
+      prices: { M1: 16, M2: 11, [WSOL]: 100 } as Row,
+    });
+    // Live +60% over entry → TP1 partial 40%.
+    const tp = (await w.svc.partialClose({ vaultId: 1, orderId: 21, fraction: 0.4 }, 'admin')) as Row;
+    assert.equal(tp.leg, 'TP1');
+    assert.equal(tp.fraction, 0.4);
+    assert.equal(tp.realizedPnlUsd, 24); // (16-10)/10*100*0.4
+    assert.equal(tp.closed, false);
+    assert.equal(tp.solPx, 100);
+    const o21 = w.db.orders.find((o) => o.id === 21) as Row;
+    assert.equal(o21.closedAt ?? null, null); // stays open (partial)
+    // Below target → TIME scratch leg, still open.
+    const tm = (await w.svc.partialClose({ vaultId: 1, orderId: 22 }, 'admin')) as Row;
+    assert.equal(tm.leg, 'TIME');
+    assert.equal(tm.realizedPnlUsd, 4); // (11-10)/10*100*0.4
+    // Full take stamps the close.
+    const full = (await w.svc.partialClose({ vaultId: 1, orderId: 22, fraction: 1 }, 'admin')) as Row;
+    assert.equal(full.closed, true);
+    assert.equal((w.db.orders.find((o) => o.id === 22) as Row).closeReason, 'TIME_STOP');
+    // Live vaults are refused.
+    const w2 = makeWorld({ vaults: [{ id: 2, name: 'paper' }], orders: [] });
+    await assert.rejects(() => w2.svc.partialClose({ vaultId: 2 }, 'admin'), /not a demo vault/);
+    await assert.rejects(() => w.svc.partialClose({ vaultId: 1, orderId: 999 }, 'admin'), /not in demo vault/);
+    assert.ok(w.audits.some((a) => a.action === 'demo.partial_close'));
   }
 
   console.log('demo asserts: ALL GREEN');

@@ -750,13 +750,36 @@ export interface DemoReplayResult {
   failed: number;
   orderIds: number[];
   forceClosed: number;
-  deposit2: number;
-  settleNavSol: number;
-  withdrawal: { id: number; status: string; pending: boolean; message: string } | null;
+  skippedClose?: boolean;
+  deposit2?: number;
+  settleNavSol?: number | null;
+  withdrawal?: { id: number; status: string; pending: boolean; message: string } | null;
   environment: 'sandbox';
 }
 
 /** Replay real BUYs into one demo pool (ADMIN). */
-export function replayDemo(token: string, opts: { vaultId?: number; botId?: number; days?: number; limit?: number }): Promise<{ success: boolean; data: DemoReplayResult }> {
+export function replayDemo(token: string, opts: { vaultId?: number; botId?: number; days?: number; limit?: number; skipClose?: boolean }): Promise<{ success: boolean; data: DemoReplayResult }> {
   return fetchJsonAuth('/api/demo/replay', token, { method: 'POST', body: JSON.stringify(opts) });
+}
+
+export interface DemoPartialCloseResult {
+  orderId: number;
+  leg: string;
+  fraction: number;
+  exitPriceUsd: number;
+  realizedPnlUsd: number;
+  remaining: number;
+  closed: boolean;
+  solPx: number;
+  environment: 'sandbox';
+}
+
+/** Partial exit at the live price, demo vaults only (ADMIN). */
+export function partialCloseDemo(token: string, opts: { vaultId: number; orderId?: number; fraction?: number }): Promise<{ success: boolean; data: DemoPartialCloseResult }> {
+  return fetchJsonAuth('/api/demo/partial-close', token, { method: 'POST', body: JSON.stringify(opts) });
+}
+
+/** Manual epoch settle (ADMIN). */
+export function settleVault(token: string, vaultId: number, navSol: number): Promise<{ success: boolean; data: { epochId: number; navSol: number; sharePrice: number; sharesOutstanding: number; feeSol: number; settledDeposits: { id: number; shares: number }[]; settledWithdrawals: { id: number; payoutSol: number }[] } }> {
+  return fetchJsonAuth('/api/vaults/settle', token, { method: 'POST', body: JSON.stringify({ vaultId, navSol }) });
 }

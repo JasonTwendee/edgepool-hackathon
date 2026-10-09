@@ -225,6 +225,7 @@
     "GET /api/demo/bot/:id/performance": "backend/src/modules/demo/demo.controller.ts",
     "POST /api/demo/seed": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
     "POST /api/demo/replay": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
+    "POST /api/demo/partial-close": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit, demo-vault-only guided partial exit)",
     "POST /api/demo/reset": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
     "POST /api/demo/scenario": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit, reset + 3 parallel seed/replay cases)",
     "POST /api/partner/pools/:id/traders/:wallet/pause": "backend/src/modules/partner/partner.controller.ts (ADMIN)",
