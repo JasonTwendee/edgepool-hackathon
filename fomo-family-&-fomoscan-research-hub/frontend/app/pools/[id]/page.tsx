@@ -271,11 +271,11 @@ export default function PoolDetailPage() {
       if (myShares <= 0) throw new Error('No shares to withdraw (deposit did not settle?).');
       const wShares = Math.max(0.0001, Math.floor((myShares / 2) * 10000) / 10000);
       const wd = await requestVaultWithdraw({ vaultId: pool.id, shares: wShares }, token);
-      const payoutEst = wShares * cur.navPerShare;
       paint('withdraw', 'done', `withdrawal #${wd.data.id} queued · ${wShares} shares`);
-      // 7. Settle the withdrawal.
+      // 7. Settle the withdrawal at the full pre-withdrawal NAV (withdrawing
+      // shares does not dilute the price — payout = shares × price).
       paint('settle3', 'run');
-      const s3 = await settleVault(token, pool.id, Math.round(Math.max(0, cur.navSol - payoutEst) * 1e9) / 1e9);
+      const s3 = await settleVault(token, pool.id, cur.navSol);
       const paid = s3.data.settledWithdrawals.find((w) => w.id === wd.data.id);
       paint('settle3', 'done', paid ? `paid ${paid.payoutSol.toFixed(4)} SOL` : 'settled');
       await fresh();
