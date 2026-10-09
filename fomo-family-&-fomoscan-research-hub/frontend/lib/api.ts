@@ -725,7 +725,9 @@ export function runDemoScenario(token: string): Promise<{ success: boolean; data
 
 /** Delete demo pools + orders, keep audit (ADMIN). */
 export function resetDemo(token: string): Promise<{ success: boolean; data: unknown }> {
-  return fetchJsonAuth('/api/demo/reset', token, { method: 'POST' });
+  const p = fetchJsonAuth<{ success: boolean; data: unknown }>('/api/demo/reset', token, { method: 'POST' });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export interface DemoSeedResult {
@@ -739,7 +741,9 @@ export interface DemoSeedResult {
 
 /** Seed one demo pool (ADMIN). Used by the pool-detail demo console. */
 export function seedDemo(token: string, opts: { name?: string; depositSol?: number; traderCount?: number }): Promise<{ success: boolean; data: DemoSeedResult }> {
-  return fetchJsonAuth('/api/demo/seed', token, { method: 'POST', body: JSON.stringify(opts) });
+  const p = fetchJsonAuth<{ success: boolean; data: DemoSeedResult }>('/api/demo/seed', token, { method: 'POST', body: JSON.stringify(opts) });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export interface DemoReplayResult {
@@ -748,6 +752,7 @@ export interface DemoReplayResult {
   signals: number;
   fired: number;
   failed: number;
+  skipped?: number;
   orderIds: number[];
   forceClosed: number;
   skippedClose?: boolean;
@@ -759,7 +764,9 @@ export interface DemoReplayResult {
 
 /** Replay real BUYs into one demo pool (ADMIN). */
 export function replayDemo(token: string, opts: { vaultId?: number; botId?: number; days?: number; limit?: number; skipClose?: boolean }): Promise<{ success: boolean; data: DemoReplayResult }> {
-  return fetchJsonAuth('/api/demo/replay', token, { method: 'POST', body: JSON.stringify(opts) });
+  const p = fetchJsonAuth<{ success: boolean; data: DemoReplayResult }>('/api/demo/replay', token, { method: 'POST', body: JSON.stringify(opts) });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 export interface DemoPartialCloseResult {
@@ -776,10 +783,14 @@ export interface DemoPartialCloseResult {
 
 /** Partial exit at the live price, demo vaults only (ADMIN). */
 export function partialCloseDemo(token: string, opts: { vaultId: number; orderId?: number; fraction?: number }): Promise<{ success: boolean; data: DemoPartialCloseResult }> {
-  return fetchJsonAuth('/api/demo/partial-close', token, { method: 'POST', body: JSON.stringify(opts) });
+  const p = fetchJsonAuth<{ success: boolean; data: DemoPartialCloseResult }>('/api/demo/partial-close', token, { method: 'POST', body: JSON.stringify(opts) });
+  void p.then(() => bumpApiCache());
+  return p;
 }
 
 /** Manual epoch settle (ADMIN). */
 export function settleVault(token: string, vaultId: number, navSol: number): Promise<{ success: boolean; data: { epochId: number; navSol: number; sharePrice: number; sharesOutstanding: number; feeSol: number; settledDeposits: { id: number; shares: number }[]; settledWithdrawals: { id: number; payoutSol: number }[] } }> {
-  return fetchJsonAuth('/api/vaults/settle', token, { method: 'POST', body: JSON.stringify({ vaultId, navSol }) });
+  const p = fetchJsonAuth<{ success: boolean; data: { epochId: number; navSol: number; sharePrice: number; sharesOutstanding: number; feeSol: number; settledDeposits: { id: number; shares: number }[]; settledWithdrawals: { id: number; payoutSol: number }[] } }>('/api/vaults/settle', token, { method: 'POST', body: JSON.stringify({ vaultId, navSol }) });
+  void p.then(() => bumpApiCache());
+  return p;
 }

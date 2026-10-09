@@ -253,7 +253,7 @@ export default function PoolDetailPage() {
       if (rep.data.fired === 0) {
         rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 25, skipClose: true });
       }
-      paint('replay', 'done', `${rep.data.signals} signals · ${rep.data.fired} entered`);
+      paint('replay', 'done', `${rep.data.signals} signals · ${rep.data.fired} entered${rep.data.skipped ? ` · ${rep.data.skipped} no-notional skipped` : ''}`);
       cur = await fresh();
       await loadJourneys(pool.id);
       if (rep.data.fired === 0) throw new Error('No signal entered — try again (scope caps rotate).');

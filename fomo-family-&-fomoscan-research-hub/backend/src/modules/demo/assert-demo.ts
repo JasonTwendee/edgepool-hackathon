@@ -253,6 +253,7 @@ async function main(): Promise<void> {
     assert.equal(r.signals, 4); // 3 WA + 1 WB (4th WA dropped by per-wallet cap)
     assert.equal(r.fired, 4);
     assert.equal(r.failed, 0);
+    assert.equal((r as Row).skipped, 0);
     // Simulated path: PAPER enabled override + stub executor shape recorded.
     const first = w.fired[0];
     assert.equal((first.ov as Row).paperEnabled, true);
@@ -358,6 +359,18 @@ async function main(): Promise<void> {
     assert.equal((r as Row).skippedClose, true);
     assert.equal((r as Row).forceClosed, 0);
     assert.equal((r as Row).settleNavSol, null);
+  }
+  // 9b. Zero-notional master fills are skipped openly (never $0 orders).
+  {
+    const w = makeWorld({
+      signals: [{ ...SIG('s0', 'WA'), amountUsd: 0 }, SIG('s1', 'WA')],
+      vaults: [{ id: 1, name: 'demo-fund-x' }],
+      bots: [{ id: 7, name: 'demo-bot-x', vaultId: 1 }],
+    });
+    const r = await w.svc.replay({ vaultId: 1, botId: 7, days: 7, limit: 10 }, 'admin');
+    assert.equal(r.fired, 1);
+    assert.equal((r as Row).skipped, 1);
+    assert.equal(w.fired.length, 1);
   }
   // 10. Partial close: TP1 leg at target, TIME scratch below it, demo-only guard.
   {

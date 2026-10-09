@@ -139,8 +139,22 @@ export class DemoService {
     }).slice(0, limit);
     let fired = 0;
     let failed = 0;
+    let skipped = 0;
     const orderIds: number[] = [];
     for (const s of signals) {
+      // A master fill with no recorded notional would book a $0 paper order
+      // (entry $0, no economics). Skip it openly instead of firing confetti.
+      if (!num(s.amountUsd)) {
+        skipped++;
+        emitSignal({
+          vaultId,
+          kind: 'SKIP',
+          token: (s.symbol ?? (s.tokenMint ?? '').slice(0, 8)) || '—',
+          trader: (s.walletAddress ?? '').slice(0, 8),
+          note: 'demo skip: no notional on master fill',
+        });
+        continue;
+      }
       try {
         const order = await this.copy.executePaper(
           {
@@ -195,7 +209,7 @@ export class DemoService {
         actor,
         action: 'demo.replay',
         target: `vault:${vaultId}`,
-        reason: `bot:${botId} signals=${signals.length} fired=${fired} failed=${failed} skippedClose`,
+        reason: `bot:${botId} signals=${signals.length} fired=${fired} failed=${failed} skipped=${skipped} skippedClose`,
       });
       return {
         vaultId,
@@ -203,6 +217,7 @@ export class DemoService {
         signals: signals.length,
         fired,
         failed,
+        skipped,
         orderIds,
         managed,
         forceClosed: 0,
@@ -248,7 +263,7 @@ export class DemoService {
       actor,
       action: 'demo.replay',
       target: `vault:${vaultId}`,
-      reason: `bot:${botId} signals=${signals.length} fired=${fired} failed=${failed} forceClosed=${forceClosed} withdrawal=${withdrawal?.status ?? 'none'}`,
+      reason: `bot:${botId} signals=${signals.length} fired=${fired} failed=${failed} skipped=${skipped} forceClosed=${forceClosed} withdrawal=${withdrawal?.status ?? 'none'}`,
     });
     return {
       vaultId,
@@ -256,6 +271,7 @@ export class DemoService {
       signals: signals.length,
       fired,
       failed,
+      skipped,
       orderIds,
       managed,
       forceClosed,
