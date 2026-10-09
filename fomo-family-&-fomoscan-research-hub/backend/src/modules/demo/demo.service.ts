@@ -130,9 +130,17 @@ export class DemoService {
       orderBy: { blockTime: 'asc' },
       take: limit * 2,
     });
+    // Prefer this pool's own trader set: a 3-trader demo pool can never fire
+    // global signals from outside its scope, so in-scope fills go first.
+    // Pools with no trader set keep the legacy global order.
+    const scoped = await this.prisma.vaultTrader.findMany({ where: { vaultId, isActive: true } });
+    const scope = new Set(scoped.map((t) => t.wallet));
+    const ordered = scope.size > 0
+      ? [...rows.filter((r) => scope.has(r.walletAddress)), ...rows.filter((r) => !scope.has(r.walletAddress))]
+      : rows;
     // Respect exposure caps (3/trader/24h): at most 3 signals per master.
     const perWallet = new Map<string, number>();
-    const signals = rows.filter((r) => {
+    const signals = ordered.filter((r) => {
       const c = (perWallet.get(r.walletAddress) ?? 0) + 1;
       perWallet.set(r.walletAddress, c);
       return c <= 3;

@@ -35,6 +35,7 @@ function makeWorld(seed: {
   orders?: Row[];
   legs?: Row[];
   prices?: Row;
+  scope?: Row[];
 }) {
   const db = {
     wallets: seed.wallets ?? [],
@@ -81,7 +82,7 @@ function makeWorld(seed: {
       },
     },
     vaultTrader: {
-      findMany: async () => [],
+      findMany: async () => [...(seed.scope ?? [])],
       create: async ({ data }: { data: Row }) => ({ id: nid(), ...data }),
       deleteMany: async ({ where }: { where: Row }) => {
         void where;
@@ -371,6 +372,18 @@ async function main(): Promise<void> {
     assert.equal(r.fired, 1);
     assert.equal((r as Row).skipped, 1);
     assert.equal(w.fired.length, 1);
+  }
+  // 9c. In-scope signals go first: pool scoped to WB fires WB even when listed second.
+  {
+    const w = makeWorld({
+      signals: [SIG('s1', 'WA'), SIG('s2', 'WB')],
+      vaults: [{ id: 1, name: 'demo-fund-x' }],
+      bots: [{ id: 7, name: 'demo-bot-x', vaultId: 1 }],
+      scope: [{ wallet: 'WB' }],
+    });
+    const r = await w.svc.replay({ vaultId: 1, botId: 7, days: 7, limit: 1, skipClose: true }, 'admin');
+    assert.equal(r.fired, 1);
+    assert.equal(((w.fired[0].dto as Row).masterWallet as string), 'WB');
   }
   // 10. Partial close: TP1 leg at target, TIME scratch below it, demo-only guard.
   {

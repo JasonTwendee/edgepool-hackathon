@@ -251,7 +251,8 @@ export default function PoolDetailPage() {
       if (!bot) throw new Error('This demo pool has no bot.');
       let rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 10, skipClose: true });
       if (rep.data.fired === 0) {
-        rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 25, skipClose: true });
+        // Recent fills often lack notionals (skipped openly) — hunt wider.
+        rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 30, limit: 25, skipClose: true });
       }
       paint('replay', 'done', `${rep.data.signals} signals · ${rep.data.fired} entered${rep.data.skipped ? ` · ${rep.data.skipped} no-notional skipped` : ''}`);
       cur = await fresh();
