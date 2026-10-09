@@ -127,7 +127,7 @@ export class DemoService {
     const rows = await this.prisma.transaction.findMany({
       where: { action: 'BUY', tokenMint: { not: null }, createdAt: { gte: since } },
       select: { signature: true, walletAddress: true, symbol: true, tokenMint: true, amountUsd: true, dexVenue: true },
-      orderBy: { blockTime: 'asc' },
+      orderBy: { blockTime: 'desc' },
       take: limit * 2,
     });
     // Prefer this pool's own trader set: a 3-trader demo pool can never fire
