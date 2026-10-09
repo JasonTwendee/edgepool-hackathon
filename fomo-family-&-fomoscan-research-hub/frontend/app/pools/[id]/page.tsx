@@ -243,11 +243,16 @@ export default function PoolDetailPage() {
       cur = await fresh();
       await loadJourneys(pool.id);
       // 3. Fire real signals (positions stay open for the visible exit).
+      // Same scope as the replay-only button; one retry with a wider net so
+      // the guided flow rarely stalls on scope caps.
       paint('replay', 'run');
       const bots = await listBots();
       const bot = bots.data.filter((b) => b.vaultId === pool.id).sort((a, b) => b.id - a.id)[0];
       if (!bot) throw new Error('This demo pool has no bot.');
-      const rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 5, skipClose: true });
+      let rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 10, skipClose: true });
+      if (rep.data.fired === 0) {
+        rep = await replayDemo(token, { vaultId: pool.id, botId: bot.id, days: 7, limit: 25, skipClose: true });
+      }
       paint('replay', 'done', `${rep.data.signals} signals · ${rep.data.fired} entered`);
       cur = await fresh();
       await loadJourneys(pool.id);
@@ -278,9 +283,13 @@ export default function PoolDetailPage() {
       const s3 = await settleVault(token, pool.id, cur.navSol);
       const paid = s3.data.settledWithdrawals.find((w) => w.id === wd.data.id);
       paint('settle3', 'done', paid ? `paid ${paid.payoutSol.toFixed(4)} SOL` : 'settled');
-      await fresh();
+      cur = await fresh();
       await loadJourneys(pool.id);
-      setDemoMsg('Full lifecycle complete: deposit → trade → partial exit → settle → withdraw.');
+      setDemoMsg(
+        `Full lifecycle complete: deposit → trade → partial exit → settle → withdraw. ` +
+        `Pool NAV ${cur.navSol.toFixed(2)} · my shares ${cur.myHolding?.shares.toFixed(4) ?? '0.0000'}` +
+        (paid ? ` · got ${paid.payoutSol.toFixed(4)} SOL` : ''),
+      );
     } catch (e) {
       setFlowSteps((prev) => {
         const running = prev.find((s) => s.state === 'run');
