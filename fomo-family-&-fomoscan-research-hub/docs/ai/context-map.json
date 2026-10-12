@@ -296,7 +296,7 @@
     "siteChrome": "frontend/components/SiteHeader.tsx (64px header + wallet button + mobile tab bar + footer)",
     "toaster": "frontend/components/Toaster.tsx (bottom-center 2.8s toasts)",
     "portfolio": "frontend/app/portfolio/page.tsx (totals, Value/PnL chart, my pools, exposures, pending, history)",
-    "traderPortal": "frontend/app/trader/page.tsx (KOL: fees pending/claimable/paid, payout wallet, read-only traders + request, share card, signals, payouts; pool ops ADMIN-only in /terminal)",
+    "traderPortal": "frontend/app/trader/page.tsx (KOL owner portal per new design: fees, payout wallet, pool controls, traders table, rules editor, share preview; writes owner-gated in BE, ADMIN keeps fees/settle)",
     "terminal": "frontend/app/terminal/page.tsx (admin: leaderboard, chart, copy-trade, vaults, audit; login wall)",
     "frontendComponents": "frontend/components/* (LoginModal account+multi-wallet, MyVault, VaultCard, AdminPanel, PnlChart, SwapsTable, ...)",
     "frontendLib": "frontend/lib/api.ts (60+ fns), frontend/lib/sse.ts, frontend/lib/format.ts, frontend/lib/solana.ts",

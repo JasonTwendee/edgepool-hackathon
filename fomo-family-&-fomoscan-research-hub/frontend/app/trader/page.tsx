@@ -15,10 +15,13 @@ import {
   partnerMe,
   partnerPayoutChallenge,
   partnerPayouts,
+  partnerPauseTrader,
   partnerPoolTraders,
+  partnerRemoveTrader,
   partnerRequestTrader,
   partnerSetPayoutWallet,
   partnerSignals,
+  partnerUpdateSettings,
   storeSession,
   type PartnerMe,
   type PoolDetail,
@@ -228,6 +231,9 @@ export default function TraderPage() {
   const [detail, setDetail] = useState<PoolDetail | null>(null);
   const [solPx, setSolPx] = useState<number | null>(null);
   const [showManualWallet, setShowManualWallet] = useState(false);
+  const [slotDraft, setSlotDraft] = useState('');
+  const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
+  const [undone, setUndone] = useState<{ wallet: string } | null>(null);
 
   const load = useCallback(async (t: string) => {
     const res = await partnerMe(t);
@@ -489,6 +495,33 @@ export default function TraderPage() {
     }
   }
 
+  /** Owner writes (pool settings / traders / rules). BE enforces ownership —
+   * ADMIN-only paths stay in /terminal. Failures surface the BE message. */
+  async function saveSettings(patch: Record<string, unknown>, okMsg: string) {
+    if (!token || !pool || busy) return;
+    setBusy(true);
+    try {
+      await partnerUpdateSettings(token, pool.id, patch);
+      await load(token);
+      setSlotDraft('');
+      setMsg(okMsg);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshTraders() {
+    if (!token || poolId === null) return;
+    try {
+      const r = await partnerPoolTraders(token, poolId);
+      setTraders(r.data);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  }
+
   async function requestTrader() {
     if (!token || !pool || !reqFomo.trim()) return;
     try {
@@ -624,7 +657,22 @@ export default function TraderPage() {
                     </span>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className="text-xs font-mono" style={{ color: 'var(--ep-muted, #9397AB)' }}>{pool.listing}</span>
+                    <div className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+                      {(['public', 'unlisted'] as const).map((l) => (
+                        <button key={l} onClick={() => void saveSettings({ listing: l }, `Listing → ${l}.`)} disabled={busy}
+                          className="font-medium capitalize disabled:opacity-50"
+                          style={pool.listing === l
+                            ? { height: 32, padding: '0 14px', borderRadius: 6, fontSize: 13, background: '#2E313F', color: '#E9E9ED' }
+                            : { height: 32, padding: '0 14px', borderRadius: 6, fontSize: 13, background: 'transparent', color: 'var(--ep-muted, #9397AB)' }}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => void saveSettings({ status: pool.status === 'live' ? 'paused' : 'live' }, pool.status === 'live' ? 'Pool paused — no new positions.' : 'Pool live again.')} disabled={busy}
+                      className="font-medium text-xs disabled:opacity-50"
+                      style={{ height: 34, padding: '0 14px', borderRadius: 8, fontSize: 13, border: '1px solid var(--ep-amber, #F0BE67)', background: 'transparent', color: 'var(--ep-amber, #F0BE67)' }}>
+                      {pool.status === 'live' ? 'Pause pool' : 'Resume pool'}
+                    </button>
                     <Link href={`/pools/${pool.id}`} className="text-[13px] font-medium" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
                       View public page ↗
                     </Link>
@@ -651,7 +699,22 @@ export default function TraderPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>Max depositors</span>
-                    <span className="font-mono font-medium" style={{ fontSize: 20 }}>{pool.maxSlots}</span>
+                    <span className="flex items-center gap-2">
+                      <button onClick={() => void saveSettings({ maxSlots: Math.max(1, pool.maxSlots - 10) }, 'Slots updated.')} disabled={busy}
+                        className="font-medium disabled:opacity-50" style={{ width: 38, height: 38, borderRadius: 8, fontSize: 16, border: '1px solid #3F424D', color: 'var(--ep-text, #E9E9ED)' }}>
+                        −
+                      </button>
+                      <input value={slotDraft || String(pool.maxSlots)} onChange={(e) => setSlotDraft(e.target.value.replace(/[^0-9]/g, ''))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && slotDraft) void saveSettings({ maxSlots: Number(slotDraft) }, 'Slots updated.');
+                        }}
+                        inputMode="numeric" aria-label="Max depositors"
+                        className="text-center font-mono font-medium outline-none" style={{ width: 76, height: 38, borderRadius: 8, fontSize: 16, background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }} />
+                      <button onClick={() => void saveSettings({ maxSlots: pool.maxSlots + 10 }, 'Slots updated.')} disabled={busy}
+                        className="font-medium disabled:opacity-50" style={{ width: 38, height: 38, borderRadius: 8, fontSize: 16, border: '1px solid #3F424D', color: 'var(--ep-text, #E9E9ED)' }}>
+                        +
+                      </button>
+                    </span>
                     <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>
                       {detail ? `${detail.slots.used} depositors in now.` : 'Configured by Edgepool.'}
                     </span>
@@ -661,16 +724,27 @@ export default function TraderPage() {
                   <span className="text-[13px]" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
                     Traders · {traders.length} of {pool.maxTraders}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                    Max traders <b className="font-mono" style={{ color: 'var(--ep-text, #E9E9ED)' }}>{pool.maxTraders}</b>
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>Max traders</span>
+                    <span className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+                      {[3, 4, 5].map((n) => (
+                        <button key={n} onClick={() => void saveSettings({ maxTraders: n }, `Max traders → ${n}.`)} disabled={busy}
+                          className="font-bold disabled:opacity-50"
+                          style={pool.maxTraders === n
+                            ? { width: 34, height: 32, fontSize: 13, background: '#2E313F', color: '#E9E9ED' }
+                            : { width: 34, height: 32, fontSize: 13, background: 'transparent', color: 'var(--ep-muted, #9397AB)' }}>
+                          {n}
+                        </button>
+                      ))}
+                    </span>
                   </span>
                 </div>
                 <div className="overflow-x-auto">
-                  <div className="grid font-mono uppercase" style={{ gridTemplateColumns: 'minmax(150px,1.4fr) 90px 90px 110px 110px', gap: 12, padding: '8px 4px', fontSize: 10, letterSpacing: '0.08em', color: 'var(--ep-faint, #75798C)', minWidth: 560 }}>
-                    <span>Trader</span><span>Status</span><span style={{ textAlign: 'right' }}>Signals 7d</span><span style={{ textAlign: 'right' }}>Profit made</span><span style={{ textAlign: 'right' }}>Fee earned {traderSharePct}%</span>
+                  <div className="grid font-mono uppercase" style={{ gridTemplateColumns: 'minmax(150px,1.4fr) 90px 90px 110px 110px 150px', gap: 12, padding: '8px 4px', fontSize: 10, letterSpacing: '0.08em', color: 'var(--ep-faint, #75798C)', minWidth: 640 }}>
+                    <span>Trader</span><span>Status</span><span style={{ textAlign: 'right' }}>Signals 7d</span><span style={{ textAlign: 'right' }}>Profit made</span><span style={{ textAlign: 'right' }}>Fee earned {traderSharePct}%</span><span style={{ textAlign: 'right' }}>Controls</span>
                   </div>
                   {traders.map((t) => (
-                    <div key={t.wallet} className="grid items-center text-[13px]" style={{ gridTemplateColumns: 'minmax(150px,1.4fr) 90px 90px 110px 110px', gap: 12, padding: '10px 4px', borderTop: '1px solid var(--ep-border, #2E313F)', minWidth: 560 }}>
+                    <div key={t.wallet} className="grid items-center text-[13px]" style={{ gridTemplateColumns: 'minmax(150px,1.4fr) 90px 90px 110px 110px 150px', gap: 12, padding: '10px 4px', borderTop: '1px solid var(--ep-border, #2E313F)', minWidth: 640 }}>
                       <span className="flex items-center gap-2.5 min-w-0">
                         <span className="grid place-items-center font-bold shrink-0" style={{ width: 30, height: 30, borderRadius: '50%', background: '#2B2741', color: '#D2CEFD' }}>
                           {(t.handle || '?').slice(0, 1).toUpperCase()}
@@ -689,12 +763,59 @@ export default function TraderPage() {
                         {usdToDisplay(t.profitUsd)}
                       </span>
                       <span className="font-mono" style={{ textAlign: 'right' }}>{t.feeSol.toFixed(2)} SOL</span>
+                      <span className="flex gap-1.5 justify-end">
+                        <button
+                          onClick={() => {
+                            if (!token) return;
+                            void partnerPauseTrader(token, pool.id, t.wallet, !t.isActive)
+                              .then(() => refreshTraders())
+                              .catch((e) => setMsg((e as Error).message));
+                          }}
+                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                          style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                          {t.isActive ? 'Pause' : 'Resume'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!token) return;
+                            void partnerRemoveTrader(token, pool.id, t.wallet)
+                              .then(() => {
+                                setUndone({ wallet: t.wallet });
+                                setTimeout(() => setUndone((u) => (u && u.wallet === t.wallet ? null : u)), 8000);
+                                return refreshTraders();
+                              })
+                              .catch((e) => setMsg((e as Error).message));
+                          }}
+                          className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg"
+                          style={{ border: '1px solid var(--ep-neg, #F28881)', color: 'var(--ep-neg, #F28881)' }}>
+                          Remove
+                        </button>
+                      </span>
                     </div>
                   ))}
                   {traders.length === 0 && (
                     <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', padding: '8px 4px' }}>No traders yet.</p>
                   )}
                 </div>
+                {undone && (
+                  <div className="flex items-center justify-between gap-2 text-[11px] rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
+                    <span style={{ color: 'var(--ep-amber, #F0BE67)' }}>Trader removed.</span>
+                    <button
+                      onClick={() => {
+                        if (!token || poolId === null) return;
+                        void partnerPauseTrader(token, poolId, undone.wallet, true)
+                          .then(() => {
+                            setUndone(null);
+                            return refreshTraders();
+                          })
+                          .catch((e) => setMsg((e as Error).message));
+                      }}
+                      className="font-bold px-2 py-1 rounded-lg"
+                      style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
+                      Undo
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2 flex-wrap items-center">
                   <input value={reqFomo} onChange={(e) => setReqFomo(e.target.value)} placeholder="Fomo handle to request"
                     className="min-w-0 text-xs px-2.5 py-2 rounded-lg outline-none" style={{ width: 220, background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }} />
@@ -715,24 +836,50 @@ export default function TraderPage() {
             <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="flex justify-between items-baseline gap-2 flex-wrap">
                 <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool rules · custom</span>
+                <button onClick={() => {
+                  const rules: Record<string, number> = {};
+                  for (const [k, v] of Object.entries(ruleVals)) {
+                    if (v.trim() === '') continue;
+                    const n = Number(v);
+                    if (!Number.isFinite(n)) {
+                      setMsg(`Rule ${k} must be a number.`);
+                      return;
+                    }
+                    rules[k] = n;
+                  }
+                  void saveSettings({ rulesJson: rules }, 'Pool rules saved — applies to new trades.').then(() => setRuleVals({}));
+                }}
+                  disabled={busy || Object.keys(ruleVals).length === 0}
+                  className="font-medium text-[13px] disabled:opacity-50"
+                  style={{ height: 38, padding: '0 16px', borderRadius: 8, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
+                  Save rules
+                </button>
               </div>
-              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Changes apply to new trades only. Managed by Edgepool.</span>
+              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Changes apply to new trades only.</span>
               <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,150px),1fr))', gap: 10 }}>
                 {[
-                  ['Cap per trader', pool?.rulesJson?.traderCapPctNav, '% NAV'],
-                  ['Enter now', pool?.rulesJson?.entryNowPct, '%'],
-                  ['Limit offset', pool?.rulesJson?.limitOffsetPct, '%'],
-                  ['Stop min', pool?.rulesJson?.stopMinPct, '%'],
-                  ['Stop max', pool?.rulesJson?.stopMaxPct, '%'],
-                  ['Time stop', pool?.rulesJson?.timeStopHours, 'h'],
-                  ['Daily kill switch', pool?.rulesJson?.dailyKillSwitchPct, '%'],
-                  ['Weekly loss limit', pool?.rulesJson?.weeklyLossLimitPct, '%'],
-                ].map(([label, v, unit]) => (
-                  <div key={label as string} className="flex flex-col gap-1" style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+                  ['traderCapPctNav', 'Cap per trader', '% NAV'],
+                  ['entryNowPct', 'Enter now', '%'],
+                  ['limitOffsetPct', 'Limit offset', '%'],
+                  ['stopMinPct', 'Stop min', '%'],
+                  ['stopMaxPct', 'Stop max', '%'],
+                  ['timeStopHours', 'Time stop', 'h'],
+                  ['dailyKillSwitchPct', 'Daily kill switch', '%'],
+                  ['weeklyLossLimitPct', 'Weekly loss limit', '%'],
+                ].map(([key, label, unit]) => (
+                  <div key={key as string} className="flex flex-col gap-1" style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
                     <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{label}</span>
-                    <span className="font-mono font-medium" style={{ fontSize: 18 }}>
-                      {typeof v === 'number' ? v : '—'}
-                      <span className="text-xs font-normal" style={{ color: 'var(--ep-faint, #75798C)' }}> {unit}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <input
+                        value={ruleVals[key as string] ?? (pool?.rulesJson?.[key as string] !== undefined && pool?.rulesJson?.[key as string] !== null ? String(pool.rulesJson[key as string]) : '')}
+                        onChange={(e) => setRuleVals((v) => ({ ...v, [key as string]: e.target.value.replace(/[^0-9.]/g, '') }))}
+                        placeholder="—"
+                        inputMode="decimal"
+                        aria-label={label as string}
+                        className="flex-1 min-w-0 font-mono font-medium outline-none bg-transparent"
+                        style={{ fontSize: 18, color: 'var(--ep-text, #E9E9ED)' }}
+                      />
+                      <span className="text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>{unit}</span>
                     </span>
                   </div>
                 ))}

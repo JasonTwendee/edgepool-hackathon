@@ -288,10 +288,10 @@ export class PartnerService {
   }
 
   async updateSettings(vaultId: number, user: PartnerUser, patch: Record<string, unknown>): Promise<Record<string, unknown>> {
-    // Pool ops moved to /terminal (ADMIN-only): KOL portal is Fees/Share/
-    // Signals/Payouts + request-trader only. Guard stays here too so a direct
-    // API call from a KOL session is refused even if the route guard is bypassed.
-    if (user.role !== 'ADMIN') fail('ADMIN only: pool settings are managed in /terminal.');
+    // Owner model: the KOL owns their partner pool outright (pause, listing,
+    // slots, traders, rules) — reputation is theirs. ADMIN bypasses owner
+    // checks and additionally owns fees/settle elsewhere. Guards stay here
+    // (not just the route) so direct API calls are confined the same way.
     await this.assertOwner(vaultId, user);
     const data: Record<string, unknown> = {};
     if (patch.name !== undefined) {
@@ -362,7 +362,6 @@ export class PartnerService {
   }
 
   async pauseTrader(vaultId: number, user: PartnerUser, wallet: string, active: boolean): Promise<unknown> {
-    if (user.role !== 'ADMIN') fail('ADMIN only: trader pause/remove is managed in /terminal.');
     await this.assertOwner(vaultId, user);
     if (active) return this.vaults.assignTrader(vaultId, wallet, 0);
     return this.vaults.removeTrader(vaultId, wallet);

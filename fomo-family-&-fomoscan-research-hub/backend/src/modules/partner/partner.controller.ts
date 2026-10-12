@@ -67,7 +67,7 @@ export class PartnerController {
 
   @Patch('pools/:id/settings')
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('KOL', 'ADMIN')
   @UseInterceptors(AuditInterceptor)
   @Audit('partner.update_settings')
   async settings(
@@ -95,7 +95,7 @@ export class PartnerController {
 
   @Post('pools/:id/traders/:wallet/pause')
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('KOL', 'ADMIN')
   @UseInterceptors(AuditInterceptor)
   @Audit('partner.pause_trader')
   async pauseTrader(
@@ -171,7 +171,7 @@ export class PartnerController {
 
   @Delete('pools/:id/traders/:wallet')
   @UseGuards(AuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('KOL', 'ADMIN')
   @UseInterceptors(AuditInterceptor)
   @Audit('partner.remove_trader')
   async removeTrader(

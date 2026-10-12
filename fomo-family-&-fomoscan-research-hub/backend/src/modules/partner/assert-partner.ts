@@ -203,17 +203,19 @@ async function main(): Promise<void> {
   assert.equal(fees2.claimableSol, 0);
   assert.equal(fees2.paidSol, 0.15);
 
-  // 4. Settings are ADMIN-only (pool ops live in /terminal, not the KOL portal).
-  // KOL direct calls are refused even for their own pool; ADMIN passes.
-  await assert.rejects(() => svc.updateSettings(1, KOL, { name: 'KOL rename' }), /ADMIN only/);
-  const st = (await svc.updateSettings(1, ADMIN, { name: 'Renamed Pool', status: 'paused', maxSlots: 50 })) as Row;
+  // 4. Owner model: the KOL owns their pool outright (settings + traders);
+  // a KOL touching someone else's pool is refused; ADMIN bypasses.
+  const st = (await svc.updateSettings(1, KOL, { name: 'Renamed Pool', status: 'paused', maxSlots: 50 })) as Row;
   assert.equal(st.name, 'Renamed Pool');
   assert.equal(st.status, 'paused');
-  await assert.rejects(() => svc.updateSettings(1, ADMIN, { rulesJson: { nope: 1 } }), /Unknown rule/);
-  const ok = (await svc.updateSettings(1, ADMIN, { rulesJson: { traderCapPctNav: 2 }, maxTraders: 4 })) as Row;
+  await assert.rejects(() => svc.updateSettings(1, KOL, { rulesJson: { nope: 1 } }), /Unknown rule/);
+  await assert.rejects(() => svc.updateSettings(2, KOL, { name: 'Hijack' }), /not assigned/);
+  await assert.rejects(() => svc.pauseTrader(2, KOL, 'W9', false), /not assigned/);
+  const ok = (await svc.updateSettings(1, KOL, { rulesJson: { traderCapPctNav: 2 }, maxTraders: 4 })) as Row;
   assert.equal(ok.maxTraders, 4);
-  await assert.rejects(() => svc.updateSettings(1, ADMIN, { maxSlots: 0 }), /1\.\.1000/);
-  await assert.rejects(() => svc.pauseTrader(1, KOL, 'W1', false), /ADMIN only/);
+  await assert.rejects(() => svc.updateSettings(1, KOL, { maxSlots: 0 }), /1\.\.1000/);
+  const adm = (await svc.updateSettings(2, ADMIN, { name: 'Admin rename' })) as Row;
+  assert.equal(adm.name, 'Admin rename');
 
   // 5. Traders table + request trader + signals + payouts.
   const trs = (await svc.poolTraders(1, KOL)) as Row[];

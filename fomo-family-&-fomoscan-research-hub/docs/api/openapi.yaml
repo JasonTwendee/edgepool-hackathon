@@ -326,7 +326,7 @@ paths:
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/partner/pools/{id}/settings:
     patch:
-      summary: Update pool settings (ADMIN-only, managed in /terminal)
+      summary: Update owned pool settings (owner/ADMIN)
       operationId: updatePoolSettings
       security: [{ bearerAuth: [] }]
       parameters:
