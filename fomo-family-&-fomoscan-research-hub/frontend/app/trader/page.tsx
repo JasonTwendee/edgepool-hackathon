@@ -203,6 +203,15 @@ function PendingView({ wallet, onReset }: { wallet: string; onReset: () => void 
   );
 }
 
+/** Reserved feedback slot: showing/clearing a message never moves the layout. */
+function MsgSlot({ msg }: { msg: string | null }) {
+  return (
+    <div style={{ minHeight: 20, display: 'flex', alignItems: 'center' }} aria-live="polite">
+      {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
+    </div>
+  );
+}
+
 export default function TraderPage() {
   const [token, setToken] = useState<string | null>(null);
   const [username, setUsername] = useState('');
@@ -464,7 +473,7 @@ export default function TraderPage() {
               </button>
             </>
           </div>
-          {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
+          <MsgSlot msg={msg} />
           <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
         </div>
         </div>
@@ -536,7 +545,7 @@ export default function TraderPage() {
                   </button>
                 </div>
               </div>
-              {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
+              <MsgSlot msg={msg} />
               <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
             </div>
           </div>
@@ -599,6 +608,7 @@ export default function TraderPage() {
       await load(token);
       setSlotDraft('');
       setMsg(okMsg);
+      toast(okMsg);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -669,7 +679,7 @@ export default function TraderPage() {
             <SignOut size={15} weight="regular" /> Sign out
           </button>
         </div>
-        {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
+        <MsgSlot msg={msg} />
 
         {(!me.payoutWallet || !me.payoutWalletVerified) && (
           <div className="flex items-center justify-between gap-4 flex-wrap" style={{ padding: '20px 22px', borderRadius: 16, background: 'rgba(145,132,217,0.12)', boxShadow: '0 0 0 1px var(--ep-violet, #9184D9)' }}>
