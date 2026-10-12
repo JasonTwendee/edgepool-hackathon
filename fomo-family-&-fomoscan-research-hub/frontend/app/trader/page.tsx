@@ -1032,8 +1032,11 @@ function SharePreview({ handle, isBasket, weekSol, weekPct, slug }: {
   handle: string; isBasket: boolean; weekSol: string; weekPct: string; slug: string;
 }) {
   return (
-    <div style={{ width: '100%', maxWidth: 600, borderRadius: 12, background: 'radial-gradient(70% 90% at 80% 40%, #1C1F30 0%, #161826 50%, #0D0F18 100%)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', padding: '28px 32px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflow: 'hidden' }}>
-      <span className="font-display font-bold" style={{ fontSize: 20 }}>◈ edgepool</span>
+    <div style={{ position: 'relative', width: '100%', maxWidth: 600, borderRadius: 12, background: 'radial-gradient(70% 90% at 80% 40%, #1C1F30 0%, #161826 50%, #0D0F18 100%)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', padding: '28px 32px 22px', overflow: 'hidden' }}>
+      <img src="/brand/motif-flow.svg" alt="" aria-hidden="true"
+        style={{ position: 'absolute', right: -160, top: 8, width: 560, opacity: 0.4, pointerEvents: 'none' }} />
+      <div className="relative flex flex-col" style={{ gap: 14 }}>
+      <img src="/brand/edgepool-horizontal-dark.svg" alt="edgepool" style={{ height: 22, alignSelf: 'flex-start' }} />
       <span className="self-start flex items-center gap-2 font-mono" style={{ fontSize: 11, letterSpacing: '0.1em', padding: '5px 11px', borderRadius: 999, background: 'rgba(73,230,215,0.08)', boxShadow: 'inset 0 0 0 1px rgba(73,230,215,0.5)', color: 'var(--ep-aqua, #49E6D7)' }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ep-aqua, #49E6D7)' }} />
         {isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER · ${slug.toUpperCase() || 'POOL'}`}
@@ -1049,8 +1052,11 @@ function SharePreview({ handle, isBasket, weekSol, weekPct, slug }: {
           <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>Pool NAV / share · 7d</span>
         </div>
       </div>
-      <span className="font-mono text-xs" style={{ color: '#81EADE' }}>edgepool · {slug || 'pool'}</span>
-      <span className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>Past performance does not indicate future results.</span>
+      <div className="flex justify-between items-center gap-3 flex-wrap">
+        <span className="font-mono text-xs" style={{ color: '#81EADE' }}>edgepool · {slug || 'pool'}</span>
+        <span className="text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>Past performance does not indicate future results.</span>
+      </div>
+      </div>
     </div>
   );
 }
