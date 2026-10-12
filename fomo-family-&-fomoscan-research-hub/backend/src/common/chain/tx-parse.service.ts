@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Connection } from '@solana/web3.js';
 import { getReadRpcUrl, SOLANA_COMMITMENT } from '../../config/solana.config.js';
 import { DataStreamService } from '../market/datastream.service.js';
+import type { EnrichedPartial } from '../../modules/helius/enrich.service.js';
 
 export interface ParsedSwap {
   action: 'BUY' | 'SELL' | 'TRANSFER' | 'UNKNOWN';
@@ -144,5 +145,42 @@ export class TxParseService {
       status,
       feeSol,
     };
+  }
+
+  /**
+   * Helius-free classification for fresh signatures another enricher didn't
+   * cover. Only SUCCESSFUL swaps with an identified token leg become
+   * signals — transfers, failures, and unparseable txs are skipped (the
+   * caller keeps their minimal UNKNOWN rows). Bounded and fail-soft:
+   * a parse failure must never break ingestion.
+   */
+  async classifyFresh(
+    address: string,
+    sigs: { signature: string }[],
+    covered: Set<string>,
+    budget = 30,
+  ): Promise<Map<string, EnrichedPartial>> {
+    const out = new Map<string, EnrichedPartial>();
+    const missing = sigs.filter((s) => !covered.has(s.signature));
+    for (const s of missing.slice(0, Math.max(0, budget))) {
+      try {
+        const p = await this.parse(s.signature, address);
+        if (!p || p.status !== 'SUCCESS') continue;
+        if ((p.action !== 'BUY' && p.action !== 'SELL') || !p.tokenMint) continue;
+        out.set(s.signature, {
+          action: p.action,
+          symbol: p.symbol,
+          tokenMint: p.tokenMint,
+          amountToken: p.amountToken,
+          amountUsd: p.amountUsd,
+          dexVenue: p.dexVenue as EnrichedPartial['dexVenue'],
+          status: p.status,
+          feeSol: p.feeSol,
+        });
+      } catch {
+        // Keep the UNKNOWN row.
+      }
+    }
+    return out;
   }
 }

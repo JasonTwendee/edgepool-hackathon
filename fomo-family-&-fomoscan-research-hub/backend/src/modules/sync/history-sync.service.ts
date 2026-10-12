@@ -14,10 +14,6 @@ import { TxParseService } from '../../common/chain/tx-parse.service.js';
 
 const DEFAULT_DAYS = 120;
 const DEFAULT_MAX_TX = 1000;
-// Helius-free classification budget: pure-RPC parse is 1 getTransaction (+1
-// price lookup per swap) per signature — bounded per wallet per tick so a
-// deep backfill can never stall the 2-minute sync loop behind RPC calls.
-const RPC_PARSE_BUDGET = 30;
 // Helius paginates reliably with small pages; big limits truncate `before`.
 const PAGE_LIMIT = 100;
 const HEAL_BATCH = 200;
@@ -101,7 +97,8 @@ export class HistorySyncService {
     // pure-RPC parse. Without this every row stays UNKNOWN and auto-fire
     // starves (Helius decommissioned 2026-10-07). Parse failures keep the
     // minimal UNKNOWN row — classification must never break ingestion.
-    const rpcParsed = await this.rpcParseFresh(wallet.address, fresh, enriched);
+    const covered = new Set(enriched.keys());
+    const rpcParsed = await this.rpcParse.classifyFresh(wallet.address, fresh, covered);
     let added = 0;
     const events: OnChainTransactionEvent[] = [];
     for (const s of fresh) {
@@ -117,41 +114,6 @@ export class HistorySyncService {
     }
     const total = await this.tx.countByWallet(wallet.address);
     return { added, healed, total, events };
-  }
-
-  /**
-   * Pure-RPC classification for fresh signatures Helius didn't cover.
-   * Only SUCCESSFUL swaps with an identified token leg become signals —
-   * transfers, failures, and unparseable txs stay UNKNOWN rows. Bounded and
-   * fail-soft by design (record first, enrich best-effort).
-   */
-  private async rpcParseFresh(
-    address: string,
-    fresh: ConfirmedSignatureInfo[],
-    enriched: Map<string, EnrichedPartial>,
-  ): Promise<Map<string, EnrichedPartial>> {
-    const out = new Map<string, EnrichedPartial>();
-    const missing = fresh.filter((s) => !enriched.has(s.signature));
-    for (const s of missing.slice(0, RPC_PARSE_BUDGET)) {
-      try {
-        const p = await this.rpcParse.parse(s.signature, address);
-        if (!p || p.status !== 'SUCCESS') continue;
-        if ((p.action !== 'BUY' && p.action !== 'SELL') || !p.tokenMint) continue;
-        out.set(s.signature, {
-          action: p.action,
-          symbol: p.symbol,
-          tokenMint: p.tokenMint,
-          amountToken: p.amountToken,
-          amountUsd: p.amountUsd,
-          dexVenue: p.dexVenue as EnrichedPartial['dexVenue'],
-          status: p.status,
-          feeSol: p.feeSol,
-        });
-      } catch {
-        // Keep the UNKNOWN row — a parse failure must never break the loop.
-      }
-    }
-    return out;
   }
 
   /**

@@ -9,6 +9,7 @@ import { SolanaStreamService } from '../../server/solana-stream.service.js';
 import { isStaleLiveEvent } from '../sync/history-sync.service.js';
 import { EnrichService } from '../helius/enrich.service.js';
 import { TransactionsService } from '../transactions/transactions.service.js';
+import { TxParseService } from '../../common/chain/tx-parse.service.js';
 
 export interface RealtimeEventDto {
   id: number;
@@ -37,6 +38,7 @@ export class OnchainService implements OnModuleInit {
     @Inject(EnrichService) private readonly enrich: EnrichService,
     @Inject(TransactionsService) private readonly tx: TransactionsService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(TxParseService) private readonly rpcParse: TxParseService,
   ) {}
 
   onModuleInit(): void {
@@ -66,15 +68,26 @@ export class OnchainService implements OnModuleInit {
       const fresh = sigs.filter((s) => !existing.has(s.signature));
       if (fresh.length === 0) return;
       const enriched = await this.enrich.enrichMany(address, fresh);
+      // WS delivery lands seconds after confirmation — inside the RPC
+      // transaction-cache window — so the pure-RPC fallback actually resolves
+      // here (the 2-minute safety-net sync usually arrives too late for it).
+      const rpcParsed = await this.rpcParse.classifyFresh(address, fresh, new Set(enriched.keys()), 10);
       for (const s of fresh) {
-        const event = this.enrich.assembleEvent(wallet, s, enriched.get(s.signature));
-        const inserted = await this.tx.recordTransaction(event, {
-          source: 'ws-stream',
-          enriched: event.source === 'helius',
-        });
-        if (!inserted || isStaleLiveEvent(event)) continue;
-        await this.recordRealtimeEvent(event);
-        this.solana.emitLive(event);
+        const rpc = rpcParsed.get(s.signature);
+        const event = this.enrich.assembleEvent(wallet, s, enriched.get(s.signature) ?? rpc, rpc ? 'rpc-parser' : undefined);
+        try {
+          const inserted = await this.tx.recordTransaction(event, {
+            source: 'ws-stream',
+            enriched: event.source === 'helius',
+          });
+          if (!inserted || isStaleLiveEvent(event)) continue;
+          await this.recordRealtimeEvent(event);
+          this.solana.emitLive(event);
+        } catch (err) {
+          // One bad row (e.g. untracked wallet FK) must not kill the batch.
+          // eslint-disable-next-line no-console
+          console.error(`[OnchainService] live pipeline ${address.slice(0, 8)}… ${s.signature.slice(0, 8)}… failed:`, (err as Error).message);
+        }
       }
     } catch (err) {
       // eslint-disable-next-line no-console
