@@ -66,6 +66,8 @@ export default function PoolDetailPage() {
   const [demoReplay, setDemoReplay] = useState<{ signals: number; fired: number; failed: number; forceClosed: number; settleNavSol: number | null | undefined } | null>(null);
   const [spawnedId, setSpawnedId] = useState<number | null>(null);
   const [journeys, setJourneys] = useState<VaultOrderJourney[]>([]);
+  const [sigPage, setSigPage] = useState(0);
+  const SIG_PAGE_SIZE = 10;
   type FlowState = 'wait' | 'run' | 'done' | 'fail';
   const [flowBusy, setFlowBusy] = useState(false);
   const [flowSteps, setFlowSteps] = useState<{ key: string; label: string; state: FlowState; detail: string }[]>([]);
@@ -83,6 +85,7 @@ export default function PoolDetailPage() {
   useEffect(() => {
     void refresh();
     setHasWallet(getInjectedProvider() !== null);
+    setSigPage(0);
     const t = getStoredToken();
     if (t) {
       void getAuthMe(t)
@@ -565,33 +568,62 @@ export default function PoolDetailPage() {
             {pool.signals.length === 0 && (
               <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>No signals in the recent window.</p>
             )}
-            {pool.signals.slice(0, 8).map((s, i) => {
-              const age = s.ageSec < 60 ? `${Math.floor(s.ageSec)}s` : s.ageSec < 3600 ? `${Math.floor(s.ageSec / 60)}m` : `${Math.floor(s.ageSec / 3600)}h`;
+            {(() => {
+              const totalPages = Math.max(1, Math.ceil(pool.signals.length / SIG_PAGE_SIZE));
+              const page = Math.min(sigPage, totalPages - 1);
+              const start = page * SIG_PAGE_SIZE;
+              const items = pool.signals.slice(start, start + SIG_PAGE_SIZE);
               return (
-                <div key={i} className="flex flex-col gap-2 text-[13px]" style={{ padding: '12px 14px', borderRadius: 10, background: '#1A1C2A', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-                  <div className="flex justify-between items-center gap-2">
-                    <span>
-                      <b className="font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>{locked ? '$••••' : s.token}</b>
-                      {' '}<span style={{ color: 'var(--ep-muted, #9397AB)' }}>via {locked ? 'Trader •' : s.trader}</span>
-                    </span>
-                    <span className="font-mono shrink-0" style={{ fontSize: 11, color: 'var(--ep-faint, #75798C)' }}>{age}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-[5px]">
-                    {s.steps.map((st, j) => {
-                      const c = STEP_STYLE[st.state] ?? STEP_STYLE.waiting;
+                <>
+                  <div className="flex flex-col" style={{ gap: 10, maxHeight: 560, overflowY: 'auto', paddingRight: 2, scrollbarWidth: 'thin' }}>
+                    {items.map((s, i) => {
+                      const age = s.ageSec < 60 ? `${Math.floor(s.ageSec)}s` : s.ageSec < 3600 ? `${Math.floor(s.ageSec / 60)}m` : `${Math.floor(s.ageSec / 3600)}h`;
                       return (
-                        <span key={j} className="text-[11px]" style={{ padding: '3px 7px', borderRadius: 6, background: c.bg, color: c.fg }}>
-                          {st.label}
-                        </span>
+                        <div key={`${start + i}`} className="flex flex-col gap-2 text-[13px] shrink-0" style={{ padding: '12px 14px', borderRadius: 10, background: '#1A1C2A', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+                          <div className="flex justify-between items-center gap-2">
+                            <span>
+                              <b className="font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>{locked ? '$••••' : s.token}</b>
+                              {' '}<span style={{ color: 'var(--ep-muted, #9397AB)' }}>via {locked ? 'Trader •' : s.trader}</span>
+                            </span>
+                            <span className="font-mono shrink-0" style={{ fontSize: 11, color: 'var(--ep-faint, #75798C)' }}>{age}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-[5px]">
+                            {s.steps.map((st, j) => {
+                              const c = STEP_STYLE[st.state] ?? STEP_STYLE.waiting;
+                              return (
+                                <span key={j} className="text-[11px]" style={{ padding: '3px 7px', borderRadius: 6, background: c.bg, color: c.fg }}>
+                                  {st.label}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                            {locked ? 'Size, price and contract address hidden' : s.detail || s.note}
+                          </span>
+                        </div>
                       );
                     })}
                   </div>
-                  <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                    {locked ? 'Size, price and contract address hidden' : s.detail || s.note}
-                  </span>
-                </div>
+                  {pool.signals.length > SIG_PAGE_SIZE && (
+                    <div className="flex justify-between items-center gap-2" style={{ paddingTop: 2 }}>
+                      <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-faint, #75798C)' }}>
+                        {start + 1}–{start + items.length} of {pool.signals.length}
+                      </span>
+                      <div className="flex gap-2">
+                        <button onClick={() => setSigPage(page - 1)} disabled={page === 0}
+                          className="font-medium disabled:opacity-40" style={{ height: 30, padding: '0 12px', borderRadius: 8, fontSize: 12, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
+                          ← Newer
+                        </button>
+                        <button onClick={() => setSigPage(page + 1)} disabled={page >= totalPages - 1}
+                          className="font-medium disabled:opacity-40" style={{ height: 30, padding: '0 12px', borderRadius: 8, fontSize: 12, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
+                          Older →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               );
-            })}
+            })()}
           </section>
           </div>
 
