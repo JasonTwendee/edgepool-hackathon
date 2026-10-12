@@ -592,23 +592,21 @@ export default function TraderPage() {
           </div>
         )}
 
-        <section className="grid items-center" style={{ padding: '22px 24px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,220px),1fr))', gap: 24 }}>
-          <div className="flex flex-col gap-1" style={{ gridColumn: 'span 2' }}>
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 16 }}>
-              {[
-                { k: 'Pending', v: `${me.fees.pendingSol.toFixed(2)} SOL`, sub: 'From winning trades' },
-                { k: 'Claimable', v: `${me.fees.claimableSol.toFixed(2)} SOL`, sub: 'Settled above HWM', aqua: true },
-                { k: 'Paid to date', v: `${me.fees.paidSol.toFixed(2)} SOL`, sub: 'To payout wallet' },
-              ].map((f) => (
-                <div key={f.k} className="flex flex-col gap-1">
-                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>{f.k}</span>
-                  <span className="font-mono font-medium" style={{ fontSize: 'clamp(22px,3vw,30px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
-                  <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{f.sub}</span>
-                </div>
-              ))}
-            </div>
+        <section className="flex flex-wrap items-center" style={{ padding: '22px 24px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 24 }}>
+          <div className="grid" style={{ flex: '2 1 480px', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 16 }}>
+            {[
+              { k: 'Pending', v: `${me.fees.pendingSol.toFixed(2)} SOL`, sub: 'From winning trades' },
+              { k: 'Claimable', v: `${me.fees.claimableSol.toFixed(2)} SOL`, sub: 'Settled above HWM', aqua: true },
+              { k: 'Paid to date', v: `${me.fees.paidSol.toFixed(2)} SOL`, sub: 'To payout wallet' },
+            ].map((f) => (
+              <div key={f.k} className="flex flex-col gap-1">
+                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>{f.k}</span>
+                <span className="font-mono font-medium" style={{ fontSize: 'clamp(22px,3vw,30px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
+                <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{f.sub}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" style={{ flex: '1 1 300px' }}>
             <button onClick={() => void claim()} disabled={!claimReady}
               className="w-full font-medium disabled:opacity-100"
               style={claimReady
