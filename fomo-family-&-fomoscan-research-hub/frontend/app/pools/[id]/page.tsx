@@ -422,7 +422,7 @@ export default function PoolDetailPage() {
         </p>
         <div className="flex flex-wrap gap-2">
           {['2% cap per trader', '50% now + 50% limit at −10%', 'Adaptive stop', '−5% daily kill switch'].map((r) => (
-            <span key={r} className="text-xs" style={{ padding: '6px 11px', borderRadius: 999, boxShadow: 'inset 0 0 0 1px #3F424D', color: '#CFD3E5' }}>{r}</span>
+            <span key={r} className="text-xs" style={{ padding: '6px 11px', borderRadius: 999, boxShadow: 'inset 0 0 0 1px #3F424D', color: '#FFFFFF' }}>{r}</span>
           ))}
         </div>
       </div>
@@ -657,6 +657,35 @@ export default function PoolDetailPage() {
               </section>
             );
           })()}
+          {!(pool.myHolding && pool.myHolding.shares > 0) && (
+            <section className="flex flex-col" style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 12 }}>
+              <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>My position</span>
+              <div className="flex justify-between items-baseline gap-2 flex-wrap">
+                <span className="font-mono font-medium" style={{ fontSize: 26 }}>0.00 SOL</span>
+                <span className="font-mono" style={{ fontSize: 14, color: 'var(--ep-muted, #9397AB)' }}>+0.00 SOL · +0.0%</span>
+              </div>
+              <div className="grid grid-cols-2 text-xs" style={{ gap: 10 }}>
+                <div className="flex flex-col gap-0.5">
+                  <span style={{ color: 'var(--ep-muted, #9397AB)' }}>Shares</span>
+                  <span className="font-mono" style={{ fontSize: 14 }}>0.0000</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span style={{ color: 'var(--ep-muted, #9397AB)' }}>Deposited</span>
+                  <span className="font-mono" style={{ fontSize: 14 }}>0.00 SOL</span>
+                </div>
+              </div>
+              <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                {pool.myHolding ? 'You hold no shares in this pool yet.' : 'Connect a wallet and deposit to open your position.'}
+              </p>
+              <a
+                href="#deposit-panel"
+                className="block text-center w-full font-medium"
+                style={{ height: 40, lineHeight: '40px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}
+              >
+                Deposit 0.5 SOL to start
+              </a>
+            </section>
+          )}
           <section id="deposit-panel" className="flex flex-col" style={{ padding: 22, borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 16 }}>
             <div className="flex flex-col gap-1">
               <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool NAV</span>
