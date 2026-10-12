@@ -130,7 +130,10 @@ async function main(): Promise<void> {
       emitLive: () => undefined,
     } as never;
     const stream = { setHandler: () => undefined } as never;
-    const prisma = { realtimeEvent: { findFirst: async () => null, create: async () => ({ id: 1 }) } } as never;
+    const prisma = {
+      trackedWallet: { findUnique: async () => ({ address: 'W1' }) },
+      realtimeEvent: { findFirst: async () => null, create: async () => ({ id: 1 }) },
+    } as never;
     const svc = new OnchainService(solana, stream, realEnrich(), txSvc, prisma, parser);
     await svc.ingestWalletActivity('W1');
     assert.deepEqual(calls.sort(), ['live1', 'live2', 'live3']);

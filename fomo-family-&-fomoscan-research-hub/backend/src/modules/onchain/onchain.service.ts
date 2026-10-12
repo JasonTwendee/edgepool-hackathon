@@ -62,6 +62,12 @@ export class OnchainService implements OnModuleInit {
     try {
       const wallet = this.solana.getTrackedWallets().find((w) => w.address === address);
       if (!wallet) return;
+      // Dropped wallets stay subscribed on the socket: skip quietly instead
+      // of crashing the batch on the ledger FK.
+      const tracked = await this.prisma.trackedWallet
+        .findUnique({ where: { address }, select: { address: true } })
+        .catch(() => null);
+      if (!tracked) return;
       const sigs = await this.solana.fetchSignatures(address, { limit: 10 });
       if (sigs.length === 0) return;
       const existing = await this.tx.getSignatures(address);

@@ -165,6 +165,13 @@ export class ManageService implements OnModuleInit {
     }
     // TIME_STOP with no price: scratch at entry (no market to mark).
     if (stale && (entry === null || now === null)) {
+      if (has('TIME')) {
+        // A partial TIME leg already closed part of this order (demo partial
+        // exit) — a second TIME row would violate the one-leg-per-name
+        // constraint and crash every tick. Stamp closed on existing legs.
+        await this.closeTimeRemainder(o.id, 'unpriceable remainder after partial TIME exit');
+        return { action: 'TIME_STOP', closed: true };
+      }
       await this.fillLeg(o.id, 'TIME', remaining, entry ?? 0, 0);
       return { action: 'TIME_STOP', closed: true };
     }
@@ -208,6 +215,10 @@ export class ManageService implements OnModuleInit {
     }
     // TIME_STOP takes the remainder at market.
     if (stale) {
+      if (has('TIME')) {
+        await this.closeTimeRemainder(o.id, 'stale remainder after partial TIME exit');
+        return { action: 'TIME_STOP', closed: true };
+      }
       await this.fillLeg(o.id, 'TIME', remaining, cur, r2((move / 100) * notional * remaining));
       return { action: 'TIME_STOP', closed: true };
     }
@@ -271,9 +282,26 @@ export class ManageService implements OnModuleInit {
     }
   }
 
-  /** Safety: legs sum to 100% but the order row was never stamped closed. */
-  private async finishIfOpen(orderId: number): Promise<void> {
+  /**
+   * Terminal close for a remainder a TIME leg already touched: stamp the
+   * order closed on existing legs (no duplicate leg row), audited.
+   */
+  private async closeTimeRemainder(orderId: number, reason: string): Promise<void> {
     const legs = await this.prisma.copyOrderLeg.findMany({ where: { orderId } });
+    const totalRealized = Math.round(legs.reduce((s, l) => s + Number(l.realizedPnlUsd ?? 0), 0) * 100) / 100;
+    await this.prisma.copyOrder.update({
+      where: { id: orderId },
+      data: { closeReason: 'TIME_STOP', closedAt: new Date(), realizedPnlUsd: totalRealized },
+    });
+    await this.audit
+      .record({ actor: 'manage:auto_close', action: 'copy.manage_close', target: `order:${orderId}:TIME-remainder`, reason })
+      .catch((e: unknown) => {
+        console.warn('[manage] audit record failed:', (e as Error).message);
+      });
+  }
+
+  /** Safety: legs sum to 100% but the order row was never stamped closed. */
+  private async finishIfOpen(orderId: number): Promise<void> {    const legs = await this.prisma.copyOrderLeg.findMany({ where: { orderId } });
     const totalRealized = Math.round(legs.reduce((s, l) => s + Number(l.realizedPnlUsd ?? 0), 0) * 100) / 100;
     await this.prisma.copyOrder.update({
       where: { id: orderId },

@@ -168,6 +168,23 @@ async function main(): Promise<void> {
     assert.equal(w.legs[0].leg, 'TIME');
     assert.equal(w.audits[0].actor, 'manage:auto_close');
   }
+  // 7b. Partial TIME leg + stale unpriceable remainder (order-118 shape):
+  // no duplicate TIME row — the order is stamped closed on existing legs.
+  {
+    const time = { id: 1, orderId: 9, leg: 'TIME', fraction: 0.4, exitPriceUsd: 0.005, realizedPnlUsd: 0, closedAt: new Date() };
+    const w = makeWorld({
+      orders: [{ ...base, id: 9, createdAt: new Date(Date.now() - 25 * 3600 * 1000) }],
+      legs: [time],
+      spot: {},
+    });
+    const s = await w.svc.tick();
+    assert.equal(s.timeStops, 1);
+    assert.deepEqual(s.closedIds, [9]);
+    assert.equal(w.legs.length, 1);
+    assert.equal(w.orders[0].closeReason, 'TIME_STOP');
+    assert.ok(w.orders[0].closedAt instanceof Date);
+    assert.equal(w.audits[0].target, 'order:9:TIME-remainder');
+  }
   // 8. SELL mirror: short profits on falling price, TP1 partial @ target below entry.
   {
     const w = makeWorld({
