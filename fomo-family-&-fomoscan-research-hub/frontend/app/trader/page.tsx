@@ -239,6 +239,7 @@ export default function TraderPage() {
   const [showManualWallet, setShowManualWallet] = useState(false);
   const [slotDraft, setSlotDraft] = useState('');
   const [ruleVals, setRuleVals] = useState<Record<string, string>>({});
+  const [rulesMsg, setRulesMsg] = useState('');
   const [undone, setUndone] = useState<{ wallet: string } | null>(null);
 
   const load = useCallback(async (t: string) => {
@@ -947,55 +948,67 @@ export default function TraderPage() {
               </section>
             )}
 
-            <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="flex justify-between items-baseline gap-2 flex-wrap">
-                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool rules · custom</span>
-                <button onClick={() => {
-                  const rules: Record<string, number> = {};
-                  for (const [k, v] of Object.entries(ruleVals)) {
-                    if (v.trim() === '') continue;
-                    const n = Number(v);
-                    if (!Number.isFinite(n)) {
-                      setMsg(`Rule ${k} must be a number.`);
-                      return;
+            <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="flex justify-between items-center gap-3 flex-wrap">
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool rules · custom</span>
+                  <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Changes apply to new trades only.</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {rulesMsg && <span className="text-xs" style={{ color: 'var(--ep-profit, #73DEA4)' }}>{rulesMsg}</span>}
+                  <button onClick={() => {
+                    const rules: Record<string, number> = {};
+                    for (const [k, v] of Object.entries(ruleVals)) {
+                      if (v.trim() === '') continue;
+                      const n = Number(v);
+                      if (!Number.isFinite(n)) {
+                        setMsg(`Rule ${k} must be a number.`);
+                        return;
+                      }
+                      rules[k] = n;
                     }
-                    rules[k] = n;
-                  }
-                  void saveSettings({ rulesJson: rules }, 'Pool rules saved — applies to new trades.').then(() => setRuleVals({}));
-                }}
-                  disabled={busy || Object.keys(ruleVals).length === 0}
-                  className="font-medium text-[13px] disabled:opacity-50"
-                  style={{ height: 38, padding: '0 16px', borderRadius: 8, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
-                  Save rules
-                </button>
+                    void saveSettings({ rulesJson: rules }, 'Pool rules saved — applies to new trades.').then(() => {
+                      setRuleVals({});
+                      setRulesMsg('Saved · applies to new trades');
+                    });
+                  }}
+                    disabled={busy || Object.keys(ruleVals).length === 0}
+                    className="font-medium text-[13px] disabled:opacity-50"
+                    style={{ height: 36, padding: '0 16px', borderRadius: 8, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
+                    Save rules
+                  </button>
+                </div>
               </div>
-              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Changes apply to new trades only.</span>
-              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,150px),1fr))', gap: 10 }}>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px,1fr))', gap: 12 }}>
                 {[
-                  ['traderCapPctNav', 'Cap per trader', '% NAV'],
-                  ['entryNowPct', 'Enter now', '%'],
-                  ['limitOffsetPct', 'Limit offset', '%'],
-                  ['stopMinPct', 'Stop min', '%'],
-                  ['stopMaxPct', 'Stop max', '%'],
-                  ['timeStopHours', 'Time stop', 'h'],
-                  ['dailyKillSwitchPct', 'Daily kill switch', '%'],
-                  ['weeklyLossLimitPct', 'Weekly loss limit', '%'],
-                ].map(([key, label, unit]) => (
-                  <div key={key as string} className="flex flex-col gap-1" style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-                    <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{label}</span>
-                    <span className="flex items-baseline gap-1.5">
+                  ['traderCapPctNav', 'Cap per trader', '% NAV', ''],
+                  ['entryNowPct', 'Enter now', '%', ''],
+                  ['limitOffsetPct', 'Limit offset', '%', '−'],
+                  ['stopMinPct', 'Stop min', '%', ''],
+                  ['stopMaxPct', 'Stop max', '%', ''],
+                  ['timeStopHours', 'Time stop', 'h', ''],
+                  ['dailyKillSwitchPct', 'Daily kill switch', '%', '−'],
+                  ['weeklyLossLimitPct', 'Weekly loss limit', '%', '−'],
+                ].map(([key, label, unit, pre]) => (
+                  <label key={key as string} className="flex flex-col" style={{ padding: '12px 14px', borderRadius: 10, background: '#161826', boxShadow: 'inset 0 0 0 1px var(--ep-border, #2E313F)', gap: 6, fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
+                    {label}
+                    <span className="flex items-baseline gap-1">
+                      {pre ? <span className="font-mono" style={{ fontSize: 13, color: 'var(--ep-faint, #75798C)' }}>{pre}</span> : null}
                       <input
                         value={ruleVals[key as string] ?? (pool?.rulesJson?.[key as string] !== undefined && pool?.rulesJson?.[key as string] !== null ? String(pool.rulesJson[key as string]) : '')}
-                        onChange={(e) => setRuleVals((v) => ({ ...v, [key as string]: e.target.value.replace(/[^0-9.]/g, '') }))}
+                        onChange={(e) => {
+                          setRuleVals((v) => ({ ...v, [key as string]: e.target.value.replace(/[^0-9.]/g, '') }));
+                          setRulesMsg('');
+                        }}
                         placeholder="—"
                         inputMode="decimal"
                         aria-label={label as string}
-                        className="flex-1 min-w-0 font-mono font-medium outline-none bg-transparent"
-                        style={{ fontSize: 18, color: 'var(--ep-text, #E9E9ED)' }}
+                        className="font-mono font-medium outline-none bg-transparent"
+                        style={{ width: 56, fontSize: 18, color: 'var(--ep-text, #E9E9ED)', padding: 0 }}
                       />
-                      <span className="text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>{unit}</span>
+                      <span className="font-mono" style={{ fontSize: 13, color: 'var(--ep-faint, #75798C)' }}>{unit}</span>
                     </span>
-                  </div>
+                  </label>
                 ))}
               </div>
             </section>
