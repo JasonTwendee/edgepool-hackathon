@@ -73,6 +73,7 @@ function makeFake() {
       findFirst: async () => (db.epoch.length > 0 ? db.epoch[db.epoch.length - 1] : null),
     },
     vaultTrader: { findMany: async () => [], findUnique: async () => null, count: async () => 0 },
+    copyOrder: { findMany: async () => [] },
     partnerPayout: {
       create: async ({ data }: { data: Row }) => ({ id: nid(), ...data, createdAt: new Date() }),
       findMany: async () => [],
@@ -207,6 +208,22 @@ async function main(): Promise<void> {
     const my = await svcY.mine(vy.id, { id: 77, wallet: 'carol' });
     assert.equal(my.shares, 0);
     assert.equal(my.withdrawnSol, 12);
+  }
+
+  // 11. Auto NAV (omitted navSol): settling cash enters equity — newcomers
+  // mint at the ex-cash price, existing holders are not diluted.
+  {
+    const svcA = new VaultService(makeFake());
+    const va = await svcA.getOrCreateVault('auto');
+    await svcA.deposit(va.id, 'alice', 10);
+    const a1 = await svcA.settleEpoch(va.id);
+    assert.equal(a1.sharePrice, 1);
+    await svcA.deposit(va.id, 'bob', 6);
+    const a2 = await svcA.settleEpoch(va.id);
+    assert.equal(a2.sharePrice, 1);
+    assert.deepEqual(a2.settledDeposits.map((d) => d.shares), [6]);
+    assert.equal(await svcA.depositorShares(va.id, 'alice'), 10);
+    assert.equal(await svcA.depositorShares(va.id, 'bob'), 6);
   }
 
   console.log('vault asserts: ALL GREEN');

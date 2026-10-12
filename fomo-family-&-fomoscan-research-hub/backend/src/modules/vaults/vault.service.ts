@@ -383,7 +383,8 @@ export class VaultService {
     // (ADMIN-only + audited at the controller layer).
     // NOTE: pricing inputs are resolved OUTSIDE the DB transaction so the
     // advisory lock is never held across network (price) calls.
-    if (navSol === undefined || navSol === null) {
+    const autoNav = navSol === undefined || navSol === null;
+    if (autoNav) {
       navSol = await this.computeNav(vaultId);
     }
     if (!Number.isFinite(navSol) || (navSol as number) < 0) fail('navSol must be non-negative.');
@@ -424,10 +425,17 @@ export class VaultService {
       // Price on NAV excluding pending deposits (their cash hasn't entered yet —
       // otherwise newcomers would inflate their own mint price).
       const pendingIn = deposits.reduce((s: number, d: { amountSol: unknown }) => s + num(d.amountSol as never), 0);
-      if (totalShares > 0 && inputNav - pendingIn <= 0) {
+      let nav = inputNav;
+      if (autoNav) {
+        // computeNav tracks trading equity only (queued cash excluded), while
+        // the formula below assumes total equity (an explicit navSol carries
+        // the caller's total, cash included). Price the settling cash in, or
+        // every deposit dilutes existing holders and vault cash leaks from NAV.
+        nav = Math.round((nav + pendingIn) * 1e9) / 1e9;
+      }
+      if (totalShares > 0 && nav - pendingIn <= 0) {
         fail('NAV below pending deposits — cannot price this epoch.');
       }
-      let nav = inputNav;
       let price = totalShares > 0 ? Math.round(((nav - pendingIn) / totalShares) * 1e9) / 1e9 : 1;
       let feeSol = 0;
       if (vault.feeBps > 0 && totalShares > 0 && price > hwm) {
