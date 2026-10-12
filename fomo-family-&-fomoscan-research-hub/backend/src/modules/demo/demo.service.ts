@@ -470,6 +470,42 @@ export class DemoService {
     };
   }
 
+  /**
+   * Clone any pool into an unlisted demo sandbox (same trader set + weights,
+   * fresh paper accounting). The source pool is never written to — this is
+   * how the KOL pool gets a demo without touching its staged numbers.
+   */
+  async clone(sourceVaultId: number, actor: string) {
+    const src = await this.prisma.vault.findUnique({ where: { id: sourceVaultId } });
+    if (!src) fail(`Vault ${sourceVaultId} not found.`);
+    const traders = await this.prisma.vaultTrader.findMany({ where: { vaultId: sourceVaultId, isActive: true } });
+    if (traders.length === 0) fail(`Vault ${sourceVaultId} has no active traders to clone.`);
+    const tag = this.demoTag();
+    const vault = (await this.vaults.createVault(`demo-clone-${sourceVaultId}-${tag}`)) as { id: number };
+    await this.prisma.vault.update({ where: { id: vault.id }, data: { listing: 'unlisted' } });
+    for (const t of traders) {
+      await this.vaults.assignTrader(vault.id, t.wallet as string, (t.weightBps as number) ?? 0);
+    }
+    const bot = (await this.bots.create(`demo-bot-${tag}`, vault.id)) as { id: number };
+    await this.vaults.deposit(vault.id, DEMO_DEPOSITOR, 10);
+    await this.vaults.settleEpoch(vault.id, 10);
+    await this.audit.record({
+      actor,
+      action: 'demo.clone',
+      target: `vault:${vault.id}`,
+      reason: `source:${sourceVaultId} traders=${traders.length} deposit=10`,
+    });
+    return {
+      vaultId: vault.id,
+      botId: bot.id,
+      sourceVaultId,
+      traders: traders.map((t) => t.wallet),
+      depositSol: 10,
+      sharePrice: 1,
+      environment: 'sandbox' as const,
+    };
+  }
+
   private async demoRealized(orderIds: number[]): Promise<number> {
     if (orderIds.length === 0) return 0;
     const rows = await this.prisma.copyOrder.findMany({

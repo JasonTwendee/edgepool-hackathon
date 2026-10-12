@@ -801,6 +801,13 @@ export function partialCloseDemo(token: string, opts: { vaultId: number; orderId
   return p;
 }
 
+/** Clone a pool's trader set into an unlisted demo sandbox (ADMIN). */
+export function cloneDemo(token: string, vaultId: number): Promise<{ success: boolean; data: { vaultId: number; botId: number; sourceVaultId: number; traders: string[] } }> {
+  const p = fetchJsonAuth<{ success: boolean; data: { vaultId: number; botId: number; sourceVaultId: number; traders: string[] } }>('/api/demo/clone', token, { method: 'POST', body: JSON.stringify({ vaultId }) });
+  void p.then(() => bumpApiCache());
+  return p;
+}
+
 /** Manual epoch settle (ADMIN). */
 export function settleVault(token: string, vaultId: number, navSol: number): Promise<{ success: boolean; data: { epochId: number; navSol: number; sharePrice: number; sharesOutstanding: number; feeSol: number; settledDeposits: { id: number; shares: number }[]; settledWithdrawals: { id: number; payoutSol: number }[] } }> {
   const p = fetchJsonAuth<{ success: boolean; data: { epochId: number; navSol: number; sharePrice: number; sharesOutstanding: number; feeSol: number; settledDeposits: { id: number; shares: number }[]; settledWithdrawals: { id: number; payoutSol: number }[] } }>('/api/vaults/settle', token, { method: 'POST', body: JSON.stringify({ vaultId, navSol }) });

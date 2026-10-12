@@ -3,7 +3,7 @@ import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { DemoService } from './demo.service.js';
-import { ReplayDto, PartialCloseDto, SeedDto } from './dto/demo.dto.js';
+import { ReplayDto, PartialCloseDto, CloneDto, SeedDto } from './dto/demo.dto.js';
 
 @Controller('api/demo')
 export class DemoController {
@@ -61,6 +61,20 @@ export class DemoController {
       { vaultId: dto.vaultId, orderId: dto.orderId, fraction: dto.fraction },
       this.actor(req),
     );
+    return { success: true, data };
+  }
+
+  @Post('clone')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('demo.clone_tick')
+  async clone(
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(CloneDto, body);
+    const data = await this.demo.clone(dto.vaultId, this.actor(req));
     return { success: true, data };
   }
 

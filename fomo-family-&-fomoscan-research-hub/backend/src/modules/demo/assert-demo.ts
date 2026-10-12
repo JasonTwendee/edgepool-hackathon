@@ -420,6 +420,27 @@ async function main(): Promise<void> {
     assert.ok(w.audits.some((a) => a.action === 'demo.partial_close'));
   }
 
+  // 11. Clone: copies the trader set into an unlisted demo vault, source untouched.
+  {
+    const w = makeWorld({
+      vaults: [{ id: 14, name: 'KOL Star Pool' }],
+      scope: [{ wallet: 'WA', weightBps: 7500 }, { wallet: 'WB', weightBps: 2500 }],
+    });
+    const c = await w.svc.clone(14, 'admin');
+    assert.equal(c.sourceVaultId, 14);
+    assert.deepEqual(c.traders, ['WA', 'WB']);
+    assert.equal(c.sharePrice, 1);
+    const row = w.db.vaults.find((v) => v.id === (c.vaultId as number)) as Row;
+    assert.match(String(row.name), /^demo-clone-14-[0-9a-z]+$/);
+    assert.equal(row.listing, 'unlisted');
+    // Source pool untouched (no deposit writes, no rename).
+    assert.equal(w.db.vaults.find((v) => v.id === 14)!.name, 'KOL Star Pool');
+    assert.ok(w.audits.some((a) => a.action === 'demo.clone'));
+    await assert.rejects(() => w.svc.clone(999, 'admin'), /not found/);
+    const w2 = makeWorld({ vaults: [{ id: 15, name: 'Empty' }] });
+    await assert.rejects(() => w2.svc.clone(15, 'admin'), /no active traders/);
+  }
+
   console.log('demo asserts: ALL GREEN');
 }
 

@@ -7,6 +7,7 @@ import { ArrowLeft, LockSimple, PauseCircle, UsersThree, XLogo } from '@phosphor
 import {
   getAuthMe,
   getPoolDetail,
+  cloneDemo,
   listBots,
   partialCloseDemo,
   queueVaultDeposit,
@@ -158,6 +159,22 @@ export default function PoolDetailPage() {
       const r = await seedDemo(token, { name: `pool-${pool.id}`, depositSol: 10, traderCount: 3 });
       setSpawnedId(r.data.vaultId);
       setDemoMsg(`Demo pool #${r.data.vaultId} seeded — open it to run the replay.`);
+    } catch (e) {
+      setDemoMsg((e as Error).message);
+    } finally {
+      setDemoBusy(false);
+    }
+  }
+
+  async function cloneHere() {
+    const token = getStoredToken();
+    if (!token || !pool || demoBusy) return;
+    setDemoBusy(true);
+    setDemoMsg(null);
+    try {
+      const r = await cloneDemo(token, pool.id);
+      setSpawnedId(r.data.vaultId);
+      setDemoMsg(`Cloned ${r.data.traders.length} traders into demo pool #${r.data.vaultId} — open it to run the full flow. Pool #${pool.id} untouched.`);
     } catch (e) {
       setDemoMsg((e as Error).message);
     } finally {
@@ -775,12 +792,16 @@ export default function PoolDetailPage() {
           ) : (
             <>
               <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                Demo runs never write into live pools. Spawn an unlisted demo pool to run the replay there.
+                Demo runs never write into live pools. Clone this pool&apos;s trader set into an unlisted demo sandbox (or seed a generic one) and run the full flow there.
               </p>
               <div className="flex gap-2 flex-wrap items-center">
-                <button onClick={() => void spawnDemo()} disabled={demoBusy}
+                <button onClick={() => void cloneHere()} disabled={demoBusy}
                   className="font-bold text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-                  {demoBusy ? 'Seeding…' : 'Spawn demo pool'}
+                  {demoBusy ? 'Cloning…' : 'Clone as demo'}
+                </button>
+                <button onClick={() => void spawnDemo()} disabled={demoBusy}
+                  className="font-medium text-xs disabled:opacity-50" style={{ height: 38, padding: '0 16px', borderRadius: 10, fontSize: 13, border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
+                  {demoBusy ? 'Seeding…' : 'Spawn generic demo'}
                 </button>
                 {spawnedId !== null && (
                   <Link href={`/pools/${spawnedId}`} className="font-medium text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>

@@ -48,6 +48,12 @@ export class ReplayDto {
   skipClose?: boolean;
 }
 
+/** POST /api/demo/clone body. */
+export class CloneDto {
+  @IsInt()
+  @Min(1)
+  vaultId!: number;
+}
 /** POST /api/demo/partial-close body (demo vaults only). */
 export class PartialCloseDto {
   @IsInt()
