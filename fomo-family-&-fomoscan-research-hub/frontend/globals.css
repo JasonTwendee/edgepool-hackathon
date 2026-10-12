@@ -165,8 +165,15 @@ samp {
 .ep-pool-grid {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
 }
+/* Trader portal: 7:3 content/side split, collapse under 900px. */
+.ep-trader-grid {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+}
 @media (max-width: 899px) {
   .ep-pool-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ep-trader-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }

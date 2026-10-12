@@ -636,7 +636,7 @@ export default function TraderPage() {
           </div>
         )}
 
-        <div className="grid items-start" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,420px),1fr))', gap: 16 }}>
+        <div className="grid items-start ep-trader-grid" style={{ gap: 16 }}>
           <div className="flex flex-col min-w-0" style={{ gap: 16 }}>
             {pool && (
               <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 12 }}>
