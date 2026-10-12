@@ -677,6 +677,11 @@ export default function PoolDetailPage() {
               <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                 {pool.myHolding ? 'You hold no shares in this pool yet.' : 'Connect a wallet and deposit to open your position.'}
               </p>
+              {pool.myHolding && pool.myHolding.queuedDeposits.length > 0 && (
+                <p className="text-xs font-mono" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+                  {pool.myHolding.queuedDeposits.reduce((s, q) => s + q.amountSol, 0).toFixed(2)} SOL queued — shares mint at the next settle.
+                </p>
+              )}
               <a
                 href="#deposit-panel"
                 className="block text-center w-full font-medium"
