@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfirmedSignatureInfo } from '@solana/web3.js';
 import type { TrackedWallet } from '../../server/solana.service.js';
+import { PrismaService } from '../../database/prisma.service.js';
 import type {
   DexVenue,
   OnChainTransactionEvent,
@@ -27,7 +28,10 @@ const VENUE_BY_SOURCE: Array<[RegExp, DexVenue]> = [
 ];
 
 /** Parallel metadata fan-out (DexScreener/Jupiter tolerate this easily). */
-const METAS_CONCURRENCY = 10;
+const METAS_CONCURRENCY = Math.max(1, Number(process.env.HELIUS_META_CONCURRENCY ?? 10) || 10);
+
+/** Pool-scope cache TTL: trader-set membership changes rarely. */
+const SCOPE_TTL_MS = 5 * 60 * 1000;
 
 /** Keep fractional USD (cents); sub-cent values are treated as unknown. */
 function toUsdOrUndefined(usd: number): number | undefined {
@@ -43,7 +47,30 @@ function toUsdOrUndefined(usd: number): number | undefined {
  */
 @Injectable()
 export class EnrichService {
-  constructor(@Inject(HeliusService) private readonly helius: HeliusService) {}
+  constructor(
+    @Inject(HeliusService) private readonly helius: HeliusService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+  ) {}
+
+  private scopeCache: { at: number; wallets: Set<string> } | null = null;
+
+  /**
+   * Helius-worthy wallets: active trader-set members (the only wallets whose
+   * swaps can become pool signals). Everything else classifies via the free
+   * pure-RPC fallback — a free-tier key cannot cover the full firehose.
+   */
+  async poolScope(): Promise<Set<string>> {
+    if (this.scopeCache && Date.now() - this.scopeCache.at < SCOPE_TTL_MS) {
+      return this.scopeCache.wallets;
+    }
+    const rows = await this.prisma.vaultTrader.findMany({
+      where: { isActive: true },
+      select: { wallet: true },
+    });
+    const wallets = new Set(rows.map((r) => r.wallet as string));
+    this.scopeCache = { at: Date.now(), wallets };
+    return wallets;
+  }
 
   async enrichMany(
     walletAddress: string,
@@ -51,6 +78,13 @@ export class EnrichService {
   ): Promise<Map<string, EnrichedPartial>> {
     const out = new Map<string, EnrichedPartial>();
     if (!this.helius.isEnabled() || sigs.length === 0) return out;
+    try {
+      // Scope gate: off-scope wallets skip Helius spend entirely (the RPC
+      // fallback still classifies their live swaps for free).
+      if (!(await this.poolScope()).has(walletAddress)) return out;
+    } catch {
+      return out; // scope lookup must never break ingestion
+    }
     const parsed = await this.helius.parseTransactions(sigs.map((s) => s.signature));
 
     const mints = new Set<string>([this.helius.getWsolMint()]);

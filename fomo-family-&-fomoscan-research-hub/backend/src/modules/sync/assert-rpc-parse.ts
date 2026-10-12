@@ -56,7 +56,7 @@ function makeTx(prisma: Row): { svc: TransactionsService; created: Row[] } {
 }
 
 const realEnrich = () => {
-  const e = new EnrichService({ isEnabled: () => false } as never);
+  const e = new EnrichService({ isEnabled: () => false } as never, {} as never);
   return { enrichMany: async () => new Map(), assembleEvent: e.assembleEvent.bind(e) } as never;
 };
 
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
     const calls: string[] = [];
     const parser = stubParser(new Map<string, Row | null | 'throw'>([['sigR', BUY]]), calls);
     const { svc: txSvc, created } = makeTx({});
-    const e = new EnrichService({ isEnabled: () => false } as never);
+    const e = new EnrichService({ isEnabled: () => false } as never, {} as never);
     const enrich = {
       enrichMany: async () => new Map([['sigH', { ...BUY, dexVenue: 'Pump.fun' }]]),
       assembleEvent: e.assembleEvent.bind(e),
@@ -139,6 +139,28 @@ async function main(): Promise<void> {
     assert.deepEqual(calls.sort(), ['live1', 'live2', 'live3']);
     assert.deepEqual(created.map((x) => x.signature).sort(), ['live1', 'live3']);
     assert.equal((created[0].rawPayload as Row).eventSource, 'rpc-parser');
+  }
+
+  // 5. Scope gate: Helius spend happens only for active trader-set wallets;
+  // off-scope wallets return empty (RPC fallback covers them for free).
+  {
+    const parseCalls: string[] = [];
+    const heliusFake = {
+      isEnabled: () => true,
+      parseTransactions: async (sigs: string[]) => {
+        parseCalls.push(...sigs);
+        return new Map();
+      },
+      getWsolMint: () => 'W',
+      getTokenMeta: async () => null,
+    };
+    const prismaFake = { vaultTrader: { findMany: async () => [{ wallet: 'IN_SCOPE' }] } };
+    const svc = new EnrichService(heliusFake as never, prismaFake as never);
+    assert.equal((await svc.enrichMany('IN_SCOPE', [sig('a'), sig('b')])).size, 0);
+    assert.deepEqual(parseCalls, ['a', 'b']);
+    assert.equal((await svc.enrichMany('OUT', [sig('c')])).size, 0);
+    assert.deepEqual(parseCalls, ['a', 'b']); // no Helius spent off-scope
+    assert.deepEqual([...(await svc.poolScope())], ['IN_SCOPE']);
   }
 
   console.log('rpc-parse asserts: ALL GREEN');
