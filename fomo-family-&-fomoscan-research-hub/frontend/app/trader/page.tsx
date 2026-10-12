@@ -601,7 +601,7 @@ export default function TraderPage() {
             ].map((f) => (
               <div key={f.k} className="flex flex-col gap-1">
                 <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>{f.k}</span>
-                <span className="font-mono font-medium" style={{ fontSize: 'clamp(22px,3vw,30px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
+                <span className="font-mono font-medium whitespace-nowrap" style={{ fontSize: 'clamp(24px,4vw,30px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
                 <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{f.sub}</span>
               </div>
             ))}
