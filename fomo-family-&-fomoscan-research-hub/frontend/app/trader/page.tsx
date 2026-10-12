@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   clearSession,
   getAuthMe,
@@ -227,6 +227,12 @@ export default function TraderPage() {
   });
   const [applyStatus, setApplyStatus] = useState<string | null>(null);
   const [identity, setIdentity] = useState<{ username: string | null; role: string } | null>(null);
+  // Session gate: while the stored token + partner profile are still resolving,
+  // render a neutral skeleton — never the sign-in form or the register prompt,
+  // so the page can't flash through signin → register → portal on load.
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [meDenied, setMeDenied] = useState(false);
+  const lastToken = useRef<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [detail, setDetail] = useState<PoolDetail | null>(null);
   const [solPx, setSolPx] = useState<number | null>(null);
@@ -244,15 +250,28 @@ export default function TraderPage() {
   useEffect(() => {
     const sync = () => {
       const t = getStoredToken();
+      if (t !== lastToken.current) {
+        // New (or dropped) session: drop the previous user's profile so it
+        // never flashes before the fresh check resolves.
+        lastToken.current = t;
+        setMe(null);
+        setIdentity(null);
+        setMeDenied(false);
+      }
       setToken(t);
       if (t) {
-        void load(t).catch(() => undefined);
+        void load(t)
+          .then(() => setMeDenied(false))
+          .catch(() => setMeDenied(true))
+          .finally(() => setSessionChecked(true));
         void getAuthMe(t)
           .then((r) => setIdentity({ username: r.data.username ?? null, role: r.data.role }))
           .catch(() => setIdentity(null));
       } else {
         setIdentity(null);
         setMe(null);
+        setMeDenied(false);
+        setSessionChecked(true);
       }
     };
     sync();
@@ -282,8 +301,16 @@ export default function TraderPage() {
     try {
       const res = await loginAccount({ username: username.trim(), password });
       storeSession(res.data);
+      lastToken.current = res.data.token;
       setToken(res.data.token);
-      await load(res.data.token);
+      setMeDenied(false);
+      try {
+        await load(res.data.token);
+      } catch {
+        // Signed in, but not a partner (partner/me rejects) — land on the
+        // blocked notice, never back on the sign-in form.
+        setMeDenied(true);
+      }
       setMsg(`Signed in (${res.data.user.role}).`);
     } catch (e) {
       setMsg((e as Error).message);
@@ -343,7 +370,31 @@ export default function TraderPage() {
     }
   }
 
-  if (!token || !me) {
+  // Gate order is fixed: checking → anonymous → signed-in non-partner → portal.
+  // Each stage renders exactly one view, so the page can no longer flash
+  // through the sign-in form and then the register prompt while role checks resolve.
+  const checking = !sessionChecked || (!!token && !me && !meDenied);
+  if (checking) {
+    return (
+      <>
+        <SiteHeader active="trader" />
+        <div className="mx-auto w-full" style={{ maxWidth: 1000, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+          <div className="animate-pulse rounded-2xl p-8 space-y-4" style={{ background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+            <div className="h-3 w-40 rounded" style={{ background: 'var(--ep-border, #2E313F)' }} />
+            <div className="h-8 w-2/3 rounded" style={{ background: 'var(--ep-border, #2E313F)' }} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="h-28 rounded-xl" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }} />
+              <div className="h-28 rounded-xl" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }} />
+            </div>
+            <p className="text-[11px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>Loading your trader workspace…</p>
+          </div>
+          <SiteFooter />
+        </div>
+      </>
+    );
+  }
+
+  if (!token) {
     if (appliedWallet) {
       return (
         <>
@@ -388,44 +439,15 @@ export default function TraderPage() {
           </p>
         </div>
         <div className="p-6 space-y-3">
-          {token && identity ? (
-            <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'rgba(240,190,103,0.08)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
-              <p className="text-[11px] font-bold" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
-                You&apos;re not a partner.
-              </p>
-              <p className="text-[11px]" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
-                Signed in as {identity.username ?? 'wallet'} ({identity.role}). This portal is for partner traders only.
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-                  style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
-                  Register as a partner
-                </button>
-                <button
-                  onClick={() => {
-                    clearSession();
-                    setToken(null);
-                    setMe(null);
-                    setIdentity(null);
-                  }}
-                  className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-                  style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
-                  Sign out
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
-              <p className="text-[11px] font-bold" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
-                Partner area — sign in or register below.
-              </p>
-              <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
-                style={{ border: '1px solid var(--ep-violet, #9184D9)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
-                Apply to become a partner
-              </button>
-            </div>
-          )}
-          {!(token && identity) && (
+          <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)' }}>
+            <p className="text-[11px] font-bold" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
+              Partner area — sign in or register below.
+            </p>
+            <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+              style={{ border: '1px solid var(--ep-violet, #9184D9)', color: 'var(--ep-violet-100, #D2CEFD)' }}>
+              Apply to become a partner
+            </button>
+          </div>
           <div className="space-y-2.5">
             <h2 className="font-display text-lg font-medium">Sign in</h2>
             <p className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Use the login your Edgepool contact sent you.</p>
@@ -437,16 +459,87 @@ export default function TraderPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') void signin(); }} className={inputCls} />
               <button onClick={() => void signin()} disabled={busy} className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
                 style={{ background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }}>
-                Sign in
+                {busy ? 'Signing in…' : 'Sign in'}
               </button>
             </>
           </div>
-          )}
           {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
           <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
         </div>
         </div>
         <SiteFooter />
+        </div>
+        {applyOpen && (
+          <ApplyModal
+            onClose={() => setApplyOpen(false)}
+            onApplied={(w) => {
+              setAppliedWallet(w);
+              setApplyOpen(false);
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Signed in, but partner/me rejected — not a partner. Dedicated blocked
+  // notice (no sign-in form here; that stage is over).
+  if (!me) {
+    return (
+      <>
+        <SiteHeader active="trader" />
+        <div className="mx-auto w-full" style={{ maxWidth: 1000, padding: '28px clamp(16px,4vw,40px) 64px' }}>
+          <div className="grid gap-0 md:grid-cols-2 rounded-2xl overflow-hidden" style={{ borderRadius: 18, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+            <div
+              className="p-8 flex flex-col justify-center gap-3"
+              style={{
+                background: 'radial-gradient(circle at top right, rgba(73,230,215,0.16), rgba(73,230,215,0) 55%), var(--ep-violet-tint, #2B2741)',
+              }}
+            >
+              <span className="font-mono text-[11px] tracking-widest" style={{ color: 'var(--ep-violet-100, #D2CEFD)' }}>
+                PARTNER TRADERS
+              </span>
+              <h1 className="font-display font-medium" style={{ fontSize: 'clamp(26px,3vw,36px)' }}>Run your own copy pool.</h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
+                Bring traders you trust. Every trader earns 15% of the profit their own signals make for the pool.
+              </p>
+              <p className="text-[11px] font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>
+                Invite only. Accounts are created by the Edgepool team.
+              </p>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="rounded-lg px-3 py-2.5 space-y-2" style={{ background: 'rgba(240,190,103,0.08)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
+                <p className="text-[11px] font-bold" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+                  You&apos;re not a partner.
+                </p>
+                <p className="text-[11px]" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>
+                  Signed in as {identity?.username ?? 'wallet'}{identity ? ` (${identity.role})` : ''}. This portal is for partner traders only.
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => setApplyOpen(true)} className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                    style={{ background: 'var(--ep-amber, #F0BE67)', color: '#0D0F18' }}>
+                    Register as a partner
+                  </button>
+                  <button
+                    onClick={() => {
+                      clearSession();
+                      lastToken.current = null;
+                      setToken(null);
+                      setMe(null);
+                      setMeDenied(false);
+                      setIdentity(null);
+                    }}
+                    className="text-[11px] font-bold px-3 py-1.5 rounded-lg"
+                    style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                    Sign out
+                  </button>
+                </div>
+              </div>
+              {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
+              <Link href="/" className="text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>← All pools</Link>
+            </div>
+          </div>
+          <SiteFooter />
         </div>
         {applyOpen && (
           <ApplyModal
