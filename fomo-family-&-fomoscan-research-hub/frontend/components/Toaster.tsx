@@ -7,7 +7,7 @@ type Toast = { id: number; text: string };
 let nextId = 1;
 const listeners = new Set<(t: Toast) => void>();
 
-/** Fire-and-forget toast (design: bottom-center, #032D2A bg, auto-hide 2.8s). */
+/** Fire-and-forget toast (top-right notification stack, #032D2A bg, auto-hide 2.8s). */
 export function toast(text: string): void {
   const t = { id: nextId++, text };
   listeners.forEach((cb) => {
@@ -37,11 +37,11 @@ export function Toaster() {
 
   if (items.length === 0) return null;
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] space-y-2 w-full px-4" style={{ maxWidth: 480 }}>
+    <div className="fixed top-5 right-5 z-[60] space-y-2" style={{ width: 'min(360px, calc(100vw - 40px))' }}>
       {items.map((t) => (
         <div
           key={t.id}
-          className="ep-fade text-center text-sm font-medium px-4 py-2.5 rounded-xl"
+          className="ep-fade text-left text-sm font-medium px-4 py-2.5 rounded-xl"
           style={{ background: 'var(--ep-aqua-deep, #032D2A)', color: 'var(--ep-aqua-100, #BBF6EE)', boxShadow: '0 0 0 1px var(--ep-aqua, #49E6D7)' }}
         >
           {t.text}
