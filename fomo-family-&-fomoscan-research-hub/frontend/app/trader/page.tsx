@@ -886,52 +886,6 @@ export default function TraderPage() {
               </div>
             </section>
 
-            <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="grid items-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,280px),1fr))', gap: 20 }}>
-                <SharePreview handle={me.handle}
-                  isBasket={isBasket} weekSol={sharePreview()?.wSol ?? '—'} weekPct={sharePreview()?.wPct ?? '—'} slug={slug} />
-                <div className="flex flex-col gap-3">
-                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Share card for X</span>
-                  <span className="text-[15px]" style={{ lineHeight: 1.5, color: '#CFD3E5' }}>
-                    Updates from your live numbers. The link points to your pool page; unlisted pools are only reachable through it.
-                  </span>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => {
-                        if (!pool) return;
-                        const pv = sharePreview();
-                        try {
-                          downloadShareCard({
-                            poolName: pool.name, handle: me.handle,
-                            pill: isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER OF ${pool.name.toUpperCase()}`,
-                            profitText: pv?.wSol ?? '—', profitSub: `Pool profit · 7d`,
-                            pctText: pv?.wPct ?? '—', pctSub: `Pool NAV / share · 7d`,
-                            link: `edgepool · ${slug}`,
-                          });
-                          setMsg('Share card downloaded.');
-                        } catch (e) {
-                          setMsg((e as Error).message);
-                        }
-                      }}
-                      className="font-medium flex items-center gap-2" style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
-                      <DownloadSimple size={16} weight="regular" /> Download PNG
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!pool) return;
-                        const url = `${window.location.origin}/pools/${pool.id}`;
-                        void navigator.clipboard.writeText(url).then(
-                          () => setMsg('Pool link copied.'),
-                          () => setMsg('Copy failed — link: ' + url),
-                        );
-                      }}
-                      className="font-medium flex items-center gap-2" style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 14, border: '1px solid #3F424D', background: 'transparent', color: 'var(--ep-text, #E9E9ED)' }}>
-                      <LinkSimple size={16} weight="regular" /> Copy pool link
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
           </div>
 
           <div className="flex flex-col min-w-0" style={{ gap: 16 }}>
@@ -1021,6 +975,53 @@ export default function TraderPage() {
             </section>
           </div>
         </div>
+
+            <section style={{ padding: '20px 22px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="grid items-center" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,280px),1fr))', gap: 20 }}>
+                <SharePreview handle={me.handle}
+                  isBasket={isBasket} weekSol={sharePreview()?.wSol ?? '—'} weekPct={sharePreview()?.wPct ?? '—'} slug={slug} />
+                <div className="flex flex-col gap-3">
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Share card for X</span>
+                  <span className="text-[15px]" style={{ lineHeight: 1.5, color: '#CFD3E5' }}>
+                    Updates from your live numbers. The link points to your pool page; unlisted pools are only reachable through it.
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => {
+                        if (!pool) return;
+                        const pv = sharePreview();
+                        try {
+                          downloadShareCard({
+                            poolName: pool.name, handle: me.handle,
+                            pill: isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER OF ${pool.name.toUpperCase()}`,
+                            profitText: pv?.wSol ?? '—', profitSub: `Pool profit · 7d`,
+                            pctText: pv?.wPct ?? '—', pctSub: `Pool NAV / share · 7d`,
+                            link: `edgepool · ${slug}`,
+                          });
+                          setMsg('Share card downloaded.');
+                        } catch (e) {
+                          setMsg((e as Error).message);
+                        }
+                      }}
+                      className="font-medium flex items-center gap-2" style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
+                      <DownloadSimple size={16} weight="regular" /> Download PNG
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (!pool) return;
+                        const url = `${window.location.origin}/pools/${pool.id}`;
+                        void navigator.clipboard.writeText(url).then(
+                          () => setMsg('Pool link copied.'),
+                          () => setMsg('Copy failed — link: ' + url),
+                        );
+                      }}
+                      className="font-medium flex items-center gap-2" style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 14, border: '1px solid #3F424D', background: 'transparent', color: 'var(--ep-text, #E9E9ED)' }}>
+                      <LinkSimple size={16} weight="regular" /> Copy pool link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
       </div>
       <SiteFooter />
     <Toaster />
