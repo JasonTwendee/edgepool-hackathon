@@ -35,7 +35,10 @@ function makeFake() {
     rows,
     signedIntent: {
       create: async ({ data }: { data: Row }) => {
-        const r = { id: ++seq, consumedAt: null, ...data };
+        // Mimic Postgres Decimal(24,12): qty is rounded to 12 places on write.
+        const r12 = (v: unknown): unknown =>
+          typeof v === 'number' ? Math.round(v * 1e12) / 1e12 : v;
+        const r = { id: ++seq, consumedAt: null, ...data, amountSol: r12(data.amountSol), shares: r12(data.shares) };
         rows.push(r);
         return r;
       },
@@ -131,6 +134,21 @@ async function main(): Promise<void> {
     const svc = new SignedIntentService(fake.fake);
     await assert.rejects(() => svc.challenge(7, 'DEPOSIT', 1, 0.5, 'not-a-wallet'), /Invalid base58|Invalid Solana wallet/);
     await assert.rejects(() => svc.challenge(7, 'DEPOSIT', 1, 0, wallet), /positive/);
+  }
+
+  // 8. Long-float withdraw shares (e.g. 20.50/price quotients) survive the
+  // Decimal(24,12) round-trip: qty is canonicalized at challenge time so the
+  // rebuilt verify message matches byte-for-byte (no false "tampered").
+  {
+    const fake = makeFake();
+    const svc = new SignedIntentService(fake.fake);
+    const qty = 20.5 / 0.934848;
+    const ch = await svc.challenge(7, 'WITHDRAW', 15, qty, wallet);
+    const got = await svc.verifyAndConsume({
+      userId: 7, kind: 'WITHDRAW', vaultId: 15, qty,
+      message: ch.message, signature: signMsg(ch.message),
+    });
+    assert.equal(got, wallet);
   }
 
   console.log('signed-intent asserts: ALL GREEN');

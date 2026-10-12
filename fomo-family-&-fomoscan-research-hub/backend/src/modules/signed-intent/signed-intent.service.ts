@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress, verifyEd25519Signature } from '../../common/auth/solana-verify.js';
@@ -9,7 +9,7 @@ const TTL_MS = 5 * 60 * 1000;
 const NONCE_RE = 32;
 
 function fail(message: string): never {
-  throw new Error(message);
+  throw new BadRequestException({ success: false, message });
 }
 
 /** Canonical message the wallet signs. Any byte difference fails verification. */
@@ -46,19 +46,25 @@ export class SignedIntentService {
   ): Promise<{ message: string; nonce: string; expiresAt: string }> {
     decodeWalletAddress(wallet); // throws on invalid address
     if (!(qty > 0)) fail('Amount must be positive.');
+    // Canonicalize BEFORE embedding + storing: the DB rounds qty to
+    // Decimal(24,12), so a raw float (e.g. computed withdraw shares like
+    // 21.92869999…) would make the rebuilt verify message differ by bytes
+    // and every such intent would die as "tampered".
+    const canonical = Math.round(qty * 1e9) / 1e9;
+    if (!(canonical > 0)) fail('Amount must be positive.');
     const nonce = randomBytes(16).toString('hex');
     if (nonce.length !== NONCE_RE) fail('RNG failure.');
     const exp = Date.now() + TTL_MS;
     const clean = wallet.trim();
-    const message = intentMessage({ kind, vaultId, qty, wallet: clean, nonce, exp });
+    const message = intentMessage({ kind, vaultId, qty: canonical, wallet: clean, nonce, exp });
     await this.prisma.signedIntent.create({
       data: {
         userId,
         wallet: clean,
         kind,
         vaultId,
-        amountSol: kind === 'DEPOSIT' ? qty : null,
-        shares: kind === 'WITHDRAW' ? qty : null,
+        amountSol: kind === 'DEPOSIT' ? canonical : null,
+        shares: kind === 'WITHDRAW' ? canonical : null,
         nonce,
         expiresAt: new Date(exp),
       },
