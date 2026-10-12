@@ -30,7 +30,9 @@ export class TransactionsService {
     const payload = {
       ...((rawPayload as Record<string, unknown> | null) ?? {}),
       eventSource: event.source,
-      enriched: event.source === 'helius',
+      // 'rpc' = bare signature row (heal retries later); anything parsed —
+      // Helius or the pure-RPC fallback — is final and skipped by heal.
+      enriched: event.source !== 'rpc',
     } as Prisma.InputJsonValue;
     try {
       await this.prisma.transaction.create({
@@ -167,7 +169,7 @@ export class TransactionsService {
       formattedTime: t.formattedTime,
       wallet: t.walletAddress,
       walletName: `@${w.handle} (${w.label})`,
-      source: (raw?.eventSource === 'helius' ? 'helius' : 'rpc') as 'rpc' | 'helius',
+      source: (['helius', 'rpc-parser'].includes(raw?.eventSource ?? '') ? raw!.eventSource : 'rpc') as OnChainTransactionEvent['source'],
       action: t.action as OnChainTransactionEvent['action'],
       symbol: t.symbol,
       tokenMint: t.tokenMint ?? undefined,

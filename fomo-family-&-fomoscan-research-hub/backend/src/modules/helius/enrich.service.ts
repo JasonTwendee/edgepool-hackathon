@@ -191,6 +191,7 @@ export class EnrichService {
     wallet: TrackedWallet,
     sig: ConfirmedSignatureInfo,
     partial?: EnrichedPartial,
+    source?: 'helius' | 'rpc-parser',
   ): OnChainTransactionEvent {
     const blockTime = sig.blockTime ?? Math.floor(Date.now() / 1000);
     const d = new Date(blockTime * 1000);
@@ -212,7 +213,7 @@ export class EnrichService {
       formattedTime,
       wallet: wallet.address,
       walletName: `@${wallet.handle} (${wallet.label})`,
-      source: partial ? 'helius' : 'rpc',
+      source: source ?? (partial ? 'helius' : 'rpc'),
       action,
       symbol,
       tokenMint: partial?.tokenMint,

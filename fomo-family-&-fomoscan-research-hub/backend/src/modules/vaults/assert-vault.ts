@@ -176,6 +176,39 @@ async function main(): Promise<void> {
     await assert.rejects(() => svcH.deposit(1, 'mallory', 5), /Kill-switch/);
   }
 
+  // 9. Cross-identity withdrawal settles against the linked (userId OR
+  // depositor) balance — the Oct-9 pool-14 shape: deposit under `cred:kol`,
+  // withdrawal requested from a kol session with a connected wallet.
+  {
+    const svcX = new VaultService(makeFake());
+    const vx = await svcX.getOrCreateVault('xpool');
+    await svcX.deposit(vx.id, 'cred:kol', 10, 8);
+    await svcX.settleEpoch(vx.id, 10);
+    await svcX.requestWithdraw(vx.id, { id: 8, wallet: 'W9' }, 4);
+    const sx = await svcX.settleEpoch(vx.id, 12);
+    assert.deepEqual(sx.settledWithdrawals.map((w) => w.payoutSol), [4.8]);
+    const mx = await svcX.mine(vx.id, { id: 8, wallet: 'cred:kol' });
+    assert.equal(mx.shares, 6);
+    assert.equal(mx.withdrawnSol, 4.8);
+  }
+
+  // 10. Double-spend in one epoch clamps the second row to the remainder and
+  // mine() burns actual payouts only — no phantom shares, views self-heal.
+  {
+    const svcY = new VaultService(makeFake());
+    const vy = await svcY.getOrCreateVault('ypool');
+    await svcY.deposit(vy.id, 'carol', 10);
+    await svcY.settleEpoch(vy.id, 10);
+    await svcY.requestWithdraw(vy.id, 'carol', 6);
+    await svcY.requestWithdraw(vy.id, 'carol', 6);
+    const sy = await svcY.settleEpoch(vy.id, 12);
+    assert.deepEqual(sy.settledWithdrawals.map((w) => w.payoutSol), [7.2, 4.8]);
+    assert.equal(await svcY.depositorShares(vy.id, 'carol'), 0);
+    const my = await svcY.mine(vy.id, { id: 77, wallet: 'carol' });
+    assert.equal(my.shares, 0);
+    assert.equal(my.withdrawnSol, 12);
+  }
+
   console.log('vault asserts: ALL GREEN');
 }
 

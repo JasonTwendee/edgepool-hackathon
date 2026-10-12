@@ -15,7 +15,7 @@ export type DexVenue =
   | 'Solana Native'
   | 'Jupiter Aggregator';
 
-export type EventSource = 'rpc' | 'helius';
+export type EventSource = 'rpc' | 'helius' | 'rpc-parser';
 
 export interface OnChainTransactionEvent {
   signature: string;

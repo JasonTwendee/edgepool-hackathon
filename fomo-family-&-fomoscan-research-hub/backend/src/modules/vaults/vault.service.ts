@@ -69,6 +69,20 @@ export const PARTNER_FEE_SHARE = 0.75;
 export const BASKET_FEE_SHARE = 0.5;
 
 const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
+
+/**
+ * Actual burned shares of a withdrawal row. Settle clamps over-requests to
+ * the holder's balance (partial/zero payout), so counting sharesRequested
+ * phantom-burns shares that never left the vault. payout/price is exact
+ * (withdrawFeeBps is 0 on every vault); legacy rows without a settle price
+ * fall back to sharesRequested.
+ */
+const burnedOf = (w: { status: unknown; sharesRequested: unknown; payoutSol: unknown; sharePrice: unknown }): number => {
+  if (w.status !== 'SETTLED') return 0;
+  const price = num(w.sharePrice as never);
+  if (price > 0) return r9(num(w.payoutSol as never) / price);
+  return num(w.sharesRequested as never);
+};
 const f9 = (v: number): number => Math.floor(v * 1e9) / 1e9;
 
 /** Latest NAV across epoch checkpoints (0 when the pool never settled). */
@@ -263,7 +277,7 @@ export class VaultService {
       this.prisma.withdrawal.findMany({ where: { vaultId, depositor, status: 'SETTLED' } }),
     ]);
     const minted = ins.reduce((s, r) => s + num(r.sharesMinted), 0);
-    const burned = outs.reduce((s, r) => s + num(r.sharesRequested), 0);
+    const burned = outs.reduce((s, r) => s + burnedOf(r), 0);
     return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
   }
 
@@ -275,7 +289,7 @@ export class VaultService {
       this.prisma.withdrawal.findMany({ where }),
     ]);
     const minted = ins.reduce((s, r) => s + num(r.sharesMinted), 0);
-    const burned = outs.reduce((s, r) => s + num(r.sharesRequested), 0);
+    const burned = outs.reduce((s, r) => s + burnedOf(r), 0);
     return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
   }
 
@@ -439,13 +453,20 @@ export class VaultService {
       let treasuryFee = 0;
       for (const w of withdrawals) {
         const want = num(w.sharesRequested);
+        // Linked identity (same scope as request-time depositorSharesByUser):
+        // the session userId OR the depositor string. A withdrawal requested
+        // with a connected wallet settles against the exact balance it was
+        // approved against — never a silent 0 payout on identity mismatch.
+        const scope = (w.userId as number | null | undefined) != null
+          ? { OR: [{ userId: w.userId }, { depositor: w.depositor }] }
+          : { depositor: w.depositor };
         // Balance inside the tx (same snapshot as the mint loop above).
         const [ins, outs] = await Promise.all([
-          tx.deposit.findMany({ where: { vaultId, depositor: w.depositor, status: 'SETTLED' } }),
-          tx.withdrawal.findMany({ where: { vaultId, depositor: w.depositor, status: 'SETTLED' } }),
+          tx.deposit.findMany({ where: { vaultId, status: 'SETTLED', ...scope } }),
+          tx.withdrawal.findMany({ where: { vaultId, status: 'SETTLED', ...scope } }),
         ]);
         const mintedIn = ins.reduce((s: number, r: { sharesMinted: unknown }) => s + num(r.sharesMinted as never), 0);
-        const burnedOut = outs.reduce((s: number, r: { sharesRequested: unknown }) => s + num(r.sharesRequested as never), 0);
+        const burnedOut = outs.reduce((s: number, r: { sharesRequested: unknown; payoutSol: unknown; sharePrice: unknown; status: unknown }) => s + burnedOf(r as never), 0);
         const held = Math.max(0, Math.round((mintedIn - burnedOut) * 1e9) / 1e9);
         const payoutShares = Math.min(want, held);
         const gross = Math.round(payoutShares * price * 1e9) / 1e9;
@@ -845,7 +866,7 @@ export class VaultService {
           type: w.status === 'SETTLED' ? 'withdrawal_settled' : w.status === 'CANCELLED' ? 'withdrawal_cancelled' : 'withdrawal_queued',
           poolId: v.id, poolName: v.name, tx: '—',
           amountSol: w.status === 'SETTLED' ? num(w.payoutSol) : 0,
-          sharesDelta: w.status === 'CANCELLED' ? 0 : -num(w.sharesRequested), status: w.status,
+          sharesDelta: w.status === 'CANCELLED' ? 0 : w.status === 'SETTLED' ? -burnedOf(w) : -num(w.sharesRequested), status: w.status,
         });
       }
     }
@@ -1279,7 +1300,7 @@ export class VaultService {
     const qw: { id: number; shares: number; createdAt: string }[] = [];
     for (const w of withdrawals) {
       if (w.status === 'SETTLED') {
-        burned = r9(burned + num(w.sharesRequested));
+        burned = r9(burned + burnedOf(w));
         withdrawn = r9(withdrawn + num(w.payoutSol));
       } else if (w.status === 'QUEUED') {
         qw.push({ id: w.id, shares: num(w.sharesRequested), createdAt: (w.createdAt as Date).toISOString() });
