@@ -685,7 +685,7 @@ export default function TraderPage() {
           </div>
         )}
 
-        <section className="flex flex-wrap items-center" style={{ padding: '22px 24px', borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 24 }}>
+        <section className="flex flex-wrap items-center" style={{ padding: '22px 24px', borderRadius: 16, background: 'radial-gradient(80% 140% at 0% 0%, rgba(3,45,42,0.6), transparent 70%), var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 24 }}>
           <div className="grid" style={{ flex: '2 1 480px', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 16 }}>
             {[
               { k: 'Pending', v: `${me.fees.pendingSol.toFixed(2)} SOL`, sub: 'From winning trades' },
@@ -694,7 +694,7 @@ export default function TraderPage() {
             ].map((f) => (
               <div key={f.k} className="flex flex-col gap-1">
                 <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>{f.k}</span>
-                <span className="font-mono font-medium whitespace-nowrap" style={{ fontSize: 'clamp(24px,4vw,30px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
+                <span className="font-mono font-medium whitespace-nowrap" style={{ fontSize: 'clamp(19px,5vw,24px)', color: f.aqua ? 'var(--ep-aqua, #49E6D7)' : 'var(--ep-text, #E9E9ED)' }}>{f.v}</span>
                 <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>{f.sub}</span>
               </div>
             ))}
@@ -704,13 +704,13 @@ export default function TraderPage() {
               className="w-full font-medium disabled:opacity-100"
               style={claimReady
                 ? { height: 46, borderRadius: 10, fontSize: 15, background: 'var(--ep-aqua, #49E6D7)', color: '#0D0F18' }
-                : { height: 46, borderRadius: 10, fontSize: 15, background: '#2E313F', color: 'var(--ep-muted, #9397AB)' }}>
+                : { height: 46, borderRadius: 10, fontSize: 15, background: '#2E313F', color: '#75798C' }}>
               {claimLabel}
             </button>
-            <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', lineHeight: 1.5 }}>
+            <span style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)', lineHeight: 1.45 }}>
               Auto-paid at each checkpoint
               {me.fees.nextCheckpointAt ? (
-                <>, next in <span className="font-mono" style={{ color: 'var(--ep-aqua, #49E6D7)', padding: '1px 6px', borderRadius: 5, background: 'rgba(73,230,215,0.1)' }}>{countdown(me.fees.nextCheckpointAt, now)}</span></>
+                <>, next in <span className="font-mono font-medium" style={{ color: 'var(--ep-aqua, #49E6D7)', padding: '1px 6px', borderRadius: 5, background: 'rgba(73,230,215,0.1)', whiteSpace: 'nowrap' }}>{countdown(me.fees.nextCheckpointAt, now)}</span></>
               ) : '.'} Pending becomes claimable when NAV per share is above its high-water mark.
             </span>
           </div>
