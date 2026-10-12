@@ -679,6 +679,11 @@ export default function PoolDetailPage() {
                     <span className="font-mono" style={{ fontSize: 14 }}>{mh.depositedSol.toFixed(2)} SOL</span>
                   </div>
                 </div>
+                {mh.queuedDeposits.length > 0 && (
+                  <p className="text-xs font-mono" style={{ color: 'var(--ep-amber, #F0BE67)' }}>
+                    {mh.queuedDeposits.reduce((s, q) => s + q.amountSol, 0).toFixed(2)} SOL queued — shares mint at the next settle.
+                  </p>
+                )}
                 <Link
                   href="/portfolio"
                   className="block text-center w-full font-medium"
