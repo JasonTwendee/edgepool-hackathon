@@ -12,6 +12,7 @@ import {
   partialCloseDemo,
   queueVaultDeposit,
   depositChallenge,
+  withdrawChallenge,
   replayDemo,
   requestVaultWithdraw,
   resetDemo,
@@ -56,6 +57,8 @@ export default function PoolDetailPage() {
   const [period, setPeriod] = useState<Period>('week');
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
+  const [wdAmount, setWdAmount] = useState('');
+  const [wdBusy, setWdBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
@@ -150,8 +153,57 @@ export default function PoolDetailPage() {
     }
   }
 
-  async function loadJourneys(vaultId: number) {
+  /** Withdraw in place (no page jump): wallet-signed when possible, auto-settled. */
+  async function withdraw() {
+    if (wdBusy || !pool || !pool.myHolding || pool.myHolding.shares <= 0) return;
     const token = getStoredToken();
+    if (!token) {
+      setMsg('Sign in first (login wall).');
+      return;
+    }
+    const amtSol = Number(wdAmount);
+    if (!(amtSol > 0)) {
+      setMsg('Enter a SOL amount to withdraw.');
+      return;
+    }
+    const price = pool.myHolding.sharePrice > 0 ? pool.myHolding.sharePrice : pool.navPerShare;
+    const shares = price > 0 ? amtSol / price : 0;
+    if (!(shares > 0) || shares - pool.myHolding.shares > 1e-9) {
+      setMsg('More than available.');
+      return;
+    }
+    setWdBusy(true);
+    setMsg(null);
+    try {
+      let message: string | undefined;
+      let signature: string | undefined;
+      try {
+        const wallet = await connectBrowserWallet();
+        const ch = await withdrawChallenge({ vaultId: pool.id, shares, wallet }, token);
+        const sig = await signWithBrowserWallet(ch.data.message);
+        message = ch.data.message;
+        signature = sig.signature;
+      } catch (e) {
+        setMsg(`Wallet signing unavailable (${(e as Error).message}) — continuing as a session withdrawal.`);
+      }
+      const res = await requestVaultWithdraw({ vaultId: pool.id, shares, message, signature }, token);
+      if (res.data.status === 'SETTLED' && res.data.payoutSol !== undefined) {
+        setMsg(`Withdrew ${shares.toFixed(4)} shares → ${res.data.payoutSol.toFixed(4)} SOL paid.`);
+        toast(`Withdrew ${res.data.payoutSol.toFixed(4)} SOL`);
+      } else {
+        setMsg(`Withdraw #${res.data.id} queued — settles at checkpoint.`);
+        toast('Withdrawal queued');
+      }
+      setWdAmount('');
+      await refresh();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setWdBusy(false);
+    }
+  }
+
+  async function loadJourneys(vaultId: number) {    const token = getStoredToken();
     if (!token) return;
     try {
       const r = await vaultOrders(token, vaultId);
@@ -696,13 +748,30 @@ export default function PoolDetailPage() {
                     {mh.queuedDeposits.reduce((s, q) => s + q.amountSol, 0).toFixed(2)} SOL queued — shares mint at the next settle.
                   </p>
                 )}
-                <Link
-                  href="/portfolio"
-                  className="block text-center w-full font-medium"
-                  style={{ height: 40, lineHeight: '40px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}
+                <div className="flex items-center gap-2" style={{ height: 46, borderRadius: 10, background: 'rgba(13,15,24,0.5)', boxShadow: 'inset 0 0 0 1px #004B45', padding: '0 8px 0 14px' }}>
+                  <input
+                    value={wdAmount}
+                    onChange={(e) => setWdAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                    placeholder="0.00"
+                    aria-label="Withdraw amount in SOL"
+                    inputMode="decimal"
+                    className="flex-1 min-w-0 font-mono outline-none bg-transparent"
+                    style={{ fontSize: 18, fontWeight: 500, color: '#E9E9ED' }}
+                  />
+                  <span className="text-xs" style={{ color: '#81EADE' }}>SOL</span>
+                  <button onClick={() => setWdAmount(mh.valueSol.toFixed(2))} className="font-medium shrink-0"
+                    style={{ height: 30, padding: '0 10px', borderRadius: 7, fontSize: 12, background: 'rgba(73,230,215,0.12)', color: '#81EADE' }}>
+                    Max
+                  </button>
+                </div>
+                <button
+                  onClick={() => void withdraw()}
+                  disabled={wdBusy}
+                  className="block text-center w-full font-medium disabled:opacity-50"
+                  style={{ height: 40, borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}
                 >
-                  Withdraw · {pool.openCount === 0 ? 'instant while flat' : 'queued to checkpoint'}
-                </Link>
+                  {wdBusy ? 'Withdrawing…' : `Withdraw · ${pool.openCount === 0 ? 'instant while flat' : 'queued to checkpoint'}`}
+                </button>
               </section>
             );
           })()}
