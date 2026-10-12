@@ -251,7 +251,12 @@ export interface PoolDetail extends PoolSummary {
 }
 
 export function getPoolDetail(id: number): Promise<{ success: boolean; data: PoolDetail }> {
-  return cachedGet(`pool:${id}:${getStoredToken() ?? ''}`, () => fetchJson(`/api/vaults/${id}/pool`));
+  // Authenticated when possible: the bearer carries myHolding (position,
+  // queued deposits) while public fields stay identical for everyone.
+  const token = getStoredToken();
+  return cachedGet(`pool:${id}:${token ?? ''}`, () =>
+    token ? fetchJsonAuth(`/api/vaults/${id}/pool`, token) : fetchJson(`/api/vaults/${id}/pool`),
+  );
 }
 
 export interface PortfolioOverview {

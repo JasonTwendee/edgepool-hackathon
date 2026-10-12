@@ -23,6 +23,11 @@ function makeFake() {
       findUnique: async ({ where }: { where: Row }) => db.wallet.find((r) => match(r, where)) ?? null,
       update: async ({ where, data }: { where: Row; data: Row }) => {
         const r = db.wallet.find((x) => match(x, where)) as Row;
+        // Mimic Prisma: Decimal columns come back as Decimal (toNumber()).
+        if (typeof data.allocationWeight === 'number') {
+          const n = data.allocationWeight as number;
+          data = { ...data, allocationWeight: { toNumber: () => n } };
+        }
         Object.assign(r, data);
         return r;
       },
@@ -92,6 +97,25 @@ async function main(): Promise<void> {
     const fake = makeFake();
     const svc = svcWith(fake, stubFomoscan(null, []));
     await assert.rejects(() => svc.enrich('W1'), /No verified FomoScan identity/);
+  }
+
+  // 5. Deactivate → DB flag off + WS unwatched (sync + live both skip);
+  // reactivate re-watches. History rows are kept either way.
+  {
+    const watched: string[] = [];
+    const unwatched: string[] = [];
+    const fake = makeFake();
+    const stream = {
+      watch: async (a: string) => { watched.push(a); },
+      unwatch: async (a: string) => { unwatched.push(a); },
+    };
+    const solana = { updateWalletCopyConfig: () => true };
+    const svc = new WalletsService(fake.prisma as never, solana as never, stream as never, stubFomoscan(null, []) as never);
+    assert.equal(await svc.updateCopyConfig('W1', { isCopyEnabled: false } as never), true);
+    assert.deepEqual(unwatched, ['W1']);
+    assert.equal(await svc.updateCopyConfig('W1', { isCopyEnabled: true } as never), true);
+    assert.deepEqual(watched, ['W1']);
+    assert.equal(await svc.updateCopyConfig('W9', { isCopyEnabled: false } as never), false);
   }
 
   console.log('enrich asserts: ALL GREEN');

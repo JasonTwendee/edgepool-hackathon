@@ -30,6 +30,10 @@ export class WalletsController {
   // from the verified leaderboard (leaderboard module). PATCH copy-config stays.
 
   @Patch(':address')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('wallet.update_copy_config')
   async updateCopyConfig(
     @Param('address') address: string,
     @Body() body: Record<string, unknown>,

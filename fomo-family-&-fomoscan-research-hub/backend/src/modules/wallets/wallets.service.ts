@@ -79,6 +79,10 @@ export class WalletsService implements OnModuleInit {
       updated.isActive,
       updated.allocationWeight.toNumber(),
     );
+    // Deactivation stops WS traffic too (sync already skips inactive rows).
+    // History is kept — rotation can reactivate anytime via the same endpoint.
+    if (!updated.isActive) await this.stream.unwatch(address).catch(() => undefined);
+    else await this.stream.watch(address).catch(() => undefined);
     return true;
   }
 

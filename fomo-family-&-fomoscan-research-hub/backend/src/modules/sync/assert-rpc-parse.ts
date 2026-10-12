@@ -131,7 +131,7 @@ async function main(): Promise<void> {
     } as never;
     const stream = { setHandler: () => undefined } as never;
     const prisma = {
-      trackedWallet: { findUnique: async () => ({ address: 'W1' }) },
+      trackedWallet: { findUnique: async () => ({ address: 'W1', isActive: true }) },
       realtimeEvent: { findFirst: async () => null, create: async () => ({ id: 1 }) },
     } as never;
     const svc = new OnchainService(solana, stream, realEnrich(), txSvc, prisma, parser);

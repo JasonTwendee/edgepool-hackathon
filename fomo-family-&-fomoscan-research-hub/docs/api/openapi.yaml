@@ -520,8 +520,9 @@ paths:
         '404': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/wallets/{address}:
     patch:
-      summary: Update copy-trade config
+      summary: Update copy-trade config (ADMIN — incl. deactivate/reactivate tracking)
       operationId: updateWalletCopy
+      security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/WalletAddress'
       requestBody:
@@ -537,6 +538,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessMessage'
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
         '404':
           description: Not found
           content:
