@@ -169,6 +169,12 @@ async function main(): Promise<void> {
   assert.equal(((me.fees as Row).claimableSol as number), 0.15);
   assert.equal(((me.fees as Row).paidSol as number), 0);
   assert.equal((((me.basket as Row[])[0] as Row).inBasket as boolean), true);
+  // 2b. me() pools carry display-only pool config (rules/slots read by the
+  // KOL portal; writes stay ADMIN-only in /terminal).
+  const mp = (me.pools as Row[])[0] as Row;
+  assert.equal(mp.maxSlots, 100);
+  assert.equal(mp.maxTraders, 5);
+  assert.equal(mp.rulesJson, null);
 
   // 3. Claim requires a VERIFIED payout wallet (fix 7: signature challenge).
   await assert.rejects(() => svc.claim(KOL), /payout wallet/);

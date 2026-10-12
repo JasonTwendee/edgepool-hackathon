@@ -298,6 +298,19 @@ export function partnerMe(token: string): Promise<{ success: boolean; data: Part
   return fetchJsonAuth('/api/partner/me', token);
 }
 
+/** Live WSOL price in USD (public proxy, best-effort — null when offline). */
+export async function getSolPriceUsd(): Promise<number | null> {
+  try {
+    const r = await fetchJson<{ success: boolean; data: Record<string, number> }>(
+      '/api/market/prices?mints=So11111111111111111111111111111111111111112',
+    );
+    const px = r.data['So11111111111111111111111111111111111111112'];
+    return typeof px === 'number' && px > 0 ? px : null;
+  } catch {
+    return null;
+  }
+}
+
 export function partnerPayoutChallenge(token: string, wallet: string): Promise<{ success: boolean; data: { wallet: string; nonce: string; message: string; expiresAt: string } }> {
   return fetchJsonAuth('/api/partner/payout-wallet/challenge', token, { method: 'POST', body: JSON.stringify({ wallet }) });
 }

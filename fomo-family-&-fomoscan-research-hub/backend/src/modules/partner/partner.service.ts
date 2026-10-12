@@ -138,7 +138,7 @@ export class PartnerService {
       handle: (row.username as string | null) ?? (row.wallet as string).slice(0, 8),
       payoutWallet: (row.payoutWallet as string | null) ?? null,
       payoutWalletVerified: !!(row.payoutWalletVerifiedAt as unknown as Date | null),
-      pools: pools.map((p) => ({ id: p.id, name: p.name, kind: p.kind, status: p.status, listing: p.listing, navSol: p.navSol })),
+      pools: pools.map((p) => ({ id: p.id, name: p.name, kind: p.kind, status: p.status, listing: p.listing, navSol: p.navSol, maxSlots: p.maxSlots, maxTraders: p.maxTraders, rulesJson: p.rulesJson ?? null })),
       fees,
       basket,
       requests: requests.map((r) => ({ id: r.id, vaultId: r.vaultId, fomoHandle: r.fomoHandle, status: r.status })),
