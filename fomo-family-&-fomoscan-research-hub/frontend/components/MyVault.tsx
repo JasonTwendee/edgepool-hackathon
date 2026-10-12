@@ -46,13 +46,17 @@ export function MyVault({ session }: { session: FundSession | null }) {
         const amt = Number(amount);
         if (!(amt > 0)) throw new Error('Enter a positive SOL amount.');
         const res = await queueVaultDeposit({ amountSol: amt }, session.token);
-        setMsg(`Deposit #${res.data.id} queued — settles at next epoch price.`);
+        setMsg(res.data.status === 'SETTLED' && res.data.sharesMinted !== undefined
+          ? `Deposit #${res.data.id} settled → ${res.data.sharesMinted.toFixed(4)} shares.`
+          : `Deposit #${res.data.id} queued — settles at next epoch price.`);
         setAmount('');
       } else {
         const sh = Number(shares);
         if (!(sh > 0)) throw new Error('Enter positive shares.');
         const res = await requestVaultWithdraw({ shares: sh }, session.token);
-        setMsg(`Withdraw #${res.data.id} queued — settles at next epoch price.`);
+        setMsg(res.data.status === 'SETTLED' && res.data.payoutSol !== undefined
+          ? `Withdraw #${res.data.id} settled → ${res.data.payoutSol.toFixed(4)} SOL.`
+          : `Withdraw #${res.data.id} queued — settles at next epoch price.`);
         setShares('');
       }
       await refresh();

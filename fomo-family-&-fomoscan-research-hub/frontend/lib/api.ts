@@ -386,9 +386,9 @@ export function queueVaultDeposit(input: {
   vaultId?: number;
   message?: string;
   signature?: string;
-}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null; sharesMinted?: number; sharePrice?: number; epochId?: number } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }>('/api/vaults/deposit', token, init);
+  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null; sharesMinted?: number; sharePrice?: number; epochId?: number } }>('/api/vaults/deposit', token, init);
   void p.then(() => bumpApiCache());
   return p;
 }
@@ -399,9 +399,9 @@ export function requestVaultWithdraw(input: {
   vaultId?: number;
   message?: string;
   signature?: string;
-}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }> {
+}, token: string): Promise<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null; payoutSol?: number; sharePrice?: number; epochId?: number } }> {
   const init = { method: 'POST', body: JSON.stringify(input) };
-  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null } }>('/api/vaults/withdraw', token, init);
+  const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null; payoutSol?: number; sharePrice?: number; epochId?: number } }>('/api/vaults/withdraw', token, init);
   void p.then(() => bumpApiCache());
   return p;
 }

@@ -128,11 +128,19 @@ export default function PoolDetailPage() {
         setMsg(`Wallet signing unavailable (${(e as Error).message}) — continuing as a session deposit.`);
       }
       const res = await queueVaultDeposit({ vaultId: pool.id, amountSol: amt, message, signature }, token);
-      setMsg(
-        `Deposit #${res.data.id} queued — settles at next epoch price.` +
-          (signedBy ? ` Signed by ${signedBy.slice(0, 4)}…${signedBy.slice(-4)} (paper, no funds moved).` : ''),
-      );
-      toast(`Deposited ${amt.toFixed(2)} SOL · signals unlocked`);
+      if (res.data.status === 'SETTLED' && res.data.sharesMinted !== undefined) {
+        setMsg(
+          `Deposit #${res.data.id} settled → ${res.data.sharesMinted.toFixed(4)} shares @ ${(res.data.sharePrice ?? 0).toFixed(4)} (epoch #${res.data.epochId}).` +
+            (signedBy ? ` Signed by ${signedBy.slice(0, 4)}…${signedBy.slice(-4)} (paper, no funds moved).` : ''),
+        );
+        toast(`Deposited ${amt.toFixed(2)} SOL → ${res.data.sharesMinted.toFixed(4)} shares`);
+      } else {
+        setMsg(
+          `Deposit #${res.data.id} queued — settles at next epoch price.` +
+            (signedBy ? ` Signed by ${signedBy.slice(0, 4)}…${signedBy.slice(-4)} (paper, no funds moved).` : ''),
+        );
+        toast(`Deposited ${amt.toFixed(2)} SOL · signals unlocked`);
+      }
       setAmount('');
       await refresh();
     } catch (e) {
@@ -251,10 +259,12 @@ export default function PoolDetailPage() {
       return r.data;
     };
     try {
-      // 1. Deposit.
+      // 1. Deposit (auto-settles at the current price).
       paint('deposit', 'run');
       const dep = await queueVaultDeposit({ vaultId: pool.id, amountSol: 2 }, token);
-      paint('deposit', 'done', `deposit #${dep.data.id} queued · 2 SOL`);
+      paint('deposit', 'done', dep.data.status === 'SETTLED' && dep.data.sharesMinted !== undefined
+        ? `deposit #${dep.data.id} settled → ${dep.data.sharesMinted.toFixed(4)} shares · 2 SOL`
+        : `deposit #${dep.data.id} queued · 2 SOL`);
       // 2. Settle the deposit.
       paint('settle1', 'run');
       let cur = await fresh();
@@ -297,7 +307,9 @@ export default function PoolDetailPage() {
       if (myShares <= 0) throw new Error('No shares to withdraw (deposit did not settle?).');
       const wShares = Math.max(0.0001, Math.floor((myShares / 2) * 10000) / 10000);
       const wd = await requestVaultWithdraw({ vaultId: pool.id, shares: wShares }, token);
-      paint('withdraw', 'done', `withdrawal #${wd.data.id} queued · ${wShares} shares`);
+      paint('withdraw', 'done', wd.data.status === 'SETTLED' && wd.data.payoutSol !== undefined
+        ? `withdrawal #${wd.data.id} settled → ${wd.data.payoutSol.toFixed(4)} SOL`
+        : `withdrawal #${wd.data.id} queued · ${wShares} shares`);
       // 7. Settle the withdrawal at the full pre-withdrawal NAV (withdrawing
       // shares does not dilute the price — payout = shares × price).
       paint('settle3', 'run');

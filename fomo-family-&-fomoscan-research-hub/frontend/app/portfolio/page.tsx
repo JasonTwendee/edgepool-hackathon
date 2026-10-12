@@ -81,7 +81,11 @@ function WithdrawModal({
         setErr(`Wallet signing unavailable (${(e as Error).message}) — continuing as a session withdrawal.`);
       }
       const res = await requestVaultWithdraw({ vaultId: poolId, shares, message, signature }, token);
-      onDone(`Withdraw #${res.data.id} ${flat ? 'settled instantly' : 'queued — settles at checkpoint'}.`);
+      if (res.data.status === 'SETTLED' && res.data.payoutSol !== undefined) {
+        onDone(`Withdrew ${shares} shares → ${res.data.payoutSol.toFixed(4)} SOL paid.`);
+      } else {
+        onDone(`Withdraw #${res.data.id} ${flat ? 'settled instantly' : 'queued — settles at checkpoint'}.`);
+      }
       onClose();
     } catch (e) {
       setErr((e as Error).message);

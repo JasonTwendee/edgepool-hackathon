@@ -879,7 +879,7 @@ paths:
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/deposit:
     post:
-      summary: Queue a vault deposit (settled at epoch price, session identity)
+      summary: Deposit into a vault (auto-settled at MTM price, session identity; QUEUED fallback when the settle window is closed)
       operationId: queueVaultDeposit
       security: [{ bearerAuth: [] }]
       requestBody:
@@ -890,7 +890,7 @@ paths:
               $ref: '#/components/schemas/VaultDepositDto'
       responses:
         '200':
-          description: Queued
+          description: Settled (or queued when the window is closed)
           content:
             application/json:
               schema:
@@ -903,6 +903,9 @@ paths:
                     properties:
                       id: { type: integer }
                       status: { type: string }
+                      sharesMinted: { type: number }
+                      sharePrice: { type: number }
+                      epochId: { type: integer }
         '400':
           description: Invalid request (envelope)
           content:
@@ -912,7 +915,7 @@ paths:
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/withdraw:
     post:
-      summary: Request a share withdrawal (settled at epoch price, session identity)
+      summary: Withdraw shares (auto-settled at MTM price, session identity; QUEUED fallback when the settle window is closed)
       operationId: requestVaultWithdraw
       security: [{ bearerAuth: [] }]
       requestBody:
@@ -923,7 +926,7 @@ paths:
               $ref: '#/components/schemas/VaultWithdrawDto'
       responses:
         '200':
-          description: Queued
+          description: Settled (or queued when the window is closed)
           content:
             application/json:
               schema:
@@ -936,6 +939,9 @@ paths:
                     properties:
                       id: { type: integer }
                       status: { type: string }
+                      payoutSol: { type: number }
+                      sharePrice: { type: number }
+                      epochId: { type: integer }
         '400':
           description: Invalid request or insufficient shares (envelope)
           content:

@@ -204,6 +204,20 @@ export class VaultsController {
       identity = { ...(req.user as AuthedUser), wallet: signedWallet };
     }
     const row = await this.vaults.deposit(dto.vaultId ?? 1, identity, dto.amountSol);
+    // Auto-settle (2026-10-12): a booked deposit mints immediately at the
+    // current MTM price — no ADMIN round-trip. Settle is deterministic
+    // computation (price + mint + HWM fee ratchet), nothing a human adds.
+    // Window-closed or any settle hiccup falls back to QUEUED (old behavior);
+    // the booking itself never fails because of settlement.
+    try {
+      const st = await this.vaults.settleEpoch(dto.vaultId ?? 1);
+      const mine = st.settledDeposits.find((d) => d.id === (row as { id: number }).id);
+      if (mine) {
+        return { success: true, data: { ...(row as object), signedWallet, status: 'SETTLED', sharesMinted: mine.shares, sharePrice: st.sharePrice, epochId: st.epochId } };
+      }
+    } catch {
+      // Fall through to QUEUED below.
+    }
     return { success: true, data: { ...(row as object), signedWallet } };
   }
 
@@ -229,6 +243,18 @@ export class VaultsController {
       identity = { ...(req.user as AuthedUser), wallet: signedWallet };
     }
     const row = await this.vaults.requestWithdraw(dto.vaultId ?? 1, identity, dto.shares);
+    // Auto-settle symmetric with deposits: a booked withdrawal pays out
+    // immediately at the current price (flat pools withdraw instantly by
+    // design). Falls back to QUEUED on window-closed or settle hiccups.
+    try {
+      const st = await this.vaults.settleEpoch(dto.vaultId ?? 1);
+      const mine = st.settledWithdrawals.find((w) => w.id === (row as { id: number }).id);
+      if (mine) {
+        return { success: true, data: { ...(row as object), signedWallet, status: 'SETTLED', payoutSol: mine.payoutSol, sharePrice: st.sharePrice, epochId: st.epochId } };
+      }
+    } catch {
+      // Fall through to QUEUED below.
+    }
     return { success: true, data: { ...(row as object), signedWallet } };
   }
 
