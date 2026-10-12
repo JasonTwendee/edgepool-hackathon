@@ -52,6 +52,7 @@ function makeFake() {
   const prisma = {
     user: {
       findUnique: async ({ where }: { where: Row }) => db.user.find((r) => match(r, where)) ?? null,
+      findMany: async ({ where }: { where?: Row } = {}) => (where ? db.user.filter((r) => match(r, where)) : [...db.user]),
       update: async ({ where, data }: { where: Row; data: Row }) => {
         const r = db.user.find((x) => match(x, where)) as Row;
         Object.assign(r, data);
@@ -202,6 +203,11 @@ async function main(): Promise<void> {
   const fees2 = (await svc.fees(KOL)) as Row;
   assert.equal(fees2.claimableSol, 0);
   assert.equal(fees2.paidSol, 0.15);
+  // 3b. One wallet → one partner: KOL's verified wallet can't be linked again.
+  const KOL2 = { id: 9, wallet: 'cred:kol2', role: 'KOL' };
+  db.user.push({ id: 9, wallet: 'cred:kol2', username: 'kol2', role: 'KOL', payoutWallet: null, payoutWalletVerifiedAt: null });
+  const ch3 = (await svc.issuePayoutChallenge(KOL2, key.pubkey)) as { message: string };
+  await assert.rejects(() => svc.setPayoutWallet(KOL2, key.pubkey, key.signMsg(ch3.message)), /already linked/);
 
   // 4. Owner model: the KOL owns their pool outright (settings + traders);
   // a KOL touching someone else's pool is refused; ADMIN bypasses.

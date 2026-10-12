@@ -29,7 +29,7 @@ import {
 import { connectProvider, detectWallets, signWithBrowserWallet, signWithProvider, type InjectedSolanaProvider } from '../../lib/solana';
 import { SiteFooter, SiteHeader } from '../../components/SiteHeader';
 import { Toaster, toast } from '../../components/Toaster';
-import { DownloadSimple, LinkSimple, UsersThree, Wallet } from '@phosphor-icons/react';
+import { DownloadSimple, LinkSimple, SignOut, UsersThree, Wallet } from '@phosphor-icons/react';
 
 const inputCls =
   'w-full text-sm bg-[#0D0F18] border border-[#3F424D] rounded-lg px-3 py-2.5 text-[#E9E9ED] placeholder:text-[#4A4D5E] outline-none focus:border-[#E9E9ED]';
@@ -638,12 +638,35 @@ export default function TraderPage() {
     <>
       <SiteHeader active="trader" />
       <div className="mx-auto w-full flex flex-col" style={{ maxWidth: 1240, padding: '28px clamp(16px,4vw,40px) 64px', gap: 16 }}>
-        <div className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-          <span className="font-mono font-bold" style={{ color: 'var(--ep-text, #E9E9ED)' }}>@{me.handle}</span>
-          {' · '}
-          {me.payoutWallet
-            ? `payout → ${me.payoutWallet.slice(0, 6)}…${me.payoutWallet.slice(-4)}${me.payoutWalletVerified ? ' ✓ verified' : ' · UNVERIFIED'}`
-            : 'No payout wallet yet'}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex items-center justify-center font-bold shrink-0"
+              style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(145,132,217,0.16)', boxShadow: 'inset 0 0 0 1px rgba(145,132,217,0.4)', color: 'var(--ep-violet-100, #D2CEFD)', fontSize: 16 }}>
+              {(me.handle || 'K').slice(0, 1).toUpperCase()}
+            </span>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <h1 className="font-display font-medium" style={{ fontSize: 22 }}>Partner dashboard</h1>
+              <p className="text-[13px] truncate" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                <span className="font-mono">@{me.handle}</span>
+                {' · '}
+                {me.payoutWallet
+                  ? `payout → ${me.payoutWallet.slice(0, 6)}…${me.payoutWallet.slice(-4)}${me.payoutWalletVerified ? ' ✓ verified' : ' · UNVERIFIED'}`
+                  : 'No payout wallet yet'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              clearSession();
+              lastToken.current = null;
+              setToken(null);
+              setMe(null);
+              setMeDenied(false);
+              setIdentity(null);
+            }}
+            className="font-medium flex items-center gap-2" style={{ height: 38, padding: '0 16px', borderRadius: 8, fontSize: 13, border: '1px solid var(--ep-border-strong, #3F424D)', background: 'transparent', color: 'var(--ep-text, #E9E9ED)' }}>
+            <SignOut size={15} weight="regular" /> Sign out
+          </button>
         </div>
         {msg && <p className="text-[11px] break-all" style={{ color: 'var(--ep-text-3, #B2B6CA)' }}>{msg}</p>}
 

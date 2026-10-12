@@ -245,6 +245,16 @@ export class PartnerService {
       denied('Invalid signature for this payout wallet.');
     }
     await this.prisma.payoutWalletChallenge.update({ where: { id: challenge.id }, data: { consumedAt: new Date() } });
+    // One wallet → one partner: a verified payout wallet can't be shared
+    // across accounts, so a leaked/shared wallet key can't divert two pools'
+    // fees and wallet-login sessions can't collide on the same payout target.
+    const clash = await this.prisma.user.findMany({ where: { payoutWallet: clean } });
+    if (clash.some((u) => u.id !== user.id && !!u.payoutWalletVerifiedAt)) {
+      await this.audit
+        .record({ actor: user.wallet, action: 'partner.verify_failed', target: clean.slice(0, 44), reason: 'wallet-already-linked' })
+        .catch(() => undefined);
+      denied('This wallet is already linked to another partner account.');
+    }
     // Setting a (new) wallet always re-verifies from this challenge.
     await this.prisma.user.update({
       where: { id: user.id },
