@@ -4,7 +4,7 @@
 - LAN/server: http://100.110.155.108/ · local: http://localhost:3001 · BE: :3000
 - Không cần ví crypto trên sân khấu: login bằng TK đã seed (tab **Tài khoản**).
 - TK: `admin` / `$SEED_ADMIN_PASSWORD` (ADMIN) · `user` / `$SEED_USER_PASSWORD` (USER) ·
-  `kol` / `$SEED_KOL_PASSWORD` (KOL). Đổi pass trước khi public.
+  `kol` / `$SEED_KOL_PASSWORD` (KOL). Pass thật chỉ nằm trong `backend/.env` trên server (không commit). Đổi pass trước khi public.
 
 ## Phút 0–1 — Bối cảnh + terminal live
 
