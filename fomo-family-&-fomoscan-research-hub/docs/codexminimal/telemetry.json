@@ -368,6 +368,19 @@
     "idls/edgepool_vault.json committed",
     "root fs 1.9G -> 7.3G via symlinked caches"
    ]
+  },
+  {
+   "at": "2026-10-13T00:00:00Z",
+   "topic": "solana-vault-program",
+   "phase": "P1-complete",
+   "status": "done",
+   "detail": "Program core 9 instructions + events + u128 math; 26/26 tests GREEN (12 unit + 14 LiteSVM: lifecycle 6 + gates 8). Deploy devnet 5zkeKsj...s3CQ (slot 510563107). E2E devnet thật PASS 7 bước (init/deposit/marks/settle/withdraw+min_payout/sim_trade/collect_fees) — withdraw khớp chính xác tính tay 0.3440 SOL. Review APPROVE (rust checklist; 3 known limitations v1). Build arch v2 qua scripts/program-build.sh. Bài học: bn.js eqn>2^26 hỏng; anchor CJS trong ESM cần createRequire.",
+   "verification": [
+    "cargo test -p edgepool-vault: 26/26 GREEN",
+    "anchor deploy devnet PASS (313,688 bytes, sig 3UBmNJ5H...)",
+    "npx tsx backend/scripts/chain/devnet-e2e.ts: E2E PASS (vault F7gv8wot...unGd)",
+    "review verdict APPROVE (rust-code-reviewer checklist)"
+   ]
   }
  ],
  "sessions": [],
