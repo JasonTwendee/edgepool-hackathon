@@ -5,7 +5,7 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 ## Status
 
 - [x] P0 toolchain + Anchor workspace + build xanh
-- [ ] P1 program core ix 1–9 + Rust/LiteSVM tests + deploy devnet + e2e   ← đang chạy (code + 26 tests green; còn deploy + e2e)
+- [ ] P1 program core + tests + **deploy devnet ✅** (26/26 green, slot 510563107) — còn e2e script (bước cuối P1)
 - [ ] P2 BE chain module: migration, indexer, keeper, faucet, reconcile + asserts
 - [ ] P3 FE chain client + user-signed deposit/withdraw + demo e2e
 - [ ] P4 Jupiter `execute_swap` + mock-CPI + dry-run + runbook (flag OFF)
@@ -20,6 +20,8 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 - 2026-10-13 (space) P0 vận hành 2: user giải phóng ổ chính (~20G trống) → **toàn bộ cache/build chuyển về ổ chính**; gỡ symlink, xóa sạch `/media/jason/Acer/edgepool-build`; sửa symlink lạc `~/.cache/solana/solana-cache` (platform-tools thực ra luôn nằm ổ chính — 1.7G); **backup keypair program** tại `~/.config/solana/edgepool_vault-keypair.json` (pubkey `5zkeKsj…s3CQ`, mode 600) — không bao giờ xóa; policy dọn artifacts ghi ở plan §Space policy; `anchor build` incremental PASS sau di chuyển.
 - 2026-10-13 P1a (program core) done: 9 instructions + events + math u128 + errors; **26/26 tests GREEN** (12 unit math + 14 LiteSVM: lifecycle 6 + gates 8). Divergences có chủ đích (đã cập nhật design doc §3.2/§9/§10): (1) Borsh account chuẩn thay zero-copy — cùng byte size, hoãn tối ưu compute; (2) thêm field `keeper` (+32B → Vault 165B/rent ~0.0020 SOL) tách role keeper/manager; (3) SBF build **arch v2** qua `scripts/program-build.sh` — cargo-build-sbf 4.4 mặc định v3, không load được trong LiteSVM 0.7 (loader 2.3); (4) fixture `tests/fixtures/spl_token.so` + `spl_ata.so` dump devnet override built-in token 3.5.0 (thiếu InitializeMint2 mà anchor-spl dùng); (5) `expire_blockhash` mỗi tx trong test harness (LiteSVM dedupe theo signature).
 - 2026-10-13 P1a chi tiết kỹ thuật: anchor 0.31 `#[program]` cần `crate::__client_accounts_*` → `instructions/mod.rs` phải `pub use x::*` (pattern multi-file); `InitializeMint2` bắt buộc (anchor-syn 0.31); ATA program dùng built-in 1.1.1.
+- 2026-10-13 P1b **deploy devnet done** (user approval: dùng ví demo project nạp deploy fee): program `5zkeKsjTYLkx9QKPMRdGDXuPR6C5AkT8jYuKfE7es3CQ` owner `BPFLoaderUpgradeab1e…`, programdata `CHni8wtw1X4KbwHuGv53zFL71KuX3TP3x7cQRgcE7L1W`, upgrade authority `HZnmfeEVCzLNY5m8zXLEzTErGtLYLR1GJ4iXj5EiqVZ9` (CLI wallet), data 313,688 bytes, slot 510,563,107, deploy sig `3UBmNJ5HUcJ3RaJznWD44t5dgeQ8G4PZtWPWsk91qbEDn7Sxgvp5EZN4zLS1zP73wgEVviF78HQcnXgCCcZ5ayoG`. Funding: 2.5 devnet SOL từ ví demo `6QbrpP2CKf76dE92RrdhBucpeuq4kDBEfDuMf7a9N5pM` (VAULT_PRIVATE_KEY, user-approved) → CLI wallet; số dư còn: CLI 1.32 SOL · demo 2.50 SOL. Faucet CLI rate-limit (không dùng được). Ví demo keypair tạm ở `/tmp/opencode/vault-demo.json` (chmod 600) — nhớ xóa khi xong session.
+- 2026-10-13 P1 còn lại: e2e script `backend/scripts/chain/devnet-e2e.ts` (anchor client: init → faucet → deposit → update_marks → settle → withdraw + asserts) — chưa làm.
 
 ## Review verdict
 
