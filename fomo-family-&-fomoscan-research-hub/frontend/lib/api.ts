@@ -202,6 +202,11 @@ export interface VaultMine {
   depositedSol: number;
   withdrawnSol: number;
   returnsSol: number;
+  /** Live MTM marks (present on fresh backends; absent on cached/stale reads). */
+  liveSharePrice?: number;
+  liveValueSol?: number;
+  liveReturnsSol?: number;
+  live?: boolean;
   queuedDeposits: { id: number; amountSol: number; createdAt: string }[];
   queuedWithdrawals: { id: number; shares: number; createdAt: string }[];
 }
@@ -235,6 +240,10 @@ export function listPools(): Promise<{ success: boolean; total: number; data: Po
 
 export interface PoolDetail extends PoolSummary {
   navSeries: { t: number; v: number }[];
+  /** Live MTM marks (present on fresh backends; absent on cached/stale reads). */
+  liveNavSol?: number;
+  liveSharePrice?: number;
+  live?: boolean;
   openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null; createdAt: string }[];
   openCount: number;
   signals: { token: string; trader: string; ageSec: number; note: string; detail: string; steps: { label: string; state: string }[] }[];
@@ -264,7 +273,9 @@ export interface PortfolioOverview {
   totalDepositedSol: number;
   totalWithdrawnSol: number;
   returnsSol: number;
-  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; sharePrice: number; avgEntrySol: number; sharePricePct: number; openCount: number; flat: boolean; queued: number }[];
+  totalLiveValueSol?: number;
+  totalLiveReturnsSol?: number;
+  pools: { vaultId: number; poolName: string; kind: string; status: string; shares: number; valueSol: number; returnsSol: number; depositedSol: number; withdrawnSol: number; sharePrice: number; avgEntrySol: number; sharePricePct: number; openCount: number; flat: boolean; queued: number; liveValueSol?: number; liveReturnsSol?: number; liveSharePrice?: number; live?: boolean }[];
   exposures: { poolId: number; poolName: string; token: string; trader: string; unrealizedPct: number | null; mySizeSol: number }[];
   pending: { id: number; poolId: number; poolName: string; shares: number; createdAt: string; nextCheckpointAt: string | null }[];
   history: { date: string; type: string; poolId: number; poolName: string; tx: string; amountSol: number; sharesDelta: number; status: string }[];

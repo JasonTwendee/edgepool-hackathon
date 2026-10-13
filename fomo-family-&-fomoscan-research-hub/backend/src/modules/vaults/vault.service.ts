@@ -785,6 +785,7 @@ export class VaultService {
       pnlSol: 0,
     }));
     const holding = user ? await this.mine(vaultId, user) : null;
+    const marks = await this.liveMarks(vaultId);
     // Unlock counts queued deposits too: a fresh 0.5+ deposit opens signals
     // before the next epoch settles (prototype behavior; shares mint at settle).
     const queuedIn = holding
@@ -796,6 +797,9 @@ export class VaultService {
     return {
       ...base,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
+      liveNavSol: marks.liveNavSol,
+      liveSharePrice: marks.liveSharePrice,
+      live: marks.live,
       openPositions: unmasked.positions,
       openCount: positions.length,
       signals: unmasked.signals,
@@ -854,6 +858,7 @@ export class VaultService {
         vaultId: v.id, poolName: v.name,
         kind: (v.kind as string) ?? 'basket', status: (v.status as string) ?? 'live',
         shares: m.shares, valueSol: m.valueSol, returnsSol: m.returnsSol,
+        liveValueSol: m.liveValueSol, liveReturnsSol: m.liveReturnsSol, liveSharePrice: m.liveSharePrice, live: m.live,
         depositedSol: m.depositedSol, withdrawnSol: m.withdrawnSol,
         sharePrice: m.sharePrice, avgEntrySol: m.avgEntrySol,
         sharePricePct: m.avgEntrySol > 0 ? r9((m.sharePrice / m.avgEntrySol - 1) * 100) : 0,
@@ -880,9 +885,16 @@ export class VaultService {
     }
     history.sort((a, b) => (b.date as string).localeCompare(a.date as string));
     const returns = r9(totalValue + totalWithdrawn - totalDeposited);
+    let totalLiveValue = 0;
+    let totalLiveReturns = 0;
+    for (const p of poolsOut) {
+      totalLiveValue = r9(totalLiveValue + (p.liveValueSol as number));
+      totalLiveReturns = r9(totalLiveReturns + (p.liveReturnsSol as number));
+    }
     return {
       totalValueSol: totalValue, totalDepositedSol: totalDeposited,
       totalWithdrawnSol: totalWithdrawn, returnsSol: returns,
+      totalLiveValueSol: totalLiveValue, totalLiveReturnsSol: totalLiveReturns,
       pools: poolsOut, exposures, pending, history,
     };
   }
@@ -1268,6 +1280,26 @@ export class VaultService {
    * identity (userId, plus depositor string equal to the session wallet for
    * legacy rows created before auth existed). Read-only.
    */
+  /**
+   * Live marks for DISPLAY ONLY: MTM NAV + implied share price without
+   * settling an epoch. Fail-soft to the last epoch when pricing is
+   * unavailable. Settlement math never uses these — read-path display does,
+   * so positions track the market between epochs.
+   */
+  private async liveMarks(vaultId: number): Promise<{ liveNavSol: number; liveSharePrice: number; live: boolean }> {
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    const totalShares = num(vault?.totalShares as never);
+    const last = await this.prisma.epochCheckpoint.findFirst({ where: { vaultId }, orderBy: { id: 'desc' } });
+    const fallbackPrice = last ? num(last.sharePrice) : 1;
+    try {
+      const liveNav = await this.computeNav(vaultId);
+      if (totalShares > 0) return { liveNavSol: liveNav, liveSharePrice: r9(liveNav / totalShares), live: true };
+    } catch {
+      // Pricing down — caller shows last settled numbers instead.
+    }
+    return { liveNavSol: r9(fallbackPrice * totalShares), liveSharePrice: fallbackPrice, live: false };
+  }
+
   async mine(vaultId: number, user: { id: number; wallet: string }): Promise<{
     vaultId: number;
     vaultName: string;
@@ -1278,6 +1310,10 @@ export class VaultService {
     depositedSol: number;
     withdrawnSol: number;
     returnsSol: number;
+    liveSharePrice: number;
+    liveValueSol: number;
+    liveReturnsSol: number;
+    live: boolean;
     queuedDeposits: { id: number; amountSol: number; createdAt: string }[];
     queuedWithdrawals: { id: number; shares: number; createdAt: string }[];
   }> {
@@ -1316,6 +1352,8 @@ export class VaultService {
     }
     const shares = Math.max(0, r9(minted - burned));
     const value = r9(shares * price);
+    const marks = await this.liveMarks(vaultId);
+    const liveValue = r9(shares * marks.liveSharePrice);
     return {
       vaultId,
       vaultName: vault.name,
@@ -1326,6 +1364,10 @@ export class VaultService {
       depositedSol: deposited,
       withdrawnSol: withdrawn,
       returnsSol: r9(value + withdrawn - deposited),
+      liveSharePrice: marks.liveSharePrice,
+      liveValueSol: liveValue,
+      liveReturnsSol: r9(liveValue + withdrawn - deposited),
+      live: marks.live,
       queuedDeposits: qd,
       queuedWithdrawals: qw,
     };

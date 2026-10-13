@@ -143,6 +143,10 @@ function WithdrawModal({ poolName, valueSol, queuedSol, price, openCount, onClos
             <span style={{ color: 'var(--ep-muted, #9397AB)' }}>≈ USDC</span>
             <span className="font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>$—</span>
           </div>
+          <div className="flex justify-between text-[13px]" style={{ borderTop: '1px solid var(--ep-border, #2E313F)', paddingTop: 6 }}>
+            <span style={{ color: 'var(--ep-muted, #9397AB)' }}>Remaining</span>
+            <span className="font-mono" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>{Math.max(0, valueSol - amtSol).toFixed(2)} SOL</span>
+          </div>
         </div>
         <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', lineHeight: 1.5 }}>
           {openCount === 0
@@ -209,7 +213,7 @@ export default function PoolDetailPage() {
         .then((r) => setIsAdmin(r.data.role === 'ADMIN'))
         .catch(() => setIsAdmin(false));
     }
-    const timer = setInterval(() => void refresh(), 180000);
+    const timer = setInterval(() => void refresh(), 30000);
     return () => clearInterval(timer);
   }, [refresh]);
 
@@ -815,16 +819,26 @@ export default function PoolDetailPage() {
           {pool.myHolding && pool.myHolding.shares > 0 && (() => {
             const mh = pool.myHolding!;
             const base = mh.depositedSol - mh.withdrawnSol;
-            const pct = base > 0 ? (mh.returnsSol / base) * 100 : 0;
+            const liveRet = mh.liveReturnsSol ?? mh.returnsSol;
+            const livePct = base > 0 ? (liveRet / base) * 100 : 0;
             return (
               <section className="flex flex-col" style={{ padding: '20px 22px', borderRadius: 16, background: '#032D2A', boxShadow: '0 0 0 1px #004B45', gap: 12 }}>
-                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: '#81EADE' }}>My position</span>
-                <div className="flex justify-between items-baseline gap-2 flex-wrap">
-                  <span className="font-mono font-medium" style={{ fontSize: 26 }}>{mh.valueSol.toFixed(2)} SOL</span>
-                  <span className="font-mono" style={{ fontSize: 14, color: mh.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-                    {mh.returnsSol >= 0 ? '+' : ''}{mh.returnsSol.toFixed(2)} SOL · {mh.returnsSol >= 0 ? '+' : ''}{pct.toFixed(1)}%
+                <div className="flex justify-between items-center gap-2">
+                  <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: '#81EADE' }}>My position</span>
+                  <span className="flex items-center gap-1.5 font-mono" style={{ fontSize: 10, letterSpacing: '0.08em', color: mh.live ?? true ? '#73DEA4' : '#75798C' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: mh.live ?? true ? '#73DEA4' : '#75798C' }} />
+                    {(mh.live ?? true) ? 'LIVE' : 'SETTLED'}
                   </span>
                 </div>
+                <div className="flex justify-between items-baseline gap-2 flex-wrap">
+                  <span className="font-mono font-medium" style={{ fontSize: 26 }}>{(mh.liveValueSol ?? mh.valueSol).toFixed(2)} SOL</span>
+                  <span className="font-mono" style={{ fontSize: 14, color: liveRet >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                    {liveRet >= 0 ? '+' : ''}{liveRet.toFixed(2)} SOL · {liveRet >= 0 ? '+' : ''}{livePct.toFixed(1)}%
+                  </span>
+                </div>
+                <span className="font-mono" style={{ fontSize: 11, color: '#81EADE', opacity: 0.75 }}>
+                  Settled {mh.valueSol.toFixed(2)} SOL · price {mh.sharePrice.toFixed(4)}
+                </span>
                 <div className="grid grid-cols-2 text-xs" style={{ gap: 10 }}>
                   <div className="flex flex-col gap-0.5">
                     <span style={{ color: '#81EADE' }}>Shares</span>
@@ -850,9 +864,9 @@ export default function PoolDetailPage() {
                 {wdOpen && (
                   <WithdrawModal
                     poolName={pool.name}
-                    valueSol={mh.valueSol}
-                    queuedSol={mh.queuedWithdrawals.reduce((s, q) => s + q.shares, 0) * (mh.sharePrice > 0 ? mh.sharePrice : pool.navPerShare)}
-                    price={mh.sharePrice > 0 ? mh.sharePrice : pool.navPerShare}
+                    valueSol={mh.liveValueSol ?? mh.valueSol}
+                    queuedSol={mh.queuedWithdrawals.reduce((s, q) => s + q.shares, 0) * ((mh.liveSharePrice ?? mh.sharePrice) > 0 ? (mh.liveSharePrice ?? mh.sharePrice) : pool.navPerShare)}
+                    price={(mh.liveSharePrice ?? mh.sharePrice) > 0 ? (mh.liveSharePrice ?? mh.sharePrice) : pool.navPerShare}
                     openCount={pool.openCount}
                     onClose={() => setWdOpen(false)}
                     onSubmit={(shares) => submitWithdraw(shares)}
@@ -897,9 +911,15 @@ export default function PoolDetailPage() {
           )}
           <section id="deposit-panel" className="flex flex-col" style={{ padding: 22, borderRadius: 16, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gap: 16 }}>
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool NAV</span>
-              <span className="font-mono font-medium" style={{ fontSize: 26 }}>{pool.navSol.toFixed(2)} SOL</span>
-              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>NAV / share <span className="font-mono" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>{pool.navPerShare.toFixed(4)} SOL</span></span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Pool NAV</span>
+                <span className="font-mono" style={{ fontSize: 10, letterSpacing: '0.08em', color: (pool.live ?? true) ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-faint, #75798C)' }}>
+                  {(pool.live ?? true) ? '● LIVE' : 'SETTLED'}
+                </span>
+              </div>
+              <span className="font-mono font-medium" style={{ fontSize: 26 }}>{(pool.liveNavSol ?? pool.navSol).toFixed(2)} SOL</span>
+              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>NAV / share <span className="font-mono" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>{(pool.liveSharePrice ?? pool.navPerShare).toFixed(4)} SOL</span></span>
+              <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-faint, #75798C)' }}>Settled {pool.navSol.toFixed(2)} · {pool.navPerShare.toFixed(4)}/share</span>
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between text-xs">

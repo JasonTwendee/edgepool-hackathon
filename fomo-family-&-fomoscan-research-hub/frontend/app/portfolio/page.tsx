@@ -258,8 +258,9 @@ export default function PortfolioPage() {
   }
 
   const empty = data && data.pools.length === 0;
+  const liveRet = data ? (data.totalLiveReturnsSol ?? data.returnsSol) : 0;
   const pnlPct = data && data.totalDepositedSol - data.totalWithdrawnSol > 0
-    ? (data.returnsSol / (data.totalDepositedSol - data.totalWithdrawnSol)) * 100
+    ? (liveRet / (data.totalDepositedSol - data.totalWithdrawnSol)) * 100
     : 0;
 
   return (
@@ -295,19 +296,19 @@ export default function PortfolioPage() {
           <div className="flex flex-col" style={{ gap: 24 }}>
             <div className="grid items-center" style={{ padding: '24px 28px', borderRadius: 18, background: 'radial-gradient(60% 120% at 0% 0%, rgba(3,45,42,0.6), transparent 65%), var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 32 }}>
               <div className="flex flex-col gap-3">
-                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Total value</span>
+                <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Total value · live</span>
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-mono font-medium" style={{ fontSize: 'clamp(30px,4vw,40px)', letterSpacing: '-0.02em' }}>{data.totalValueSol.toFixed(2)} SOL</span>
-                  <span className="font-mono" style={{ fontSize: 13, color: 'var(--ep-ghost, #595D6C)' }}>≈ $—</span>
+                  <span className="font-mono font-medium" style={{ fontSize: 'clamp(30px,4vw,40px)', letterSpacing: '-0.02em' }}>{(data.totalLiveValueSol ?? data.totalValueSol).toFixed(2)} SOL</span>
+                  <span className="font-mono" style={{ fontSize: 13, color: 'var(--ep-ghost, #595D6C)' }}>≈ $— · settled {data.totalValueSol.toFixed(2)}</span>
                 </div>
                 <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="font-mono" style={{ fontSize: 20, color: data.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-                    {data.returnsSol >= 0 ? '+' : ''}{data.returnsSol.toFixed(2)} SOL
+                  <span className="font-mono" style={{ fontSize: 20, color: (data.totalLiveReturnsSol ?? data.returnsSol) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                    {(data.totalLiveReturnsSol ?? data.returnsSol) >= 0 ? '+' : ''}{(data.totalLiveReturnsSol ?? data.returnsSol).toFixed(2)} SOL
                   </span>
-                  <span className="font-mono" style={{ fontSize: 15, color: data.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                  <span className="font-mono" style={{ fontSize: 15, color: liveRet >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
                     {pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(2)}%
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>total PnL</span>
+                  <span className="text-xs" style={{ color: 'var(--ep-faint, #75798C)' }}>total PnL · live</span>
                 </div>
                 <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
                   Deposited {data.totalDepositedSol.toFixed(2)} SOL · Withdrawn {data.totalWithdrawnSol.toFixed(2)} SOL
@@ -353,12 +354,12 @@ export default function PortfolioPage() {
                         <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{p.kind === 'basket' ? 'Edgepool basket · algorithm-ranked' : `Partner pool · @${p.poolName.replace(/^Edgepool /, '')}`}</span>
                       </span>
                       <span className="flex flex-col gap-0.5">
-                        <span className="font-mono">{p.valueSol.toFixed(2)} SOL</span>
-                        <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-ghost, #595D6C)' }}>≈ $—</span>
+                        <span className="font-mono">{(p.liveValueSol ?? p.valueSol).toFixed(2)} SOL</span>
+                        <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-ghost, #595D6C)' }}>≈ $— · settled {p.valueSol.toFixed(2)}</span>
                       </span>
                       <span className="flex flex-col gap-0.5">
-                        <span className="font-mono" style={{ color: p.returnsSol >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
-                          {p.returnsSol >= 0 ? '+' : ''}{p.returnsSol.toFixed(2)} SOL
+                        <span className="font-mono" style={{ color: (p.liveReturnsSol ?? p.returnsSol) >= 0 ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
+                          {(p.liveReturnsSol ?? p.returnsSol) >= 0 ? '+' : ''}{(p.liveReturnsSol ?? p.returnsSol).toFixed(2)} SOL
                         </span>
                         <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
                           {p.sharePricePct >= 0 ? '+' : ''}{p.sharePricePct.toFixed(1)}% share price
@@ -372,7 +373,7 @@ export default function PortfolioPage() {
                           className="font-medium flex items-center gap-1.5" style={{ height: 34, padding: '0 12px', borderRadius: 8, fontSize: 12, border: '1px solid #3F424D', background: 'transparent', color: '#CFD3E5' }}>
                           Detail {open ? <CaretUp size={13} weight="regular" /> : <CaretDown size={13} weight="regular" />}
                         </button>
-                        <button onClick={() => setWd({ poolId: p.vaultId, poolName: p.poolName, maxShares: p.shares, sharePrice: p.sharePrice > 0 ? p.sharePrice : 1, flat: p.flat })}
+                        <button onClick={() => setWd({ poolId: p.vaultId, poolName: p.poolName, maxShares: p.shares, sharePrice: (p.liveSharePrice ?? p.sharePrice) > 0 ? (p.liveSharePrice ?? p.sharePrice) : 1, flat: p.flat })}
                           className="font-medium" style={{ height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
                           Withdraw
                         </button>

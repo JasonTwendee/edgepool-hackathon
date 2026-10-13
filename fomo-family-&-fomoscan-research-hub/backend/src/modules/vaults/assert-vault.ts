@@ -226,6 +226,26 @@ async function main(): Promise<void> {
     assert.equal(await svcA.depositorShares(va.id, 'bob'), 6);
   }
 
+  // 12. Loss then immediate exit: deposit 50 @ 1, market falls 10% (explicit
+  // MTM epoch), withdraw all → payout 45 at the live price. Money is always
+  // correct at action time even though display froze between epochs.
+  {
+    const svcL = new VaultService(makeFake());
+    const vl = await svcL.getOrCreateVault('loss');
+    await svcL.deposit(vl.id, 'dave', 50);
+    const l1 = await svcL.settleEpoch(vl.id, 50);
+    assert.equal(l1.sharePrice, 1);
+    const l2 = await svcL.settleEpoch(vl.id, 45);
+    assert.equal(l2.sharePrice, 0.9);
+    await svcL.requestWithdraw(vl.id, 'dave', 50);
+    const l3 = await svcL.settleEpoch(vl.id);
+    assert.deepEqual(l3.settledWithdrawals.map((w) => w.payoutSol), [45]);
+    const ml = await svcL.mine(vl.id, { id: 55, wallet: 'dave' });
+    assert.equal(ml.shares, 0);
+    assert.equal(ml.withdrawnSol, 45);
+    assert.equal(ml.returnsSol, -5);
+  }
+
   console.log('vault asserts: ALL GREEN');
 }
 
