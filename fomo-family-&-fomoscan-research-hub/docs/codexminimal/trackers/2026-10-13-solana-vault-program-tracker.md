@@ -37,7 +37,7 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 
 ## Divergences / notes
 
-- Rule branch: user yêu cầu 2026-10-13 — không merge vào main; mọi commit chỉ trên `feat/program-vault`.
+- Rule branch (user 2026-10-13, siết lại cùng ngày): `feat/program-vault` là **local-only** — không push remote (kể cả branch), không merge vào `main`; mọi commit chỉ nằm local trên branch này.
 - Space policy (user rule 2026-10-13): `cargo clean` được phép bất cứ lúc nào; **không bao giờ xóa keypair**; backup ở `~/.config/solana/edgepool_vault-keypair.json`; chi tiết plan §Space / artifact policy.
 - Patch v1.1 (min_payout, max_marks_bps, reconcile 3 tầng) là phần của baseline P1/P2, không phải scope mới.
 
