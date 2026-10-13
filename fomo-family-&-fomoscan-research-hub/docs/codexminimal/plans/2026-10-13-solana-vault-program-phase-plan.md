@@ -218,6 +218,19 @@ npm --prefix frontend run typecheck && npm --prefix frontend run build
 cd backend && npx tsx src/modules/vaults/assert-vault.ts   # + bảng đối chiếu litesvm trong tracker
 ```
 
+## Space / artifact policy (máy user dung lượng hạn chế — 2026-10-13)
+
+- Xóa được bất cứ lúc nào (tự tái tạo, không ảnh hưởng correctness):
+  - `target/` → `cargo clean` (rebuild từ đầu 2–5 phút; `.so` build lại được);
+  - `~/.cache/solana/v1.57` (platform-tools ~1.7G) → lần build sau tự re-download;
+  - `~/.cargo/registry` (~200M) → lần build sau tự re-download.
+- **KHÔNG BAO GIỜ xóa**: `target/deploy/edgepool_vault-keypair.json` — backup bắt buộc
+  tại `~/.config/solana/edgepool_vault-keypair.json` (đã copy 2026-10-13, pubkey
+  `5zkeKsj…s3CQ`). Nếu `cargo clean`: **restore keypair từ backup vào `target/deploy/`**
+  trước lần build/deploy kế tiếp.
+- Thứ tự dọn khi cần space: 1) `cargo clean` → 2) platform-tools → 3) registry.
+- Trong lúc dev (P1–P4): giữ cache để build nhanh; chỉ dọn ở checkpoint, không dọn giữa phase đang chạy.
+
 ## Global stop conditions
 
 - Trùng intent stop: LiteSVM flaky 2 hướng → bankrun/validator + ghi quyết định.
