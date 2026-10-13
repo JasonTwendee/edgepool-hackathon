@@ -30,7 +30,7 @@ mà BE đã làm tốt hơn (ladder/NAV pricing inputs), dual-mode không phá h
                ▼
 ┌─ Solana (devnet; mainnet gated) ───────────────────────────────────────────┐
 │ Program edgepool_vault (Anchor 0.31.1)                                     │
-│  ├─ Vault (PDA, zero-copy ~133B): params + marks + hwm + fee_credit        │
+│  ├─ Vault (PDA, ~165B): params + marks + hwm + fee_credit                  │
 │  ├─ ShareMint (PDA [shares]) ← vault_authority mint authority              │
 │  ├─ Treasury (PDA [treasury], system-owned) ← giữ SOL                      │
 │  ├─ VaultAuthority (PDA [authority]) ← owner ATA + signer CPI token/swap   │
@@ -64,12 +64,19 @@ mọi quyền hạn là PDA seeds + role (manager/keeper).
 Không có: queue PDA, epoch PDA, position state PDA (v1 — quyết định tối ưu byte; audit trail
 = events + BE DB). Nếu mainnet cần enforce sâu hơn → thêm `Position` PDA ở v2 (đã chừa thiết kế).
 
-### 3.2 Vault state layout (zero-copy, `#[repr(C)]`)
+### 3.2 Vault state layout (fixed-size Borsh — `#[derive(InitSpace)]`)
+
+> Divergence v1: dùng account Borsh chuẩn thay vì zero-copy — mọi field đều fixed-size
+> nên **byte size giống hệt** zero-copy; zero-copy chỉ là tối ưu compute (hoãn P5 nếu cần).
+> Thêm field `keeper` (32B) — tách role keeper khỏi manager (design §5 ghi signer K nhưng
+> bảng state cũ thiếu field; keeper set 1 lần lúc init, v1 không đổi được).
 
 ```rust
-#[account(zero_copy)]
+#[account]
+#[derive(InitSpace)]
 pub struct Vault {
     pub manager: Pubkey,        // 32B — ops authority (bootstrap: single key; mainnet: multisig)
+    pub keeper: Pubkey,         // 32B — role keeper (BE hot key): marks/settle/sim records
     pub fee_sink: Pubkey,       // 32B — ví nhận perf fee đã collect (team treasury)
     pub total_shares: u64,      // 8B  — mirror của mint supply (raw, 1 share = 1e9)
     pub hwm_price: u64,         // 8B  — giá lamports/raw-share, scale = NAV*1e9/total_raw
@@ -86,7 +93,7 @@ pub struct Vault {
     pub env: u8,                // 1B  — 0 devnet | 1 mainnet (BẤT BIẾN sau init)
     pub bump: u8,               // 1B
 }
-// 64 + 48 + 10 + 3 = ~125B state (+8B anchor discriminator = 133B) → rent ≈ 0.0018 SOL
+// 96 + 48 + 10 + 3 = ~157B state (+8B discriminator = 165B) → rent ≈ 0.0020 SOL
 ```
 
 Ghi chú byte-budget:
@@ -305,7 +312,7 @@ Không role nào rút được user funds:
 
 | Hạng mục | Size | Rent (SOL) |
 |---|---|---|
-| Vault state | ~133B | ~0.0018 |
+| Vault state | ~165B | ~0.0020 |
 | ShareMint | 82B (SPL) | ~0.0015 |
 | Treasury | 0B | 0 (system) + buffer 0.001 |
 | Per user share ATA | 165B | ~0.002 (user trả) |
@@ -323,6 +330,7 @@ So với thiết kế cũ (queue + epoch PDA + position accounts): tiết kiệm
 | Unit math | `cargo test` | bootstrap, mint/burn, HWM, fee, rounding, overflow, bounds |
 | Integration | **LiteSVM** | full flows + negative (paused, stale, min deposit, reserve, not-keeper, mark delta cap, **marks cap**, collect over credit, insufficient liquidity, **min_payout revert**) |
 | CPI boundary | LiteSVM + **mock Jupiter program** | wrap/buy/sell/unwrap, min_out fail, caps, pause — deterministic |
+| Ghi chú build | `scripts/program-build.sh` | SBF **arch v2** (mặc định v3 từ cargo-build-sbf 4.4 không load được trong LiteSVM 0.7 — loader solana 2.3); devnet Agave 4.x nhận v2 bình thường |
 | Reconciliation | BE assert + fixture | 5 check của job `chain-reconcile` (§7.5) trên fixture events; lệch giả lập → alert |
 | Devnet e2e | tsx script (`scripts/chain/`) | deploy → init → faucet → deposit → marks → settle → withdraw; assert số dư + logs |
 | Parity | litesvm vs `assert-vault.ts` (off-chain) | cùng scenario (loss-then-exit, HWM ratchet) → số khớp |

@@ -8,22 +8,1377 @@
   },
   "instructions": [
     {
-      "name": "ping",
+      "name": "collect_fees",
       "docs": [
-        "P0 skeleton — smoke instruction, sẽ bị thay ở P1."
+        "Manager thu phí đã accrual (≤ fee_credit) về fee_sink."
       ],
       "discriminator": [
-        173,
-        0,
-        94,
-        236,
-        73,
-        133,
-        225,
-        153
+        164,
+        152,
+        207,
+        99,
+        30,
+        186,
+        19,
+        182
       ],
-      "accounts": [],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fee_sink",
+          "writable": true
+        },
+        {
+          "name": "manager",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "docs": [
+        "User nạp SOL → mint vSHARE tại giá hiện tại. Min 0.5 SOL."
+      ],
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "share_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_share_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "share_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_vault",
+      "docs": [
+        "Tạo vault: 4 PDA (vault/shares/treasury/authority) + fund treasury buffer.",
+        "`env`: 0 = devnet/sandbox, 1 = mainnet/production (bất biến sau init)."
+      ],
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "manager",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "share_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "System-owned PDA giữ SOL — escrow pattern; fund buffer tại init."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_authority",
+          "docs": [
+            "PDA signer thuần (mint authority + owner ATA) — không cần account data."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "keeper",
+          "type": "pubkey"
+        },
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "withdraw_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "reserve_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_trade_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_marks_bps",
+          "type": "u16"
+        },
+        {
+          "name": "env",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "record_sim_trade",
+      "docs": [
+        "Keeper ghi nhận trade mô phỏng (devnet-only) — event thuần, không state change."
+      ],
+      "discriminator": [
+        2,
+        60,
+        199,
+        189,
+        246,
+        123,
+        124,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "vault"
+        },
+        {
+          "name": "keeper",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        },
+        {
+          "name": "side",
+          "type": "u8"
+        },
+        {
+          "name": "size_lamports",
+          "type": "u64"
+        },
+        {
+          "name": "price_scaled",
+          "type": "u64"
+        },
+        {
+          "name": "pnl_lamports",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "set_paused",
+      "docs": [
+        "Kill-switch: chặn deposit (+ swap sau này). KHÔNG chặn withdraw."
+      ],
+      "discriminator": [
+        91,
+        60,
+        125,
+        192,
+        176,
+        225,
+        166,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "manager",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "flag",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "settle_epoch",
+      "docs": [
+        "Keeper settle phí hiệu suất (touch-settle) + tăng epoch counter + event."
+      ],
+      "discriminator": [
+        148,
+        223,
+        178,
+        38,
+        201,
+        158,
+        167,
+        13
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keeper",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        }
+      ],
       "args": []
+    },
+    {
+      "name": "update_marks",
+      "docs": [
+        "Keeper đẩy giá trị positions (marks) + freshness slot. Delta cap + trần policy."
+      ],
+      "discriminator": [
+        189,
+        221,
+        191,
+        240,
+        199,
+        45,
+        235,
+        138
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keeper",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "marks_lamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_policy",
+      "docs": [
+        "Manager đổi policy (bps). Không đổi được env/manager/keeper."
+      ],
+      "discriminator": [
+        212,
+        245,
+        246,
+        7,
+        163,
+        151,
+        18,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "manager",
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "withdraw_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "reserve_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_trade_bps",
+          "type": "u16"
+        },
+        {
+          "name": "max_marks_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "docs": [
+        "User rút: burn vSHARE → nhận SOL tại giá hiện tại, `min_payout` là slippage guard."
+      ],
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "share_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  104,
+                  97,
+                  114,
+                  101,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_share_ata",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "shares_raw",
+          "type": "u64"
+        },
+        {
+          "name": "min_payout_lamports",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "DepositEvent",
+      "discriminator": [
+        120,
+        248,
+        61,
+        83,
+        31,
+        142,
+        107,
+        144
+      ]
+    },
+    {
+      "name": "EpochSettled",
+      "discriminator": [
+        32,
+        219,
+        45,
+        156,
+        250,
+        115,
+        190,
+        255
+      ]
+    },
+    {
+      "name": "FeesCollected",
+      "discriminator": [
+        233,
+        23,
+        117,
+        225,
+        107,
+        178,
+        254,
+        8
+      ]
+    },
+    {
+      "name": "MarkEvent",
+      "discriminator": [
+        240,
+        241,
+        217,
+        95,
+        183,
+        92,
+        40,
+        146
+      ]
+    },
+    {
+      "name": "PausedEvent",
+      "discriminator": [
+        43,
+        14,
+        250,
+        236,
+        116,
+        42,
+        177,
+        89
+      ]
+    },
+    {
+      "name": "SimTradeEvent",
+      "discriminator": [
+        37,
+        184,
+        6,
+        46,
+        81,
+        202,
+        200,
+        147
+      ]
+    },
+    {
+      "name": "VaultInit",
+      "discriminator": [
+        208,
+        126,
+        68,
+        195,
+        174,
+        171,
+        178,
+        2
+      ]
+    },
+    {
+      "name": "WithdrawEvent",
+      "discriminator": [
+        22,
+        9,
+        133,
+        26,
+        160,
+        44,
+        71,
+        192
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "VaultPaused",
+      "msg": "Vault is paused"
+    },
+    {
+      "code": 6001,
+      "name": "NotKeeper",
+      "msg": "Signer is not the keeper"
+    },
+    {
+      "code": 6002,
+      "name": "NotManager",
+      "msg": "Signer is not the manager"
+    },
+    {
+      "code": 6003,
+      "name": "StaleMarks",
+      "msg": "Marks are stale — keeper must refresh"
+    },
+    {
+      "code": 6004,
+      "name": "MarksCapExceeded",
+      "msg": "Marks exceed the policy cap vs treasury cash"
+    },
+    {
+      "code": 6005,
+      "name": "MarksDeltaExceeded",
+      "msg": "Marks move exceeds the per-update delta cap"
+    },
+    {
+      "code": 6006,
+      "name": "DepositTooSmall",
+      "msg": "Deposit is below the 0.5 SOL minimum"
+    },
+    {
+      "code": 6007,
+      "name": "InsufficientShares",
+      "msg": "User does not hold enough shares"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientLiquidity",
+      "msg": "Insufficient treasury liquidity for this payout"
+    },
+    {
+      "code": 6009,
+      "name": "ReserveFloorBreached",
+      "msg": "Withdrawal would breach the reserve floor"
+    },
+    {
+      "code": 6010,
+      "name": "NavInvalid",
+      "msg": "NAV is invalid for this operation"
+    },
+    {
+      "code": 6011,
+      "name": "PayoutBelowMin",
+      "msg": "Payout is below min_payout"
+    },
+    {
+      "code": 6012,
+      "name": "EnvMismatch",
+      "msg": "Instruction is not allowed in this environment"
+    },
+    {
+      "code": 6013,
+      "name": "TradeTooLarge",
+      "msg": "Trade size exceeds the per-trade cap"
+    },
+    {
+      "code": 6014,
+      "name": "SlippageExceeded",
+      "msg": "Swap output is below min_out"
+    },
+    {
+      "code": 6015,
+      "name": "FeeExceedsCredit",
+      "msg": "Amount exceeds accrued fee credit"
+    },
+    {
+      "code": 6016,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6017,
+      "name": "NameTooLong",
+      "msg": "Name is empty or too long (max 24 bytes)"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidParam",
+      "msg": "Invalid parameter"
+    }
+  ],
+  "types": [
+    {
+      "name": "DepositEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "minted_raw",
+            "type": "u64"
+          },
+          {
+            "name": "price_scaled",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EpochSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "epoch",
+            "type": "u64"
+          },
+          {
+            "name": "nav_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "price_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "total_shares",
+            "type": "u64"
+          },
+          {
+            "name": "fee_credit",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeesCollected",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "fee_sink",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarkEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "marks_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PausedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "flag",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SimTradeEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "size_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "price_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "pnl_lamports",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "manager",
+            "docs": [
+              "Ops authority: update_policy / set_paused / collect_fees. (mainnet: multisig)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "keeper",
+            "docs": [
+              "Role keeper: update_marks / settle_epoch / record_sim_trade (BE hot key)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_sink",
+            "docs": [
+              "Ví nhận perf fee đã collect (team treasury)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "total_shares",
+            "docs": [
+              "Mirror của mint supply (raw, 1 share = 1e9). Giữ đồng bộ trong mỗi mint/burn."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "hwm_price",
+            "docs": [
+              "Giá lamports/raw-share scale 1e9 — đỉnh cao nhất cho phí hiệu suất."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "marks_lamports",
+            "docs": [
+              "Giá trị positions do keeper đẩy (lamports). 0 = vault all-cash."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "marks_slot",
+            "docs": [
+              "Slot lúc đẩy marks (freshness — program tự lấy Clock)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fee_credit",
+            "docs": [
+              "Phí hiệu suất đã accrual, chưa collect (lamports)."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "epoch",
+            "docs": [
+              "Counter cho event EpochSettled."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "fee_bps",
+            "docs": [
+              "Phí hiệu suất bps (2000 = 20%; 0 = tắt)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "withdraw_fee_bps",
+            "docs": [
+              "Phí rút bps giữ lại treasury (0 = tắt)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "reserve_bps",
+            "docs": [
+              "Sàn thanh khoản bps của NAV — chặn payout làm NAV tụt dưới floor."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "max_trade_bps",
+            "docs": [
+              "Cap mỗi lệnh execute_swap theo NAV bps (P4)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "max_marks_bps",
+            "docs": [
+              "Trần marks so với treasury cash bps (0 = tắt; sim devnet đặt > 0)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "flags",
+            "docs": [
+              "Bitfield: bit0 paused."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "env",
+            "docs": [
+              "0 = devnet/sandbox, 1 = mainnet/production (BẤT BIẾN sau init)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Canonical bump của vault PDA."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultInit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "manager",
+            "type": "pubkey"
+          },
+          {
+            "name": "keeper",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "env",
+            "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WithdrawEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "shares_raw",
+            "type": "u64"
+          },
+          {
+            "name": "paid_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "price_scaled",
+            "type": "u64"
+          }
+        ]
+      }
     }
   ]
 }
