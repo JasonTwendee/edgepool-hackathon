@@ -52,3 +52,5 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 P2 — BE chain module: migration (`chain_*` cols + `chain_events`), indexer (onLogs + backfill + idempotent),
 keeper (marks/settle/kill-switch/sim records), faucet, `chain-reconcile` job, config (protected — xin approval),
 pool detail `chain` block + docs/ai sync. Nhớ: client BE phải tránh `BN.eqn(number > 2^26)`.
+
+**Work plan (report-ready, EN):** `programs/edgepool-vault/ROADMAP.md` — 4 tuần × 20 ngày × 4 đầu việc = 80 items; tuần 1 = contract build-out (đã xong).
