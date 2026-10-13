@@ -1,38 +1,34 @@
-# Four-Week Work Plan — Edgepool Solana Vault
+# Three-Week Work Plan — Edgepool Solana Vault
 
-The full work record: smart contract → backend → frontend → mainnet-ready. 20 working days × 4 work items per day = 80 items, written for progress reporting (standup/Jira). Each item is a work entry: a title plus one or two sentences describing the expected outcome.
+The full work record: smart contract → backend → frontend → mainnet-ready — all inside 3 weeks. 15 working days × 4–6 work items per day = 80 items, written for progress reporting (standup/Jira). Each item is a work entry: a title plus one or two sentences describing the expected outcome.
+
+**Weighting:** Week 1 (contract) carries 4 items/day; Weeks 2–3 carry 6 items/day so the entire scope — contract included — fits the 3-week window.
 
 ## Where we are today
 
-**Week 1 (Days 1–5) — the smart contract build-out — is complete and verified.** The vault program is deployed and running on Solana devnet, passing all 26 tests, with a real deposit → withdraw lifecycle executed end to end: 0.6 SOL deposited and the withdrawal paid the exact hand-calculated amount. Weeks 2–4 below are the remaining work.
+**Week 1 (Days 1–5) — the smart contract build-out — is complete and verified.** The vault program is deployed and running on Solana devnet, passing all 26 tests, with a real deposit → withdraw lifecycle executed end to end: 0.6 SOL deposited and the withdrawal paid the exact hand-calculated amount. Weeks 2–3 below are the remaining work.
 
-## The four weeks at a glance
+## The three weeks at a glance
 
 | Week | Focus | Outcome | Items |
 |---|---|---|---|
-| Week 1 ✅ | Smart contract build-out | Program deployed & verified on devnet; full lifecycle executed | 20 |
-| Week 2 | Backend connects to the contract | The vault runs itself: values update automatically, database matches the chain 1-to-1 | 20 |
-| Week 3 | User interface + end-to-end demo | Users sign their own deposits/withdrawals from the web on devnet; the demo runs cleanly twice in a row | 20 |
-| Week 4 | Mainnet trading path (Jupiter) + hardening + reporting | Trading path code-complete (gated off); audit-ready package; final report | 20 |
+| Week 1 ✅ | Smart contract build-out & devnet launch | Program deployed & verified on devnet; full lifecycle executed | 20 |
+| Week 2 | Backend integration & wallet foundation | The vault runs itself: values update automatically, database matches the chain 1-to-1; first wallet-signed deposit from the web | 30 |
+| Week 3 | User flows, end-to-end demo & mainnet path | Withdraw + demo run end to end; Jupiter trading path code-complete (gated off); audit-ready package; final report | 30 |
 
 Working-day schedule (example: starting Wednesday, Oct 14, 2026 — shift to fit your calendar):
 
-| Day | Date | Day | Date |
-|---|---|---|---|
-| D1 | Wed Oct 14 | D11 | Wed Oct 28 |
-| D2 | Thu Oct 15 | D12 | Thu Oct 29 |
-| D3 | Fri Oct 16 | D13 | Fri Oct 30 |
-| D4 | Mon Oct 19 | D14 | Mon Nov 02 |
-| D5 | Tue Oct 20 | D15 | Tue Nov 03 |
-| D6 | Wed Oct 21 | D16 | Wed Nov 04 |
-| D7 | Thu Oct 22 | D17 | Thu Nov 05 |
-| D8 | Fri Oct 23 | D18 | Fri Nov 06 |
-| D9 | Mon Oct 26 | D19 | Mon Nov 09 |
-| D10 | Tue Oct 27 | D20 | Tue Nov 10 |
+| Day | Date | Day | Date | Day | Date |
+|---|---|---|---|---|---|
+| D1 | Wed Oct 14 | D6 | Wed Oct 21 | D11 | Wed Oct 28 |
+| D2 | Thu Oct 15 | D7 | Thu Oct 22 | D12 | Thu Oct 29 |
+| D3 | Fri Oct 16 | D8 | Fri Oct 23 | D13 | Fri Oct 30 |
+| D4 | Mon Oct 19 | D9 | Mon Oct 26 | D14 | Mon Nov 02 |
+| D5 | Tue Oct 20 | D10 | Tue Oct 27 | D15 | Tue Nov 03 |
 
 ---
 
-# WEEK 1 — Smart contract build-out ✅ (completed)
+# WEEK 1 — Smart contract build-out & devnet launch ✅ (completed)
 
 Weekly goal: the vault program exists, is fully tested, and runs on devnet.
 
@@ -93,186 +89,145 @@ End-of-day outcome: the program is live on devnet with a verified end-to-end run
 
 ---
 
-# WEEK 2 — Backend connects to the chain
+# WEEK 2 — Backend integration & wallet foundation
 
-Weekly goal: the backend can talk to the contract — asset values update automatically on a schedule, and every deposit/withdrawal in the database matches the chain exactly.
+Weekly goal: the backend talks to the contract — values update automatically and database numbers match the chain — and the first wallet-signed deposit happens from the web.
 
-## Day 6 (D6) — Prepare the data foundation
+## Day 6 (D6) — Backend: data foundation & contract client
 
-Today we prepare storage for the on-chain vaults and add the configuration needed.
+Today we prepare storage and stand up the connection layer.
 
-1. **T6.1 — Get approval and add chain configuration.** Request approval to update the config file and environment template with the chain-related variables (program address, operator wallet, RPC endpoint, etc.). Everything defaults to off so the running system stays unaffected.
-2. **T6.2 — Extend the database for on-chain vaults.** Add chain-link columns to the vault/deposit/withdrawal/epoch tables and create a new table for all events emitted by the contract. The event table has a uniqueness constraint so replays never duplicate data.
-3. **T6.3 — Create and apply the migration.** Write a new migration (never edit applied ones), apply it to the local Postgres, and regenerate the Prisma client. Confirm the backend typecheck passes.
-4. **T6.4 — Commit and log progress.** Commit the day's work to the working branch (local only) and update the progress tracker.
+1. **T6.1 — Approval & chain configuration.** Get approval for the config/env updates and add the chain-related variables (program address, operator wallet, RPC, feature flags defaulting to off).
+2. **T6.2 — Extend the database.** Add chain-link columns to the vault/deposit/withdrawal/epoch tables and create the event table with a uniqueness constraint so replays never duplicate data.
+3. **T6.3 — Create and apply the migration.** Write a new migration (never edit applied ones), apply it to the local Postgres, and regenerate the Prisma client.
+4. **T6.4 — Create the chain module.** Add the backend module, wire it into the app, and read the configuration — with the feature flag off the system behaves exactly as before.
+5. **T6.5 — Contract client layer.** Implement the Anchor-based client: read vault state, derive PDA addresses, load the operator (keeper) wallet from configuration — secrets never logged.
+6. **T6.6 — Commit and log progress.** Commit the day's work to the working branch (local only) and update the progress tracker.
 
-End-of-day outcome: the database is ready for on-chain data and nothing existing is affected.
+End-of-day outcome: the database and the client layer are ready; nothing existing is affected.
 
-## Day 7 (D7) — Connect the backend to the contract
+## Day 7 (D7) — Backend: events & first sync
 
-Today we create the backend module that reads from and listens to the contract.
+Today a real transaction on devnet becomes a database record.
 
-1. **T7.1 — Create the chain module.** Add a new backend module, wire it into the app, and read the configuration from Day 6. With the feature flag off, the system behaves exactly as before.
-2. **T7.2 — Build the contract client layer.** Implement the client using the standard library (Anchor) to read vault state, derive PDA addresses, and load the operator (keeper) wallet from configuration — secrets never logged.
-3. **T7.3 — Contract event parser.** Parse contract logs into structured events, covering all 8 event types (deposit, withdraw, marks, epoch, fees, pause...). Covered by unit tests using sample logs.
-4. **T7.4 — Real-time event listener.** When a new transaction lands on devnet, the parsed event is stored in the event table; replays never duplicate. Verified with a real deposit transaction.
+1. **T7.1 — Contract event parser.** Parse contract logs into structured events, covering all 8 event types (deposit, withdraw, marks, epoch, fees, pause...).
+2. **T7.2 — Parser unit tests.** Cover the parser with sample-log fixtures and add them to the project-wide test sweep.
+3. **T7.3 — Real-time event listener.** When a new transaction lands on devnet, the parsed event is stored in the event table — verified live with a real deposit transaction.
+4. **T7.4 — Record deposits as settled rows.** A deposit event becomes a settled deposit row with the transaction signature, shares minted, and price — values taken as integers from the event, never recomputed.
+5. **T7.5 — Record withdrawals, epochs, and pause state.** Withdraw events become settled rows; epoch events become snapshots; pause events update the vault's displayed status.
+6. **T7.6 — Backfill & heal loop.** If the backend restarts, it scans back from a cursor and fills the gap on a 60-second heal loop.
 
-End-of-day outcome: a deposit transaction on devnet shows up in the local database as a parsed event.
+End-of-day outcome: the sample vault's real history is fully reproduced in the database.
 
-## Day 8 (D8) — Data sync and reconciliation
+## Day 8 (D8) — Backend: automation, faucet & reconciliation
 
-Today we finish the sync so every on-chain transaction becomes a business record, with a self-healing mechanism for missed events.
+Today the vault starts running itself and gets its operations tooling.
 
-1. **T8.1 — Record deposits as settled business rows.** A deposit event becomes a settled deposit row with the transaction signature, shares minted, and the price at that moment — values taken as integers from the event, never recomputed, to avoid rounding drift.
-2. **T8.2 — Record withdrawals, epochs, and pause state.** Withdraw events become settled withdrawal rows; epoch events become epoch snapshots; pause events update the vault's displayed status.
-3. **T8.3 — Backfill for missed events.** If the backend is down or restarts, it scans back from a cursor and fills in the gap; runs on a 60-second heal loop.
-4. **T8.4 — Tests for the sync layer.** Write an assert suite for the module: sample logs → correct mapping, replay safety, settled values correct, heal path works. Added to the project-wide test sweep.
+1. **T8.1 — Sync test suite.** Assert suite for the sync layer: sample logs → correct mapping, replay safety, settled values correct, heal path works.
+2. **T8.2 — Compute asset value (marks).** Reuse existing position data to compute total value (read-only, no changes to the protected copy-trade module), with a unit test.
+3. **T8.3 — Periodic value push loop.** Every 30–60 seconds push the new value to devnet; only send when the number changed; retry with backoff; log each signature — verified with three live ticks.
+4. **T8.4 — Epoch settlement & simulated-trade records.** Settle performance fees on schedule and record new simulated trades to the contract (cursor prevents duplicates).
+5. **T8.5 — Emergency pause bridge.** When the risk monitor reports a halt, call the on-chain pause automatically; resume when recovered. Only on state changes.
+6. **T8.6 — Devnet SOL faucet.** API for users to request devnet SOL (devnet-only, daily limit, genesis check so it can never run against mainnet).
 
-End-of-day outcome: the data from the real sample vault is fully reproduced in the database; the new assert suite passes.
+End-of-day outcome: the devnet vault updates its value on schedule (verifiable on the explorer); pause flips from the backend; the faucet works.
 
-## Day 9 (D9) — Automatic value updates and the safety switch
-
-Today the system starts driving itself: it pushes asset values to the contract on a schedule, settles fees, and flips the emergency pause when needed.
-
-1. **T9.1 — Compute asset value (marks) from existing data.** Reuse the backend's existing position data to compute the total value; read-only, no changes to the protected copy-trade module. Covered by unit tests on the computation.
-2. **T9.2 — Periodic value push loop.** Every 30–60 seconds push the new value to devnet; only send when the number changed (save fees); retry with backoff on network errors; log each transaction signature for lookup.
-3. **T9.3 — Epoch settlement and simulated-trade records.** Settle performance fees on a schedule, and automatically record new simulated trades to the contract (a cursor prevents duplicates).
-4. **T9.4 — Emergency pause bridge.** When the backend's risk monitor reports a halt condition, call the on-chain pause automatically; when conditions recover, resume. Only call on state changes to avoid extra transactions.
-
-End-of-day outcome: the devnet vault updates its value on schedule — verifiable on the explorer; pause state flips from the backend.
-
-## Day 10 (D10) — Finish the backend and close Week 2
-
-Today we add the remaining utilities and package the backend work.
-
-1. **T10.1 — Devnet SOL faucet for users.** Add an API for users to request devnet SOL (devnet-only, one request per day per user, with a genesis check so it can never run against mainnet).
-2. **T10.2 — Automatic reconciliation tool.** A scheduled job that cross-checks five things between the database and the chain: total shares, every transaction by signature, fund cash flow in/out, NAV, and missing events to backfill. Any mismatch raises an alert immediately.
-3. **T10.3 — Surface on-chain data on the pool page.** The pool detail page gains a chain block (contract address, price, asset value, pause state...) and the API documentation is updated.
-4. **T10.4 — Full check, review, close the week.** Run the whole test suite, sync the technical docs, run the review process, and commit to close the week.
-
-Week 2 outcome: the backend is complete — the vault runs itself on devnet, database numbers match the chain, and monitoring plus the user faucet are in place.
-
----
-
-# WEEK 3 — User interface and end-to-end demo
-
-Weekly goal: real users sign their own deposits/withdrawals from the web with their wallets on devnet, and a demo that runs cleanly more than once.
-
-## Day 11 (D11) — Wallet connection layer in the web app
+## Day 9 (D9) — Web: wallet connection foundation
 
 Today the web app learns to talk to the contract through the user's wallet.
 
-1. **T11.1 — Add libraries and contract spec to the web app.** Add the two required libraries (Anchor client + web3) matching the backend versions, and copy the contract interface spec (IDL) into the web app.
-2. **T11.2 — Build the base connection layer.** Create the devnet connection layer: initialize the program, derive account addresses (vault, mint, treasury...), and read vault state.
-3. **T11.3 — Build the transaction senders.** Functions to build deposit and withdraw transactions (including the minimum-payout guard for withdrawals), send them via the browser wallet (Phantom/Solflare), wait for confirmation, and handle timeouts.
-4. **T11.4 — Translate contract errors into clear messages.** Map every contract error code to a plain-language message ("Vault is paused", "Not enough shares to withdraw"...), and add chain types to the web app.
+1. **T9.1 — Add libraries and contract spec.** Add the two required libraries (Anchor client + web3) matching backend versions, and copy the interface specification (IDL) into the web app.
+2. **T9.2 — Base connection layer.** Create the devnet connection layer: initialize the program, derive account addresses, and read vault state.
+3. **T9.3 — Transaction senders.** Functions to build deposit and withdraw transactions (including the minimum-payout guard), send them via the browser wallet, wait for confirmation, and handle timeouts.
+4. **T9.4 — Error mapping.** Map every contract error code to a plain-language message ("Vault is paused", "Not enough shares to withdraw"...), and add chain types to the web app.
+5. **T9.5 — Deposit dialog.** The user enters an amount (0.5 SOL minimum), sees a preview of shares at the current price, taps deposit, and signs with their wallet.
+6. **T9.6 — Signing states & cancellation.** Show every state: waiting for wallet, user cancelled, failed, confirming — the screen never hangs when the user cancels.
 
-End-of-day outcome: the web app reads vault data from devnet; the transaction senders are ready to wire into the UI.
+End-of-day outcome: the web reads vault data and the deposit flow is wired end to end.
 
-## Day 12 (D12) — Build the deposit flow
+## Day 10 (D10) — First real deposit, reconciliation & Week 2 close
 
-Today we complete the deposit experience in the UI.
+Today we prove the loop from the browser and close the backend work.
 
-1. **T12.1 — Deposit dialog for on-chain pools.** The user enters an amount (0.5 SOL minimum), sees a preview of shares to be received at the current price, taps deposit, and signs with their wallet. Numbers refresh after confirmation.
-2. **T12.2 — Clear signing/sending/error states.** Show every state: waiting for wallet, user cancelled, transaction failed, confirming. The screen never "hangs" when the user cancels.
-3. **T12.3 — On-chain pool identity and helpers.** Label on-chain pools with an "ON-CHAIN · DEVNET" badge, add explorer links, and a "Get devnet SOL" button when the balance is too low.
-4. **T12.4 — Run it for real and save evidence.** Execute a real deposit from the browser and save screenshots, the transaction signature, and before/after numbers in the tracker.
+1. **T10.1 — On-chain pool identity and helpers.** Label on-chain pools with an "ON-CHAIN · DEVNET" badge, add explorer links, and a "Get devnet SOL" button when the balance is low.
+2. **T10.2 — First real deposit from the UI.** Execute a real deposit from the browser and archive the evidence: screenshots, transaction signature, and before/after numbers.
+3. **T10.3 — Reconciliation tool.** A scheduled job that cross-checks five things between the database and the chain: total shares, every transaction by signature, fund cash flow, NAV, and missing events. Any mismatch raises an alert.
+4. **T10.4 — Reconciliation tests.** Fixture-based tests for all five checks, including a simulated mismatch that must raise the alert.
+5. **T10.5 — Surface on-chain data on the pool page.** The pool detail page gains a chain block (contract address, price, asset value, pause state...) and the API documentation is updated.
+6. **T10.6 — Full check, review, close Week 2.** Run the whole test suite, sync the technical docs, run the review process, and commit.
 
-End-of-day outcome: a real deposit from the web to devnet succeeds.
-
-## Day 13 (D13) — Build the withdraw flow
-
-Today we complete the withdrawal experience, including the protection for the user when prices move.
-
-1. **T13.1 — Withdraw dialog with a protection threshold.** The user enters the number of shares to withdraw, sees the estimated SOL payout, and the system sets a minimum-payout threshold (0.5% below the estimate) to block surprise bad prices. A warning appears if the fund has open positions (withdrawal may be blocked by low cash).
-2. **T13.2 — Receipt and friendly error messages.** After withdrawal, show a full receipt (transaction signature, shares burned, price, SOL received) with an explorer link. Errors like "below minimum payout" or "insufficient liquidity" display plain-language explanations with next steps.
-3. **T13.3 — Show on-chain positions on the portfolio page.** The portfolio page lists on-chain pool investments, with numbers coming from the synced API.
-4. **T13.4 — Test both scenarios and save evidence.** Run the success case and the blocked-by-threshold case (deliberately set a high threshold), keeping screenshots and transaction signatures.
-
-End-of-day outcome: a real withdrawal from the web succeeds; the blocked case displays correctly and clearly.
-
-## Day 14 (D14) — Build the end-to-end demo
-
-Today we assemble the full story into one complete, repeatable demo.
-
-1. **T14.1 — Write the demo script.** A step-by-step presentation script: a signal from a real trader wallet on mainnet → simulated position → the fund value updates automatically → a user deposits → the user withdraws. Include suggested talking points for each step.
-2. **T14.2 — Fix bugs from the first dry run.** Run the demo once and fix everything that breaks, keeping a list of bugs and fixes.
-3. **T14.3 — Run it a second time to prove repeatability.** Run the whole demo again from scratch — the goal is that it can run repeatedly without manual technical fixes.
-4. **T14.4 — Package the demo evidence.** Save the screenshot set (deposit, withdraw, NAV, blocked case) and explorer links in the tracker.
-
-End-of-day outcome: one complete demo that runs cleanly twice in a row, with a script and evidence.
-
-## Day 15 (D15) — Close Week 3 and start the Jupiter prep
-
-Today we package the UI work and lay the groundwork for the mainnet trading path.
-
-1. **T15.1 — Full backend + frontend check.** Run typecheck on both sides, build the frontend, and run the smoke tests — nothing should regress.
-2. **T15.2 — Sync docs, review, and commit.** Update the technical documentation, run the review process, and commit to close Week 3.
-3. **T15.3 — Jupiter technical spike.** Stand up a mock Jupiter program in the test environment as the foundation for testing real swaps later.
-4. **T15.4 — First mock swap test.** Write a sample test that calls through the mock program and note down the account-mapping approach for Day 16.
-
-Week 3 outcome: users sign their own deposits/withdrawals from the web on devnet; the end-to-end demo is complete; the test foundation for Jupiter is in place.
+Week 2 outcome: the backend is complete and the first wallet-signed deposit from the web succeeded.
 
 ---
 
-# WEEK 4 — Mainnet trading via Jupiter + hardening + reporting
+# WEEK 3 — User flows, end-to-end demo & mainnet path
 
-Weekly goal: the mainnet trading path is code-complete (gated off), security is hardened, and the audit package plus final report are ready.
+Weekly goal: complete the withdrawal flow and demo, then deliver the Jupiter mainnet trading path (code-complete, gated off) plus the audit-ready package and final report.
 
-## Day 16 (D16) — Build the swap function inside the contract
+## Day 11 (D11) — Withdraw flow & demo preparation
 
-Today we build the week's most important piece: the contract executes buy/sell trades on mainnet through Jupiter.
+Today we complete the withdrawal experience and start the demo.
 
-1. **T16.1 — Handle SOL-to-token conversion.** Implement wrapping SOL into WSOL and unwrapping it back after the trade, using the contract's own signing mechanism.
-2. **T16.2 — Call Jupiter from inside the contract.** Implement the contract calling the Jupiter program to swap, taking the account list and route data prepared by the backend.
-3. **T16.3 — Safety gates and output verification.** Apply all safety conditions: mainnet-only when enabled, never while paused, per-trade size capped as a share of the fund, and verify the received amount meets the minimum threshold; emit a trade event.
-4. **T16.4 — Build and self-review.** Rebuild the contract (updating the interface spec), self-review against the design checklist, and record it in the tracker.
+1. **T11.1 — Withdraw dialog with a protection threshold.** The user enters shares, sees the estimated payout, and the system sets a minimum-payout threshold (0.5% below the estimate). A warning appears if the fund has open positions.
+2. **T11.2 — Receipt and friendly errors.** After withdrawal show a full receipt (signature, shares burned, price, SOL received) with an explorer link; errors like "below minimum payout" display plain-language explanations.
+3. **T11.3 — Portfolio chain display.** The portfolio page lists on-chain pool investments with numbers from the synced API.
+4. **T11.4 — Withdraw evidence (2 cases).** Run the success case and the blocked-by-threshold case, keeping screenshots and signatures.
+5. **T11.5 — Write the demo script.** Step-by-step: mainnet signal → simulated position → auto value update → deposit → withdraw, with talking points.
+6. **T11.6 — Jupiter technical spike.** Stand up a mock Jupiter program in the test environment as the foundation for the swap tests.
 
-End-of-day outcome: the swap feature is code-complete and builds cleanly.
+End-of-day outcome: withdrawals work from the web; the demo script is written; the swap test harness runs.
 
-## Day 17 (D17) — Test the swap with a mock program
+## Day 12 (D12) — Demo end-to-end & Week 3 checkpoint
 
-Today we prove the swap works using a mock Jupiter program — no real funds involved.
+Today we make the demo repeatable and close the UI work.
 
-1. **T17.1 — Finish the mock program.** The mock accepts the account list and returns tokens at a fixed rate; it can be configured to simulate failure cases.
-2. **T17.2 — Buy and sell tests.** Buy test: SOL in → tokens out in the right amount; sell test: tokens in → SOL out, with the fund balance accurate to the smallest unit.
-3. **T17.3 — Blocked-case tests.** Cases: output below threshold (must revert), trade size over the cap, fund paused, wrong role, wrong environment.
-4. **T17.4 — Run the full test suite.** Re-run all existing tests plus the new ones, fix anything broken, and update the tracker with the new totals.
+1. **T12.1 — Fix bugs from the first dry run.** Run the demo once and fix everything that breaks, keeping a list of bugs and fixes.
+2. **T12.2 — Run it a second time.** Run the whole demo again from scratch — it must run repeatedly without manual fixes.
+3. **T12.3 — Package the demo evidence.** Save the screenshot set (deposit, withdraw, NAV, blocked case) and explorer links.
+4. **T12.4 — Full backend + frontend check.** Typecheck both sides, build the frontend, run smoke tests — nothing regresses.
+5. **T12.5 — Docs sync, review, commit.** Update technical documentation, run the review process, and commit.
+6. **T12.6 — First mock swap test.** Write a sample test calling through the mock program and note the account-mapping approach for the swap work.
 
-End-of-day outcome: all swap tests pass and the overall test count increases.
+End-of-day outcome: a complete demo that runs cleanly twice; the UI scope is closed.
 
-## Day 18 (D18) — Dry-run tool and mainnet runbook
+## Day 13 (D13) — Jupiter swap inside the contract
 
-Today we prepare the tool to inspect mainnet transactions before sending them, and write the operations runbook.
+Today we build the mainnet trading function.
 
-1. **T18.1 — Transaction dry-run tool.** The tool fetches a real Jupiter quote, builds the complete transaction in raw form for inspection — it never sends anything. It prints the transaction size and the number of accounts used.
-2. **T18.2 — Handle oversized routes.** Some large swap routes exceed the transaction size limit — the tool detects this, logs it clearly, and proposes a follow-up approach instead of hanging the system.
-3. **T18.3 — Write the mainnet runbook.** A complete pre-launch checklist: audit completed, governance moved to a multisig, limits reviewed, anti-frontrunning configured (Jito), monitoring in place, a small-amount trial run, and the incident procedure (pause everything).
-4. **T18.4 — Run the tool and review the runbook.** Run the dry-run twice (small and large routes) and send the runbook for review.
+1. **T13.1 — SOL ↔ WSOL conversion.** Implement wrapping SOL into WSOL and unwrapping it back after a trade, using the contract's own signing mechanism.
+2. **T13.2 — Call Jupiter from the contract.** Implement the contract calling the Jupiter program to swap, taking the account list and route data prepared by the backend.
+3. **T13.3 — Safety gates & output verification.** Mainnet-only when enabled, never while paused, per-trade size capped as a share of the fund, minimum-output check after the swap, trade event emitted.
+4. **T13.4 — Build & self-review.** Rebuild the contract (updating the interface spec), self-review against the design checklist, record it.
+5. **T13.5 — Finish the mock program.** The mock returns tokens at a fixed rate and can simulate failure cases.
+6. **T13.6 — Buy & sell tests.** SOL in → tokens out in the right amount; tokens in → SOL out, with fund balance accurate to the smallest unit.
 
-End-of-day outcome: a working dry-run tool for real transactions plus an approved operations runbook.
+End-of-day outcome: the swap feature is code-complete; buy/sell tests pass against the mock.
 
-## Day 19 (D19) — Security hardening
+## Day 14 (D14) — Swap hardening, dry-run tool & runbook
 
-Today we run the strictest checks so the math can never go wrong, and measure real costs.
+Today we close out the swap tests and prepare mainnet operations.
 
-1. **T19.1 — Randomized testing of the math.** Run thousands of random scenarios (deposits, minting, fees...) to be sure there is no overflow or crash path.
-2. **T19.2 — Invariant testing.** Confirm the core rules hold across any random sequence of operations: prices never go negative, rounding always favors the fund, total shares always match.
-3. **T19.3 — Finalize the risk file.** Complete the risk reference — what is protected, what remains limited (the three known limitations) — ready to hand to auditors.
-4. **T19.4 — Real cost report.** Measure account rent and transaction fees for each operation on devnet (initialize, deposit, withdraw, keeper cycle...) — numbers with a few sample transactions.
+1. **T14.1 — Blocked-case tests.** Output below threshold (must revert), trade size over cap, fund paused, wrong role, wrong environment.
+2. **T14.2 — Full test suite run.** Re-run all tests (existing + new), fix anything broken, update totals.
+3. **T14.3 — Transaction dry-run tool.** Fetch a real Jupiter quote, build the complete transaction raw for inspection — never sent. Prints size and account count.
+4. **T14.4 — Oversized route handling.** Detect routes exceeding the transaction size limit, log clearly, propose route splitting; never hang.
+5. **T14.5 — Mainnet runbook.** Pre-launch checklist: audit completed, governance moved to multisig, limits reviewed, anti-frontrunning (Jito), monitoring, small-amount trial, incident procedure (pause everything).
+6. **T14.6 — Dry-run runs & runbook review.** Run the dry-run twice (small and large routes) and send the runbook for review.
 
-End-of-day outcome: the strict checks pass; the risk file and cost report are ready.
+End-of-day outcome: all swap tests pass; the dry-run tool and runbook are ready.
 
-## Day 20 (D20) — Multisig, audit package, and final report
+## Day 15 (D15) — Hardening, audit package & final report
 
-Today we package everything and present.
+Today we run the strictest checks and package everything.
 
-1. **T20.1 — Multisig checklist (Squads).** Document the steps to move contract governance to a multisig wallet — documentation only, not executed, to be run before mainnet.
-2. **T20.2 — Audit submission package.** Assemble a one-pager: what will be reviewed (the functions), the design principles, the known limitations, and the attached artifacts (design doc, tests, contract spec).
-3. **T20.3 — Four-week summary report.** Report in the team's format: work done, evidence (explorer/doc links), remaining risks, open questions.
-4. **T20.4 — Final demo and branch freeze.** Run the final demo, confirm the working branch stays local (not pushed, per the standing rule), and record the freeze note.
+1. **T15.1 — Randomized math testing.** Thousands of random scenarios (deposits, minting, fees...) to be sure there is no overflow or crash path.
+2. **T15.2 — Invariant testing.** Confirm the core rules hold across any random sequence: prices never negative, rounding favors the fund, total shares always match.
+3. **T15.3 — Risk file.** Complete the risk reference — what is protected, what remains limited (the three known limitations) — ready for auditors.
+4. **T15.4 — Cost report.** Measure account rent and transaction fees for each operation on devnet, with sample transactions.
+5. **T15.5 — Multisig checklist & audit package.** Document the governance-move steps (documentation only) and assemble the audit submission one-pager (scope, design principles, known limitations, attached artifacts).
+6. **T15.6 — Final report, demo & branch freeze.** Summary report (work done, evidence, risks, open questions), final demo run, and confirm the working branch stays local.
 
-Week 4 outcome: the mainnet trading path is code-complete (gated off), and the audit package plus final report are complete.
+Week 3 outcome: withdraw + demo complete; Jupiter trading path code-complete (gated off); audit-ready package and final report delivered.
 
 ---
 
@@ -281,8 +236,8 @@ Week 4 outcome: the mainnet trading path is code-complete (gated off), and the a
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Config approval is slow (Day 6) | Week 2 may slip | New config defaults to off — code first, approval only needed to enable |
-| Devnet instability | Days 9 and 14 slow down | Wallets already hold SOL; the plan does not depend on the faucet |
-| Oversized Jupiter routes | Day 18 technical limit | Detect + log + propose route splitting; does not block the week |
+| Devnet instability | Days 8 and 12 slow down | Wallets already hold SOL; the plan does not depend on the faucet |
+| Oversized Jupiter routes | Day 14 technical limit | Detect + log + propose route splitting; does not block the week |
 | External audit not booked | Outside the plan | Recommended to book in parallel, starting Week 2 |
 
 ## Explicitly NOT part of this plan
