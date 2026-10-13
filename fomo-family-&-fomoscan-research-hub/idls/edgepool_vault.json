@@ -1,0 +1,29 @@
+{
+  "address": "5zkeKsjTYLkx9QKPMRdGDXuPR6C5AkT8jYuKfE7es3CQ",
+  "metadata": {
+    "name": "edgepool_vault",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Edgepool vault program — SOL custody + vSHARE accounting (devnet-first, mainnet gated)"
+  },
+  "instructions": [
+    {
+      "name": "ping",
+      "docs": [
+        "P0 skeleton — smoke instruction, sẽ bị thay ở P1."
+      ],
+      "discriminator": [
+        173,
+        0,
+        94,
+        236,
+        73,
+        133,
+        225,
+        153
+      ],
+      "accounts": [],
+      "args": []
+    }
+  ]
+}

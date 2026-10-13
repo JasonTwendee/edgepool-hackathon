@@ -353,9 +353,24 @@
     "datastream+market asserts GREEN",
     "full BE sweep GREEN"
    ]
+  },
+  {
+   "at": "2026-10-13T00:00:00Z",
+   "topic": "solana-vault-program",
+   "phase": "P0-setup",
+   "status": "done",
+   "detail": "Toolchain: Agave CLI 4.3.0 + cargo-build-sbf 4.4.0 (platform-tools v1.57) + rustup stable 1.99.0. Anchor workspace scaffold (Anchor.toml + Cargo workspace + programs/edgepool-vault skeleton, program id 5zkeKsj...s3CQ). anchor build PASS (.so 151KB, IDL + types), cargo test PASS (skeleton). IDL committed at idls/. Disk relocation: platform-tools cache + cargo registry + project target symlinked to /media/jason/Acer (root 1.9G -> 7.3G; reversible).",
+   "verification": [
+    "solana-cli 4.3.0 + cargo-build-sbf 4.4.0",
+    "anchor build PASS (.so 151080 bytes)",
+    "target/idl/edgepool_vault.json + target/types generated",
+    "cargo test PASS (0 tests skeleton)",
+    "idls/edgepool_vault.json committed",
+    "root fs 1.9G -> 7.3G via symlinked caches"
+   ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-06T00:00:00Z",
+ "updatedAt": "2026-10-13T00:00:00Z",
  "version": 2
 }
