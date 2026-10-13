@@ -496,10 +496,14 @@ export class VaultService {
           treasurySol: dec(Math.round((num(vault.treasurySol) + treasuryFee) * 1e9) / 1e9),
         },
       });
+      // Exit cash leaves the fund: the recorded epoch NAV drops by settled
+      // payouts, or every exit would inflate the price for remaining holders
+      // (and mint phantom performance fees on exit-driven "gains").
+      const epochNav = Math.max(0, Math.round((nav - settledWithdrawals.reduce((s, w) => s + w.payoutSol, 0)) * 1e9) / 1e9);
       const epoch = await tx.epochCheckpoint.create({
         data: {
           vaultId,
-          navSol: dec(nav),
+          navSol: dec(epochNav),
           sharePrice: dec(price),
           sharesOutstanding: dec(shares),
           feeSol: dec(feeSol),
@@ -517,7 +521,7 @@ export class VaultService {
       }
       return {
         epochId: epoch.id,
-        navSol: nav,
+        navSol: epochNav,
         sharePrice: price,
         sharesOutstanding: shares,
         feeSol,

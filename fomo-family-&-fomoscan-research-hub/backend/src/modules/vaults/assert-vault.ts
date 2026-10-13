@@ -246,6 +246,24 @@ async function main(): Promise<void> {
     assert.equal(ml.returnsSol, -5);
   }
 
+  // 13. Exit cash leaves NAV: withdraw 4 of 10 @ 1.2 → payout 4.8, recorded
+  // NAV 12 - 4.8 = 7.2, next price invariant (7.2/6 = 1.2). Without this,
+  // exits inflate the price and mint phantom performance fees.
+  {
+    const svcE = new VaultService(makeFake());
+    const ve = await svcE.getOrCreateVault('exitnav');
+    await svcE.deposit(ve.id, 'erin', 10);
+    await svcE.settleEpoch(ve.id, 10);
+    await svcE.settleEpoch(ve.id, 12);
+    await svcE.requestWithdraw(ve.id, 'erin', 4);
+    const se = await svcE.settleEpoch(ve.id);
+    assert.deepEqual(se.settledWithdrawals.map((w) => w.payoutSol), [4.8]);
+    assert.equal(se.navSol, 7.2);
+    const se2 = await svcE.settleEpoch(ve.id);
+    assert.equal(se2.sharePrice, 1.2);
+    assert.equal(await svcE.depositorShares(ve.id, 'erin'), 6);
+  }
+
   console.log('vault asserts: ALL GREEN');
 }
 
