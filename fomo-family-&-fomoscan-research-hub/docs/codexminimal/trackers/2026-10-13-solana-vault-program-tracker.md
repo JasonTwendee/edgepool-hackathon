@@ -7,13 +7,21 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 - [x] P0 toolchain + Anchor workspace + build xanh
 - [x] P1 program core + tests + **deploy devnet ✅** + **e2e devnet PASS ✅** (26/26 tests, slot 510563107)
 - [x] P2 BE chain module: migration, indexer, keeper, faucet, reconcile + asserts
-- [ ] P3 FE chain client + user-signed deposit/withdraw + demo e2e
+- [x] P3 FE chain client + user-signed deposit/withdraw + demo e2e wiring (live browser signing = demo-time)
 - [ ] P4 Jupiter `execute_swap` + mock-CPI + dry-run + runbook (flag OFF)
 - [ ] P5 fuzz + threat model + cost report + multisig/audit checklist
 
 ## Handoff log
 
-- P2 done (BE chain module): `backend/src/modules/chain/` (program client + indexer/backfill/mirror + keeper 45s + reconcile 5 checks + faucet devnet) + migration `20261015000000_chain_vault_program` + `chain_events` + poolDetail `chain` block + openapi `/api/chain/faucet` (71 paths) + `assert-chain.ts` ALL GREEN + prisma validate/typecheck xanh + nestjs-code-reviewer self-review (1 fix: sim-trade bỏ mint fallback). Protected chạm có approval: `.env.example` + `src/config/*` (CHAIN_* OFF mặc định). Chưa apply migration lên DB local (làm khi dựng P2 e2e).
+- P2 done (BE chain module): `backend/src/modules/chain/` (program client + indexer/backfill/mirror + keeper 45s + reconcile 5 checks + faucet devnet) + migration `20261015000000_chain_vault_program` + `chain_events` + poolDetail `chain` block + openapi `/api/chain/faucet` (71 paths) + `assert-chain.ts` ALL GREEN + prisma validate/typecheck xanh + nestjs-code-reviewer self-review (1 fix: sim-trade bỏ mint fallback). Protected chạm có approval: `.env.example` + `src/config/*` (CHAIN_* OFF mặc định). Migration đã apply lên DB docker + BE rebuild smoke xanh.
+
+- P3 done (FE chain client + demo e2e wiring): `frontend/lib/chain.ts` (devnet connection,
+  Anchor program, PDA/ATA helpers, estimate + deposit/withdraw builders, wallet send +
+  confirm, VI error map) + IDL copy `lib/idl/` + `chainFaucet()`/`ChainVaultInfo` +
+  pool page branch on-chain (badge ON-CHAIN DEVNET, explorer links, faucet row, modal
+  withdraw on-chain, min_payout mặc định −0.5%) + DEMO_SCRIPT mục P3. Verify: FE
+  typecheck + `next build` xanh; chain block smoke qua bind tạm vault 1 (đã gỡ, DB
+  nguyên trạng); full BE typecheck xanh.
 
 - 2026-10-13: intent + system design v1.1 approved; branch `feat/program-vault` created từ main@948eadf; design docs committed (`5ca56d3`). Plan written. Bắt đầu P0.
 - 2026-10-13 P0 done: Agave CLI **4.3.0** + `cargo-build-sbf` 4.4.0 (platform-tools v1.57) cài mới; rustup default stable 1.99.0 (máy chưa có default toolchain); Anchor workspace scaffold tại project root (`Anchor.toml` + `Cargo.toml` workspace + `programs/edgepool-vault` skeleton, program id `5zkeKsjTYLkx9QKPMRdGDXuPR6C5AkT8jYuKfE7es3CQ`, keypair trong `target/deploy` — gitignored); `anchor build` **PASS** (`.so` 151KB + IDL + TS types); `cargo test` PASS (0 tests — skeleton); IDL commit tại `idls/edgepool_vault.json`; PATH Agave thêm vào `~/.bashrc`.

@@ -57,6 +57,17 @@ export interface VaultPolicy {
   lockHours: number;
 }
 
+/** On-chain vault info (P3) — present only when the pool is chain-bound. */
+export interface ChainVaultInfo {
+  programId: string | null;
+  vault: string;
+  price: number | null;
+  marks: number;
+  paused: boolean | null;
+  env: string;
+  explorerUrl: string;
+}
+
 export interface VaultWithTraders {
   id: number;
   name: string;

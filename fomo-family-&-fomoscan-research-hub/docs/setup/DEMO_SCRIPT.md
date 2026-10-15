@@ -45,3 +45,19 @@
   có sẵn (12 orders) + SSE reconnect tự động.
 - Đừng `docker compose down -v` (mất volume DB). Đổi `.env` phải `up -d <service>`
   (restart không đọc lại env_file).
+
+## P3 — Demo on-chain devnet (pool đã bind chain)
+
+Chuẩn bị (ADMIN + devnet, làm trước giờ demo):
+1. Bind pool demo: `UPDATE vaults SET chain_program_id='<PROGRAM_ID>',
+   chain_vault='<VAULT_PDA>', chain_env='devnet' WHERE id=<id>;`
+2. Bật BE: `CHAIN_ENABLED=true`, `CHAIN_KEEPER_KEY=<base58 keeper>` (backend/.env local),
+   restart backend. Keeper tick 45s tự đẩy marks + settle; indexer mirror sự kiện.
+3. FE: mở `/pools/<id>` — badge `ON-CHAIN DEVNET` + link explorer hiện khi bind đúng.
+
+Chạy demo (ví Phantom devnet):
+1. Nút `Get devnet SOL` nếu ví dưới 0.5 (faucet: auth + 1 lần/24h/người).
+2. Deposit ≥ 0.5 SOL → ký ví → share mint thẳng vào ATA, msg kèm link tx explorer.
+3. Chờ keeper tick (marks) → NAV/giá on-chain đổi → pool detail hiện block `chain`.
+4. Withdraw trong modal → min_payout mặc định (= estimate − 0.5%) → SOL về ví ngay.
+5. min_payout set cao hơn estimate → lệnh revert `PayoutBelowMin` ngay trong modal.
