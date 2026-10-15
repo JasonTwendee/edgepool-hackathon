@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edgepool — Vận hành + Kịch bản demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#161826;--abyss:#0D0F18;--surface:#232532;--line:#3F424D;--text:#E9E9ED;--muted:#9397AB;--faint:#75798C;--aqua:#49E6D7;--violet:#9184D9;--gain:#73DEA4;--loss:#F28881;--caution:#F0BE67;--r:14px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,sans-serif;line-height:1.65}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);background:radial-gradient(800px 300px at 80% 0%,rgba(115,222,164,.07),transparent)}
+.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gain);font-weight:600}
+h1{font-family:'Inter Tight',sans-serif;font-size:clamp(30px,5vw,48px);margin:12px 0;letter-spacing:-.02em;line-height:1.1}
+h1 .aq{color:var(--aqua)}.lead{color:var(--muted);font-size:16px;max-width:800px}.meta{margin-top:14px;font-size:12px;color:var(--faint)}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(22,24,38,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding:10px 24px}
+nav.toc a{white-space:nowrap;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+nav.toc a:hover{color:var(--aqua);border-color:var(--aqua)}
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+h2{font-family:'Inter Tight',sans-serif;font-size:26px;margin:0 0 6px}.sub{color:var(--muted);margin:0 0 24px;max-width:820px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.aqua{background:rgba(73,230,215,.12);color:var(--aqua);border-color:rgba(73,230,215,.35)}
+.tag.gain{background:rgba(115,222,164,.1);color:var(--gain);border-color:rgba(115,222,164,.3)}
+.tag.loss{background:rgba(242,136,129,.1);color:var(--loss);border-color:rgba(242,136,129,.3)}
+.tag.warn{background:rgba(240,190,103,.1);color:var(--caution);border-color:rgba(240,190,103,.3)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}td.num{font-family:'JetBrains Mono',monospace}
+pre{background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.55}
+code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:12.5px}
+.tip{border-left:3px solid var(--loss);background:rgba(242,136,129,.06);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px}
+.tip.ok{border-color:var(--gain);background:rgba(115,222,164,.06)}
+footer{padding:36px 0 64px;color:var(--faint);font-size:12.5px}a{color:var(--aqua)}
+ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin:6px 0;font-size:14px;color:#C9CCDA}
+.min{font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="hero"><div class="wrap">
+<div class="kicker">Edgepool · Vận hành + Kịch bản demo</div>
+<h1>Ops <span class="aq">+ Demo</span> Script</h1>
+<p class="lead">Hướng dẫn dựng máy local, vận hành Docker, cấu hình môi trường, kịch bản demo 5 phút
+và lộ trình lên production.</p>
+<div class="meta mono">Public: https://edgepool-dev.tailec308e.ts.net/ · LAN: http://100.110.155.108/ · local FE :3001 · BE :3000 · PG :5433</div>
+</div></div>
+<nav class="toc"><div class="wrap">
+<a href="#o1">§1 · Deploy</a><a href="#o2">§2 · Local</a><a href="#o3">§3 · Docker</a><a href="#o4">§4 · ENV</a><a href="#o5">§5 · Demo 5′</a><a href="#o6">§6 · Launch</a><a href="#o7">§7 · Lệnh nhanh</a>
+</div></nav>
+<div class="wrap">
+
+<section id="o1">
+<h2>§1 — Kiến trúc deploy</h2>
+<pre>Client → Caddy :80/:443 (single entry) → frontend :3001 (next start, BACKEND_URL=http://backend:3000)
+  → backend :3000 (node dist/main.js, sau prisma migrate deploy) → postgres :5433 (PG17, volume fomo-postgres-data)
+Tunnel chỉ forward frontend:3001. BE nghe 0.0.0.0:3000, FE rewrites /api/* → BE nội bộ.</pre>
+<table><tr><th>Service</th><th>Port host</th><th>Ghi chú</th></tr>
+<tr><td>postgres</td><td class="num">5433:5432</td><td>healthcheck pg_isready; BE depends_on healthy (tự phục hồi sau 10–20s)</td></tr>
+<tr><td>backend</td><td class="num">3000:3000</td><td>prisma migrate deploy rồi mới start; chế độ single-entry: bỏ ánh xạ cổng backend, kiểm tra từ bên trong container</td></tr>
+<tr><td>frontend</td><td class="num">3001:3001</td><td>next start -p 3001</td></tr></table>
+</section>
+
+<section id="o2">
+<h2>§2 — Local setup (6 bước)</h2>
+<pre># 1. Yêu cầu: Node ≥ 20.19, npm ≥ 10 (không bắt buộc RPC key — ledger dự phòng vẫn đủ 250 giao dịch)
+cp backend/.env.example backend/.env        # điền secrets thật (không commit)
+cp frontend/.env.example frontend/.env      # optional
+# 2. Install riêng
+cd backend && npm install && cd .. && cd frontend && npm install && cd ..
+# 3. DB qua Docker
+docker compose up -d postgres
+docker inspect fomo-postgres --format='{{.State.Health.Status}}'  # healthy
+# BE tự migrate + seed 10 ví master khi bảng rỗng. Tránh container api-harness-postgres-1 (:5434).
+# 4. Chạy split (2 terminal)
+npm run dev:backend    # :3000
+npm run dev:frontend   # :3001 → mở http://localhost:3001</pre>
+<pre># 5. Smoke (tất cả phải xanh)
+curl -s http://localhost:3000/api/health
+curl -s "http://localhost:3000/api/portfolio/transactions?limit=2" | head -c 600
+curl -N -s http://localhost:3000/api/onchain/stream | head -n 5
+curl -s http://localhost:3001/api/health   # qua FE rewrites
+# 6. Typecheck / build
+npm run typecheck && npm --prefix frontend run build</pre>
+</section>
+
+<section id="o3">
+<h2>§3 — Docker runbook + troubleshooting</h2>
+<pre>docker compose up -d --build && docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+docker restart fomo-backend
+docker compose down              # giữ data — không dùng -v (mất dữ liệu PG)</pre>
+<table><tr><th>Lỗi</th><th>Cách fix</th></tr>
+<tr><td>BE crash-loop “can't reach postgres”</td><td>Xem postgres đã healthy chưa; BE tự hồi sau 10–20s.</td></tr>
+<tr><td>Migrate fail</td><td>Đọc log entrypoint, fix migration rồi <span class="mono">up -d --build backend</span>.</td></tr>
+<tr><td>:3001/api/health đỏ, :3000 xanh</td><td>Sai <span class="mono">BACKEND_URL</span> — trong compose phải là <span class="mono">http://backend:3000</span>.</td></tr>
+<tr><td>Port bận 5433/3000/3001</td><td>Kiểm tra process chiếm cổng (<span class="mono">ss -ltnp | grep -E '5433|3000|3001'</span>); dừng hẳn pm2 cũ (<span class="mono">pm2 delete all</span>) trước khi chuyển sang Docker.</td></tr>
+<tr><td>FE build OOM</td><td>Build riêng frontend, tăng swap, hoặc build 1 lần rồi up không --build.</td></tr></table>
+<div class="tip"><b>Lưu ý quan trọng:</b> <span class="mono">docker compose down -v</span> (mất volume DB). Đổi <span class="mono">.env</span> phải <span class="mono">up -d &lt;service&gt;</span> — restart thường không đọc lại env_file.</div>
+</section>
+
+<section id="o4">
+<h2>§4 — ENV contract</h2>
+<table><tr><th>BE (backend/.env — secrets)</th><th>Bắt buộc</th><th>Dùng ở</th></tr>
+<tr><td class="num">SOLANA_RPC_URL</td><td>Có (default public)</td><td>RPC mainnet, confirmed</td></tr>
+<tr><td class="num">FLUXRPC_API_KEY / REGION</td><td>Có (thay thế RPC Helius)</td><td>Mọi RPC reads</td></tr>
+<tr><td class="num">HELIUS_API_KEY</td><td>Không (đã ngừng sử dụng)</td><td>Rỗng = disabled, fail-soft</td></tr>
+<tr><td class="num">JITO_BLOCK_ENGINE_URL</td><td>Không (dự phòng)</td><td>copy-trade</td></tr>
+<tr><td class="num">RUGCHECK_API_KEY</td><td>Không (dự phòng cho Qualify)</td><td>qualify gate</td></tr>
+<tr><td class="num">VAULT_PRIVATE_KEY</td><td>Không (chỉ dùng local)</td><td>không commit, không log</td></tr>
+<tr><td class="num">POSTGRES_HOST/PORT/USER/PASSWORD/DB</td><td>Không (default localhost/5433/fomo/fomo/fomo_dev)</td><td>Prisma + compose</td></tr></table>
+<p class="min">BE đọc env duy nhất qua <span class="mono">backend/src/config/configuration.ts</span>. FE public: <span class="mono">NEXT_PUBLIC_API_URL</span> (trống = same-origin) + <span class="mono">BACKEND_URL</span> (rewrites target, default localhost:3000).</p>
+</section>
+
+<section id="o5">
+<h2>§5 — Kịch bản demo 5 phút</h2>
+<p class="sub">Không cần ví crypto khi demo — đăng nhập bằng tài khoản seed ở tab <b>Tài khoản</b>. Mật khẩu thật chỉ nằm trong <span class="mono">backend/.env</span> trên server.</p>
+<table><tr><th>Phút</th><th>Làm gì</th><th>Câu chốt</th></tr>
+<tr><td class="num">0–1 terminal</td><td>Mở FE: brand Edgepool, leaderboard ví thật, chart PnL, ticker.</td><td>“Track 10 smart-money Solana realtime — SSE live, không dùng dữ liệu giả.”</td></tr>
+<tr><td class="num">1–2 user</td><td>Login <span class="mono">user</span> (USER): chỉ chart/swaps/positions-read/VaultCard read.</td><td>“PnL-first; nút Send/Copy/History ẩn theo role — authz thật ở BE.”</td></tr>
+<tr><td class="num">2–3 paper</td><td>Đăng nhập <span class="mono">admin</span> → tab Bots: tick gần nhất có 2 lệnh CONFIRMED; CopyHistory 12 orders + devnet signature.</td><td>“1-click paper devnet, lifecycle PENDING→CONFIRMED, gate/cap đầy đủ.”</td></tr>
+<tr><td class="num">3–4 vault</td><td>VaultCard: Share/HWM/Queued + PARTNER EARNINGS (partner 0.30, treasury 0.10 — đúng 80/15/5). Mở <span class="mono">GET /api/vaults/1/earnings</span> nếu cần chi tiết.</td><td>“Phí 20% trên lãi mới vượt đỉnh; KOL thấy được phần của mình.”</td></tr>
+<tr><td class="num">4–5 audit</td><td>AdminPanel users/audit/vaults: gán role KOL trực tiếp, audit append-only (cả login_failed).</td><td>“Paper-only sandbox. On-chain vault + cash-out là phase sau.”</td></tr></table>
+<p class="min">Tài khoản: <span class="mono">admin / $SEED_ADMIN_PASSWORD</span> (ADMIN) · <span class="mono">user / $SEED_USER_PASSWORD</span> · <span class="mono">kol / $SEED_KOL_PASSWORD</span>. Dự phòng khi mất mạng ví: dùng CopyHistory có sẵn + SSE tự reconnect. Đổi mật khẩu trước khi công khai.</p>
+</section>
+
+<section id="o6">
+<h2>§6 — Launch hub (sandbox → production)</h2>
+<p class="sub">Nguyên tắc: <b>cap nhỏ trước, mở dần, mọi bước có tiêu chí pass + rollback</b>. Hiện tại hệ thống chạy paper/sandbox hoàn toàn.</p>
+<div class="grid2">
+<div class="card"><span class="tag aqua">Nhánh Analyst (triển khai trước)</span><p style="font-size:14px">A0–A1: nền dữ liệu prod-grade, chất lượng tín hiệu, UX/API analyst, vận hành đọc. Thu hút người dùng và dữ liệu, không cần tiền thật.</p></div>
+<div class="card"><span class="tag warn">Nhánh Product (chạm tiền người dùng)</span><p style="font-size:14px">P0–P1 hardening web + custody/key → P2–P3 vault + execution → P4 beta tiền thật giới hạn. Hoàn thành P1–P3 trước khi tiếp xúc tiền thật.</p></div>
+</div>
+<p style="font-size:14px;color:var(--muted)">Điểm chung: auth/roles (tài khoản + ví), audit append-only, FE shell, policy/window engine, demo-sim sandbox training. Chi tiết: <span class="mono">docs/setup/LAUNCH_RUNBOOK*.md</span>.</p>
+</section>
+
+<section id="o7">
+<h2>§7 — Lệnh vận hành nhanh</h2>
+<pre># Smoke môi trường public
+curl -s https://edgepool-dev.tailec308e.ts.net/api/health
+# Typecheck all / BE / FE
+npm run typecheck
+npm --prefix backend run typecheck && npm --prefix frontend run typecheck
+# Dev split
+npm run dev:backend   # :3000
+npm run dev:frontend  # :3001
+# Kiểm chứng kế toán (mocked)
+cd fomo-family-*/backend && npx tsx src/modules/vaults/assert-vault.ts</pre>
+<div class="tip ok"><b>Past performance does not indicate future results.</b> Hệ thống đang ở giai đoạn prototype, chưa ghi nhận người dùng, tiền gửi hay doanh thu.</div>
+</section>
+</div>
+<footer><div class="wrap">Mọi thay đổi cấu hình production đều phải kèm kiểm thử smoke và đường rollback.</div></footer>
+</body>
+</html>

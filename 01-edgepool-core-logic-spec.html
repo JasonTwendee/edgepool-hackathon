@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edgepool — Core Logic + Spec hệ thống</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#161826;--abyss:#0D0F18;--surface:#232532;--line:#3F424D;--text:#E9E9ED;--muted:#9397AB;--faint:#75798C;--aqua:#49E6D7;--violet:#9184D9;--gain:#73DEA4;--loss:#F28881;--caution:#F0BE67;--r:14px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,sans-serif;line-height:1.65}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);background:radial-gradient(800px 300px at 80% 0%,rgba(73,230,215,.07),transparent)}
+.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--aqua);font-weight:600}
+h1{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:clamp(30px,5vw,48px);letter-spacing:-.02em;line-height:1.1;margin:12px 0}
+h1 .aq{color:var(--aqua)}.lead{color:var(--muted);font-size:16px;max-width:760px}
+.meta{margin-top:14px;font-size:12px;color:var(--faint)}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(22,24,38,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding:10px 24px}
+nav.toc a{white-space:nowrap;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+nav.toc a:hover{color:var(--aqua);border-color:var(--aqua)}
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+h2{font-family:'Inter Tight',sans-serif;font-size:28px;margin:0 0 6px;letter-spacing:-.015em}
+.sub{color:var(--muted);margin:0 0 24px;max-width:780px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.aqua{background:rgba(73,230,215,.12);color:var(--aqua);border-color:rgba(73,230,215,.35)}
+.tag.gain{background:rgba(115,222,164,.1);color:var(--gain);border-color:rgba(115,222,164,.3)}
+.tag.loss{background:rgba(242,136,129,.1);color:var(--loss);border-color:rgba(242,136,129,.3)}
+.tag.warn{background:rgba(240,190,103,.1);color:var(--caution);border-color:rgba(240,190,103,.3)}
+.tag.violet{background:rgba(145,132,217,.12);color:#D2CEFD;border-color:rgba(145,132,217,.35)}
+.formula{font-family:'JetBrains Mono',monospace;background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:15px;margin:12px 0;overflow-x:auto}
+.formula b{color:var(--aqua)}table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}td.num{font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.pipe{display:flex;flex-direction:column;margin-top:8px}.step{display:grid;grid-template-columns:52px 1fr;gap:14px;position:relative;padding-bottom:20px}
+.step:last-child{padding-bottom:0}.step::before{content:"";position:absolute;left:25px;top:52px;bottom:0;width:2px;background:var(--line)}
+.step:last-child::before{display:none}
+.dot{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:15px}
+.dot.done{background:rgba(73,230,215,.12);border:2px solid var(--aqua);color:var(--aqua)}
+.dot.next{background:transparent;border:2px dashed var(--violet);color:var(--violet)}
+.step h3{margin:2px 0 4px;font-size:16px}.step p{margin:0;color:var(--muted);font-size:13.5px}
+.step .ex{margin-top:8px;font-size:12.5px;color:var(--faint);background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.calc{grid-template-columns:1fr}}
+.calc input{width:100%;background:var(--abyss);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:16px}
+.bar{height:10px;border-radius:5px;background:#3F424D;overflow:hidden;margin:8px 0}.bar>i{display:block;height:100%;background:var(--aqua)}
+ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin:6px 0;font-size:14px;color:#C9CCDA}
+.goodlist li::marker{color:var(--gain)}.badlist li::marker{color:var(--loss)}
+.tip{border-left:3px solid var(--aqua);background:rgba(73,230,215,.06);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px}
+.tip.warn{border-color:var(--caution);background:rgba(240,190,103,.06)}.tip.bad{border-color:var(--loss);background:rgba(242,136,129,.06)}
+pre{background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.5}
+code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:12.5px}
+footer{padding:36px 0 64px;color:var(--faint);font-size:12.5px}a{color:var(--aqua)}h4{margin:22px 0 8px;font-size:15px}
+</style>
+</head>
+<body>
+<div class="hero"><div class="wrap">
+<div class="kicker">Edgepool · Core logic + Spec hệ thống</div>
+<h1>Core Logic <span class="aq">+ Spec</span> hệ thống Edgepool</h1>
+<p class="lead">Nguyên lý hoạt động của Edgepool — hệ vault Solana non-custodial copy-trading theo trader
+xếp hạng — kèm kiến trúc hệ thống, pipeline tín hiệu, toán vault và quản trị vị thế.</p>
+<div class="meta mono">Design deck (Colosseum submission, Prototype) · Cập nhật 01/10/2026</div>
+</div></div>
+<nav class="toc"><div class="wrap">
+<a href="#s0">§0 · Tóm tắt</a><a href="#s1">§1 · Vấn đề</a><a href="#s2">§2 · Pipeline 8 bước</a><a href="#s3">§3 · Toán vault</a><a href="#s4">§4 · Vị thế</a><a href="#s5">§5 · Lọc + Thực thi</a><a href="#s6">§6 · Kiến trúc</a><a href="#s7">§7 · BE/FE/DB/API</a><a href="#s8">§8 · Roadmap</a>
+</div></nav>
+<div class="wrap">
+
+<section id="s0">
+<h2>§0 — Tóm tắt</h2>
+<p class="sub">Automated Solana vaults powered by performance-ranked traders. Non-custodial, copy-trading theo trader đã kiểm chứng on-chain.</p>
+<div class="card"><table>
+<tr><th style="width:32%">Bài toán</th><th>Cách Edgepool giải</th></tr>
+<tr><td>Khớp lệnh trễ (buy late)</td><td>Bot giám sát on-chain 24/7, vào lệnh ngay khi phát hiện trader mua (Detect → Execute).</td></tr>
+<tr><td>Phân bổ vốn</td><td>Công thức cố định <span class="mono">min(1% NAV, 0.1 SOL, trần thanh khoản)</span>. Tối đa 10 vị thế, exposure ≤10% NAV.</td></tr>
+<tr><td>Cắt lỗ / chốt lời cảm tính</td><td>Luật cố định: TP1 +60% bán 40%, TP2 +100% bán 40%, runner 20% tới +150%/+300%; stop ATR + time-stop 24h + kill-switch ngày −5% / tuần −15%.</td></tr>
+<tr><td>Rủi ro ký thác</td><td>Non-custodial + chia pro-rata theo share: <span class="mono">share price = NAV / shares</span>. Phí 20% chỉ trên <b>lợi nhuận mới vượt đỉnh cũ (HWM)</b>, chia 80% depositors / 15% trader / 5% Edgepool.</td></tr>
+</table>
+<div class="tip"><b>Luận điểm cốt lõi:</b> “Trader PnL is not copyable PnL” — phần follower nhận được chỉ còn lại sau khi trừ độ trễ, thanh khoản, phí và kiểm duyệt rủi ro. Kết luận sau rà soát 01/10: <b>không dùng copyable-score trong truyền thông</b>, xếp hạng dựa trên realized risk-adjusted (Sharpe / win-rate / maxDD); độ trễ vẫn được đo nội bộ (drag).</div>
+</div>
+</section>
+
+<section id="s1">
+<h2>§1 — Vấn đề gốc</h2>
+<p class="sub">“The signal is public. Capturing it is not.” Luồng trễ: Trader buys → Follower notices → Copies CA → Scans risk → Buys late.</p>
+<div class="grid3">
+<div class="card"><span class="tag warn">Late entries</span><p style="font-size:14px;color:var(--muted)">Mỗi bước thủ công trễ vài phút, follower khớp giá cao hơn hẳn giá trader.</p></div>
+<div class="card"><span class="tag">DIY infra</span><p style="font-size:14px;color:var(--muted)">Tự dựng bot giám sát chuỗi tốn kém, dễ bỏ sót tín hiệu, khó mở rộng.</p></div>
+<div class="card"><span class="tag">24/7 + cảm xúc</span><p style="font-size:14px;color:var(--muted)">Tín hiệu xuất hiện bất kỳ lúc nào; cắt lỗ/chốt lời theo FOMO.</p></div>
+</div>
+<p style="font-size:14px;color:var(--muted)">Bối cảnh FOMO: 625K+ users, $4B+ volume, 110M+ interactions. MVP hiện tại là <b>single-trader vault</b>, tiếp theo mở rộng multi-trader baskets. Hệ thống đang ở giai đoạn prototype, chưa ghi nhận người dùng, tiền gửi hay doanh thu.</p>
+</section>
+
+<section id="s2">
+<h2>§2 — Pipeline 8 bước: tín hiệu → vị thế</h2>
+<p class="sub">Ký hiệu: <span class="tag aqua">● built</span> = đã triển khai · <span class="tag violet">○ validating</span> = đang kiểm chứng. Phương án V2 (01/10): <b>khớp lệnh ngay (immediate) khi qua Qualify</b>, bỏ bước chờ 30 phút.</p>
+<div class="pipe">
+<div class="step"><div class="dot done">01</div><div><h3>Rank <span class="tag aqua">built</span></h3><p>Xếp hạng realized risk-adjusted 24h (momentum) / 7d (repeatability) / 30d (consistency). Chuẩn production: PnL 30d &gt;$15k, win-rate &gt;58% (≥30 lệnh), wash-score &lt;0.05.</p></div></div>
+<div class="step"><div class="dot done">02</div><div><h3>Detect <span class="tag aqua">built</span></h3><p>Phát hiện fill price thật on-chain realtime (WS + poll 8s + SSE + Geyser gRPC &lt;80ms). VD: swap 2 SOL → 40K TOKEN-X lúc 14:02:11 giá 0.00005.</p></div></div>
+<div class="step"><div class="dot next">03</div><div><h3>Confirm momentum <span class="tag violet">validating</span></h3><p>Phương án ban đầu: +10% trên giá trader khớp. <b>V2: shadow-backtest trên 25 lệnh BUY (hit 52%, median 0.9 phút) ủng hộ khớp lệnh ngay</b> — momentum chỉ còn là regime tùy chọn.</p></div></div>
+<div class="step"><div class="dot next">04</div><div><h3>Wait pullback <span class="tag violet">validating</span></h3><p>Phương án cũ: −10% từ đỉnh sau tín hiệu trong 30 phút, ngược lại Skip. <b>V2: bỏ chờ mặc định</b>, pullback chỉ còn là leg 2 / chế độ patient cho majors.</p></div></div>
+<div class="step"><div class="dot done">05</div><div><h3>Qualify <span class="tag aqua">built</span></h3><p>RugCheck (cache 24h; strict bỏ qua tín hiệu, lenient cho qua kèm cảnh báo) + liquidity &gt;$80k + slippage &lt;2.5% + mcap ≥$50k. Không đạt một tiêu chí → loại tín hiệu.</p></div></div>
+<div class="step"><div class="dot next">06</div><div><h3>Size <span class="tag violet">validating</span></h3><p><span class="mono">min(1% NAV, 0.1 SOL, liquidity cap)</span> + dynamic allocation theo weightBps + exposure caps (mỗi trader ≤3 lệnh/24h, mỗi mint ≤2 lệnh) + drag guard (bỏ qua khi delayDrag &gt; 25%).</p></div></div>
+<div class="step"><div class="dot done">07</div><div><h3>Execute <span class="tag aqua">built</span></h3><p>Chạy paper trên devnet (lifecycle PENDING→QUATED→SENT→CONFIRMED, đối chứng bằng giao dịch dust). Triển khai thực tế: Phoenix CLOB cho majors, Titan Argos cho memecoin + Jito bundle chống frontrun; fallback sendTransaction + priority fee.</p></div></div>
+<div class="step"><div class="dot next">08</div><div><h3>Manage <span class="tag violet">validating</span></h3><p>Thang TP/stop/trailing/time-stop + 5 cầu dao full-exit (chi tiết §4).</p></div></div>
+</div>
+</section>
+
+<section id="s3">
+<h2>§3 — Toán vault: chia phần &amp; chia vốn</h2>
+<p class="sub">Kế toán bằng <b>SOL</b>. USDC chỉ hiển thị estimate. Settle theo epoch: queued → settled, giá trừ pending deposits.</p>
+<div class="grid2">
+<div class="card"><span class="tag aqua">Chia phần (share)</span>
+<div class="formula"><b>price</b> = (nav − pendingIn) / totalShares <span style="color:var(--faint)">· bootstrap = 1, round 9 decimals</span></div>
+<p style="font-size:14px;color:var(--muted)">VD: NAV 10.00 / 4.00 shares = 2.500 SOL/share. Nạp 2.5 SOL → nhận 1 share. NAV lên 10.80 → mỗi share trị giá 2.700 SOL. Nạp theo giá settle nên không được hưởng lợi nhuận phát sinh trước thời điểm nạp.</p>
+<div class="formula"><b>feeSol</b> = (price − hwm) × totalShares × feeBps/10000 <span style="color:var(--faint)">· chỉ khi price &gt; hwm</span></div>
+<p style="font-size:14px;color:var(--muted)">Withdraw: gross = shares × price; fee = gross × withdrawFeeBps (mặc định 0); payout = gross − fee. Treasury T2: reserveBps giữ sàn, lockHours chặn rút sớm, window settlePeriodHours/settleLengthMin.</p>
+</div>
+<div class="card"><span class="tag aqua">Chia vốn mỗi lệnh</span>
+<div class="formula"><b>size</b> = min(1% NAV, 0.1 SOL, liquidity cap)</div>
+<p style="font-size:14px;color:var(--muted)">Vault 1 SOL → 0.01; 5 SOL → 0.05; ≥10 SOL → đạt trần 0.1. V2 bổ sung cap 2 lớp: per-trader 20% budget (≈2% NAV) + per-mint 2% NAV — 3 trader cùng nắm một token cũng không vượt 2%.</p>
+<div class="calc"><div><label style="font-size:12px;color:var(--faint)">VAULT NAV (SOL)</label><input id="navIn" type="number" min="0.1" step="0.1" value="5"></div>
+<div><label style="font-size:12px;color:var(--faint)">KẾT QUẢ</label><div id="navOut" class="mono" style="font-size:15px;padding:10px 0"></div></div></div>
+<div class="bar"><i id="navBar"></i></div><div id="navNote" style="font-size:12.5px;color:var(--faint)"></div>
+</div>
+</div>
+</section>
+
+<section id="s4">
+<h2>§4 — Quản trị vị thế</h2>
+<p class="sub">“Size first. Stop losses second. Profits third.” Engine ladder: TP1_SHARE 0.5, TRAIL 20%, TP2_MULT 2x, TIME_STOP 24h.</p>
+<table><tr><th>Mốc</th><th>Hành động</th><th>Còn lại</th></tr>
+<tr><td class="num">stop ATR</td><td><span class="mono">clamp(2×ATR(1h,14)/giá, 8%, 40%)</span> → cắt toàn bộ. Regime: calm &lt;1%, normal 1–3%, wild &gt;3%. Tạm thời chưa có candles: −30%.</td><td>0%</td></tr>
+<tr><td class="num">+60% TP1</td><td>Bán 40%</td><td>60%</td></tr>
+<tr><td class="num">+100% TP2</td><td>Bán tiếp 40% (tổng chốt 64%)</td><td>20% runner</td></tr>
+<tr><td class="num">sau TP2, mỗi +50%</td><td>Dời stop khóa thêm +25%</td><td>runner</td></tr>
+<tr><td class="num">+150% / +300%</td><td>Thoát runner / thoát sạch. 24h không chạm TP1 → thoát 50% (time-stop).</td><td>0%</td></tr></table>
+<h4>5 điều kiện thoát toàn bộ vị thế (full-exit)</h4>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><span class="tag warn">Trader thoát &gt;50% vị thế</span><span class="tag warn">Thanh khoản bị rút hoặc mở khóa</span><span class="tag warn">RugCheck xấu đi</span><span class="tag warn">Mất đường khớp lệnh</span><span class="tag warn">Price impact vượt ngưỡng</span></div>
+<h4>Phí 20% HWM</h4>
+<p style="font-size:14px;color:var(--muted)">NAV 10 → 11 SOL (lãi mới 1): depositors +0.80, partner +0.15, Edgepool +0.05. Vòng flywheel: trader quảng bá vault → tiền gửi tăng → xếp hạng cải thiện → thu hút thêm trader. Số liệu 0,8% mgmt + 10% perf trong mẫu Product UI chỉ mang tính minh họa.</p>
+</section>
+
+<section id="s5">
+<h2>§5 — Tuyển chọn &amp; thực thi kép</h2>
+<p class="sub">Lọc tín hiệu trước khi thực thi; router chọn venue sau khi tín hiệu đạt yêu cầu.</p>
+<div class="grid2">
+<div class="card"><span class="tag aqua">Anti-Sybil + Qualify</span><ul class="tight">
+<li>PnL 30d &gt;$15k · win-rate &gt;58% (≥30 lệnh) · wash &lt;0.05</li>
+<li>Liquidity &gt;$80k · slippage &lt;2.5% · mcap ≥$50k</li>
+<li>ATR auto-tune điền stop/tp còn thiếu; cờ manipulation (lệnh BUY đẩy giá 20–5000% rồi SELL ≥50%, ≥2 sự kiện → suspect, mặc định dry-run)</li>
+<li>Allocation rebalance: score = 0.6·winRate + 0.4·pnlRank, weight giới hạn trong 500–4000 bps, tổng 10000</li></ul></div>
+<div class="card"><span class="tag violet">Titan + Phoenix</span><ul class="tight">
+<li><b>Phoenix CLOB:</b> SOL/USDC + majors, orderbook sâu, 0% maker, &lt;100ms, atomic single-slot</li>
+<li><b>Titan Argos:</b> Jupiter + Raydium + Meteora + OKX cho memecoin, win-rate quote 87%, Jito bundle + tip</li>
+<li>Quy tắc: có Phoenix market đủ depth → Phoenix, ngược lại → Titan + mevProtection</li>
+<li>Jupiter quote read-only; proof devnet dust 0.0001 SOL self-transfer; từ chối mainnet (genesis gate)</li></ul></div>
+</div>
+</section>
+
+<section id="s6">
+<h2>§6 — Kiến trúc tổng thể</h2>
+<p class="sub">4 trụ cột: FOMO Harvester · Smart Vault Core · Dual Router · Web App Dashboard.</p>
+<pre>FOMO SSE + FOMOScan 60s + Geyser gRPC &lt;80ms
+ → Harvester → Identity Resolver → Anti-Sybil Filter → Redis Stream Signal Bus
+ → Position Sizing → Smart Router (Titan/Phoenix) → Jito MEV Guard
+ → Solana Vault (NAV/HWM/epoch) → Postgres/Timescale + WS Gateway + Next.js
+NAV update 10s · Scheduler tính PnL/sync số dư · Circuit breaker −15%/giờ → pause + chuyển memecoin về USDC + alert Telegram/Discord</pre>
+<table><tr><th>Trụ cột</th><th>Vai trò</th></tr>
+<tr><td>Harvester &amp; Resolver</td><td>Crawl/stream FOMO, map handle ↔ ví Solana, nhóm các ví phụ của trader.</td></tr>
+<tr><td>Vault Core</td><td>Anchor program (tương lai): PDA vault/shares/treasury, epoch settle, HWM fee, kill-switch −5%/ngày −15%/tuần.</td></tr>
+<tr><td>Dual Router</td><td>Phoenix cho majors, Titan cho memecoin, Jito protected.</td></tr>
+<tr><td>Web App</td><td>Dashboard NAV, portfolio, audit ledger (master_handle, copy_delay_ms, venue, slippage, tx_signature).</td></tr></table>
+</section>
+
+<section id="s7">
+<h2>§7 — BE / FE / DB / API (tóm tắt)</h2>
+<p class="sub">Chi tiết đầy đủ: <span class="mono">fomo-family-&amp;-fomoscan-research-hub/docs/api/openapi.yaml</span> là contract duy nhất FE↔BE.</p>
+<ul class="tight">
+<li><b>BE:</b> NestJS 12 + Prisma 7 + Postgres (5433) + @solana/web3.js 1.99. Config duy nhất qua <span class="mono">configuration.ts</span>. 17 modules: health, wallets, portfolio (FIFO PnL), onchain SSE, copy-trade (paper), vaults, partner, auth (nonce TTL 5′ + session SHA256 TTL 7d), audit append-only, bots, demo.</li>
+<li><b>FE:</b> Next.js 16 + React 19 + Tailwind v4. Một route <span class="mono">/</span> tracker + pool app <span class="mono">/pools/[id] · /portfolio · /trader</span>. SSE EventSource + SWR hooks + proxy <span class="mono">/api → :3000</span>.</li>
+<li><b>DB:</b> tracked_wallets · transactions (signature PK) · copy_orders (PENDING→QUATED→SENT→CONFIRMED/FAILED) + legs · vaults/vault_deposits (QUEUED/SETTLED)/withdrawals/epochs/traders · users/roles · audit_logs.</li>
+<li><b>API:</b> <span class="mono">GET /api/health · /api/wallets · /api/portfolio/transactions|pnl|holdings · /api/onchain/events|stream · POST /api/copy-trade/execute · /api/vaults/* · /api/auth/nonce|verify</span></li>
+</ul>
+<div class="tip warn"><b>Hiện trạng triển khai:</b> Rank 70% · Detect đã xong · Momentum/pullback chưa triển khai (V2 chuyển sang khớp lệnh ngay) · Qualify/Size một phần · Execute paper · Manage chưa triển khai · Vault accounting epoch đã có off-chain (Phase C), chờ đồng bộ với mô hình MoneyFi.</div>
+</section>
+
+<section id="s8">
+<h2>§8 — Roadmap + fallback</h2>
+<table><tr><th>Giai đoạn</th><th>Nội dung</th></tr>
+<tr><td><span class="tag aqua">NOW prototype</span></td><td>Tracking, portfolio, RugCheck, copy execution paper.</td></tr>
+<tr><td><span class="tag violet">NEXT single-trader</span></td><td>Vault-share accounting, sizing validation, onboarding, live fill data. Thứ tự: shadow-validator → entry immediate → stop ATR → multi-trader + manipulation flag → fallback matrix → đồng bộ epoch với MoneyFi → TP thích ứng.</td></tr>
+<tr><td>LATER multi</td><td>Baskets 24h/3d/7d, consensus entry-exit, user-created vaults, mobile.</td></tr></table>
+<table><tr><th>Món</th><th>Fallback</th></tr>
+<tr><td>RPC</td><td>FailoverConnection (FluxRPC+Lantern → backup), degraded flag, ngắt primary ở môi trường staging để kiểm thử.</td></tr>
+<tr><td>Giá</td><td>DataStream → cache → DAS→DexScreener→Jupiter; hết giá ghi <span class="mono">unpriced</span> + retry, không dùng giá cũ tính NAV.</td></tr>
+<tr><td>RugCheck</td><td>Cache 24h; chế độ strict bỏ qua tín hiệu, lenient cho qua kèm cảnh báo.</td></tr>
+<tr><td>Execute</td><td>Jito thất bại quá N lần → sendTransaction + priority fee, log mọi fallback.</td></tr>
+<tr><td>Oracle NAV</td><td>Quote mang slot; cũ &gt;N slot → từ chối kỳ đó.</td></tr></table>
+</section>
+</div>
+<footer><div class="wrap">Past performance does not indicate future results.</div></footer>
+<script>
+const navIn=document.getElementById('navIn'),navOut=document.getElementById('navOut'),navBar=document.getElementById('navBar'),navNote=document.getElementById('navNote');
+function recalc(){const nav=Math.max(0,parseFloat(navIn.value)||0);const size=Math.min(nav*0.01,0.1);const pct=nav>0?(size/nav*100):0;
+navOut.textContent=size.toFixed(4)+' SOL / lệnh ('+pct.toFixed(2)+'% NAV)';navBar.style.width=Math.min(100,pct*10)+'%';
+const n10=Math.min(10*size,nav*0.10);navNote.textContent='10 lệnh full-size ≈ '+n10.toFixed(3)+' SOL (≤10% NAV). '+(nav>=10?'≥10 SOL: đạt trần 0.1.':'<10 SOL: size = 1% NAV.');}
+navIn.addEventListener('input',recalc);recalc();
+</script>
+</body>
+</html>
