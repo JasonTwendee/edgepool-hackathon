@@ -22,6 +22,7 @@
 | Audit | `backend/src/modules/audit/` | `audit.controller.ts` | `audit.service.ts` | — | Append-only incl. `auth.login_failed`; `@Audit()` interceptor |
 | Bots | `backend/src/modules/bots/` | `bots.controller.ts` | `bots.service.ts` | `dto/bots.dto.ts` | 1 pool = 1 vault + 1 AUTO bot; mode AUTO/PAUSED |
 | Demo | `backend/src/modules/demo/` | `demo.controller.ts` | `demo.service.ts` | `dto/demo.dto.ts` | seed/replay/reset/scenario(×3 parallel) + bot performance (ADMIN); replay emits bus SKIP/ENTER |
+| Chain | `backend/src/modules/chain/` | `faucet.controller.ts` | `program.client.ts` + `indexer.service.ts` + `keeper.service.ts` + `reconcile.service.ts` | — (manual validation) | P2: Anchor client (devnet, keeper key) + logs indexer/backfill + keeper ticks (marks/settle/kill-alert/sim) + reconcile 5 checks; `POST /api/chain/faucet` (devnet, auth, 24h limit); all OFF unless CHAIN_ENABLED |
 | App registry | `backend/src/app.module.ts` | — | — | — | Module wiring (controllers with `@Audit()` must import `AuditModule`) |
 | Bootstrap | `backend/src/main.ts` | — | — | — | NestFactory Express core, ValidationPipe, CORS |
 | Chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global) | — | `SolanaOnChainListenerService` | — | Canonical listener singleton; poll tracked actives |

@@ -798,6 +798,7 @@ export class VaultService {
     const masked = !holding || holding.valueSol + queuedIn < 0.5;
     const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
     const unmasked = maskPoolDetail(masked, positions, signals, log, exposure, advanced);
+    const chain = await this.chainBlock(vaultId);
     return {
       ...base,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
@@ -812,6 +813,35 @@ export class VaultService {
       myHolding: holding,
       masked,
       advanced: unmasked.advanced,
+      ...(chain ? { chain } : {}),
+    };
+  }
+
+  /**
+   * P2 chain block: on-chain identity + last mirrored state for a vault
+   * bound to the program. Null when the vault has no chainVault (legacy
+   * shape unchanged). DB mirror only — no RPC in the request path.
+   */
+  private async chainBlock(vaultId: number): Promise<Record<string, unknown> | null> {
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    const addr = (vault as unknown as { chainVault?: unknown } | null)?.chainVault;
+    if (typeof addr !== 'string' || !addr) return null;
+    const pid = (vault as unknown as { chainProgramId?: unknown })?.chainProgramId;
+    const last = await this.prisma.chainEvent.findFirst({
+      where: { vaultId, kind: { in: ['EpochSettled', 'MarkEvent'] } },
+      orderBy: { id: 'desc' },
+    });
+    const payload = (last?.payload ?? {}) as Record<string, unknown>;
+    const cluster = String((vault as unknown as { chainEnv?: unknown })?.chainEnv ?? 'devnet');
+    const explorer = `https://explorer.solana.com/address/${addr}${cluster === 'devnet' ? '?cluster=devnet' : ''}`;
+    return {
+      programId: typeof pid === 'string' ? pid : null,
+      vault: addr,
+      price: last?.kind === 'EpochSettled' ? Number(payload.price_scaled ?? 0) / 1_000_000_000 : null,
+      marks: Number(payload.marks_lamports ?? 0) / 1_000_000_000,
+      paused: (vault as unknown as { chainPaused?: unknown })?.chainPaused ?? null,
+      env: cluster,
+      explorerUrl: explorer,
     };
   }
 

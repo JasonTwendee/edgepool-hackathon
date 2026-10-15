@@ -1,6 +1,6 @@
 # Route Index
 
-Canonical contract: `docs/api/openapi.yaml` (61 paths).
+Canonical contract: `docs/api/openapi.yaml` (71 paths).
 
 ## REST — markets / wallets / rotation
 
@@ -62,7 +62,7 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
 | GET | `/api/vaults/pools` | `vaults.controller.ts` | `api.ts#listPools` | pool summaries (index) |
-| GET | `/api/vaults/:id/pool` | `vaults.controller.ts` | `api.ts#getPoolDetail` | detail + `advanced` (KPIs/risk/ladder/exposure) |
+| GET | `/api/vaults/:id/pool` | `vaults.controller.ts` | `api.ts#getPoolDetail` | detail + `advanced` (KPIs/risk/ladder/exposure) + `chain` block when chain-bound |
 | GET | `/api/vaults/:id/ledger` | `vaults.controller.ts` | — (admin/terminal later) | per-order fund flow + cash statement |
 | GET | `/api/vaults/mine` | `vaults.controller.ts` (Auth) | `api.ts#getVaultMine` | my position per pool |
 | GET | `/api/vaults/portfolio` | `vaults.controller.ts` (Auth) | `api.ts#getPortfolioOverview` | investor overview |
@@ -77,6 +77,12 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | DELETE | `/api/vaults/:id/traders/:wallet` | `vaults.controller.ts` (ADMIN+Audit) | `api.ts#removeVaultTrader` | unassign |
 | POST | `/api/vaults/:id/policy` | `vaults.controller.ts` (ADMIN+Audit) | `api.ts#setVaultPolicy` | rules/slots/windows |
 | GET | `/api/vaults/status` | `vaults.controller.ts` | `api.ts#getVaultStatus` | vault + epoch + queued |
+
+## REST — chain (P2, all OFF unless CHAIN_ENABLED)
+
+| Method | Path | BE handler | FE client | Notes |
+|---|---|---|---|---|
+| POST | `/api/chain/faucet` | `faucet.controller.ts` (Auth) | — | devnet SOL 0.1–2, genesis-gated, 1 grant/24h/user |
 
 ## REST — partner (trader portal)
 

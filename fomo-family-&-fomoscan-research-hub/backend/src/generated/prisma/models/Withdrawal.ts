@@ -33,6 +33,7 @@ export type WithdrawalAvgAggregateOutputType = {
   sharesRequested: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
+  chainSlot: number | null
 }
 
 export type WithdrawalSumAggregateOutputType = {
@@ -42,6 +43,7 @@ export type WithdrawalSumAggregateOutputType = {
   sharesRequested: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
+  chainSlot: bigint | null
 }
 
 export type WithdrawalMinAggregateOutputType = {
@@ -53,6 +55,8 @@ export type WithdrawalMinAggregateOutputType = {
   status: string | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date | null
   settledAt: Date | null
 }
@@ -66,6 +70,8 @@ export type WithdrawalMaxAggregateOutputType = {
   status: string | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date | null
   settledAt: Date | null
 }
@@ -79,6 +85,8 @@ export type WithdrawalCountAggregateOutputType = {
   status: number
   sharePrice: number
   payoutSol: number
+  chainSig: number
+  chainSlot: number
   createdAt: number
   settledAt: number
   _all: number
@@ -92,6 +100,7 @@ export type WithdrawalAvgAggregateInputType = {
   sharesRequested?: true
   sharePrice?: true
   payoutSol?: true
+  chainSlot?: true
 }
 
 export type WithdrawalSumAggregateInputType = {
@@ -101,6 +110,7 @@ export type WithdrawalSumAggregateInputType = {
   sharesRequested?: true
   sharePrice?: true
   payoutSol?: true
+  chainSlot?: true
 }
 
 export type WithdrawalMinAggregateInputType = {
@@ -112,6 +122,8 @@ export type WithdrawalMinAggregateInputType = {
   status?: true
   sharePrice?: true
   payoutSol?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
 }
@@ -125,6 +137,8 @@ export type WithdrawalMaxAggregateInputType = {
   status?: true
   sharePrice?: true
   payoutSol?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
 }
@@ -138,6 +152,8 @@ export type WithdrawalCountAggregateInputType = {
   status?: true
   sharePrice?: true
   payoutSol?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
   _all?: true
@@ -238,6 +254,8 @@ export type WithdrawalGroupByOutputType = {
   status: string
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date
   settledAt: Date | null
   _count: WithdrawalCountAggregateOutputType | null
@@ -274,6 +292,8 @@ export type WithdrawalWhereInput = {
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Withdrawal"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Withdrawal"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Withdrawal"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Withdrawal"> | Date | string | null
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
@@ -289,6 +309,8 @@ export type WithdrawalOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   payoutSol?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSlot?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   vault?: Prisma.VaultOrderByWithRelationInput
@@ -307,6 +329,8 @@ export type WithdrawalWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Withdrawal"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Withdrawal"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Withdrawal"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Withdrawal"> | Date | string | null
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
@@ -322,6 +346,8 @@ export type WithdrawalOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   payoutSol?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSlot?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.WithdrawalCountOrderByAggregateInput
@@ -343,6 +369,8 @@ export type WithdrawalScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableWithAggregatesFilter<"Withdrawal"> | string | null
+  chainSlot?: Prisma.BigIntNullableWithAggregatesFilter<"Withdrawal"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Withdrawal"> | Date | string
   settledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Withdrawal"> | Date | string | null
 }
@@ -353,6 +381,8 @@ export type WithdrawalCreateInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   vault: Prisma.VaultCreateNestedOneWithoutWithdrawalsInput
@@ -368,6 +398,8 @@ export type WithdrawalUncheckedCreateInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -378,6 +410,8 @@ export type WithdrawalUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   vault?: Prisma.VaultUpdateOneRequiredWithoutWithdrawalsNestedInput
@@ -393,6 +427,8 @@ export type WithdrawalUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -406,6 +442,8 @@ export type WithdrawalCreateManyInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -416,6 +454,8 @@ export type WithdrawalUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -429,6 +469,8 @@ export type WithdrawalUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -452,6 +494,8 @@ export type WithdrawalCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -463,6 +507,7 @@ export type WithdrawalAvgOrderByAggregateInput = {
   sharesRequested?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
 }
 
 export type WithdrawalMaxOrderByAggregateInput = {
@@ -474,6 +519,8 @@ export type WithdrawalMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -487,6 +534,8 @@ export type WithdrawalMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -498,6 +547,7 @@ export type WithdrawalSumOrderByAggregateInput = {
   sharesRequested?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
 }
 
 export type WithdrawalCreateNestedManyWithoutVaultInput = {
@@ -590,6 +640,8 @@ export type WithdrawalCreateWithoutVaultInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   user?: Prisma.UserCreateNestedOneWithoutWithdrawalsInput
@@ -603,6 +655,8 @@ export type WithdrawalUncheckedCreateWithoutVaultInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -645,6 +699,8 @@ export type WithdrawalScalarWhereInput = {
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Withdrawal"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Withdrawal"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Withdrawal"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Withdrawal"> | Date | string | null
 }
@@ -655,6 +711,8 @@ export type WithdrawalCreateWithoutUserInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   vault: Prisma.VaultCreateNestedOneWithoutWithdrawalsInput
@@ -668,6 +726,8 @@ export type WithdrawalUncheckedCreateWithoutUserInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -706,6 +766,8 @@ export type WithdrawalCreateManyVaultInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -716,6 +778,8 @@ export type WithdrawalUpdateWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneWithoutWithdrawalsNestedInput
@@ -729,6 +793,8 @@ export type WithdrawalUncheckedUpdateWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -741,6 +807,8 @@ export type WithdrawalUncheckedUpdateManyWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -753,6 +821,8 @@ export type WithdrawalCreateManyUserInput = {
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -763,6 +833,8 @@ export type WithdrawalUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   vault?: Prisma.VaultUpdateOneRequiredWithoutWithdrawalsNestedInput
@@ -776,6 +848,8 @@ export type WithdrawalUncheckedUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -788,6 +862,8 @@ export type WithdrawalUncheckedUpdateManyWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -803,6 +879,8 @@ export type WithdrawalSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -818,6 +896,8 @@ export type WithdrawalSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -833,6 +913,8 @@ export type WithdrawalSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -848,11 +930,13 @@ export type WithdrawalSelectScalar = {
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
 }
 
-export type WithdrawalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "sharesRequested" | "status" | "sharePrice" | "payoutSol" | "createdAt" | "settledAt", ExtArgs["result"]["withdrawal"]>
+export type WithdrawalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "sharesRequested" | "status" | "sharePrice" | "payoutSol" | "chainSig" | "chainSlot" | "createdAt" | "settledAt", ExtArgs["result"]["withdrawal"]>
 export type WithdrawalInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Withdrawal$userArgs<ExtArgs>
@@ -881,6 +965,8 @@ export type $WithdrawalPayload<ExtArgs extends runtime.Types.Extensions.Internal
     status: string
     sharePrice: runtime.Decimal | null
     payoutSol: runtime.Decimal | null
+    chainSig: string | null
+    chainSlot: bigint | null
     createdAt: Date
     settledAt: Date | null
   }, ExtArgs["result"]["withdrawal"]>
@@ -1316,6 +1402,8 @@ export interface WithdrawalFieldRefs {
   readonly status: Prisma.FieldRef<"Withdrawal", 'String'>
   readonly sharePrice: Prisma.FieldRef<"Withdrawal", 'Decimal'>
   readonly payoutSol: Prisma.FieldRef<"Withdrawal", 'Decimal'>
+  readonly chainSig: Prisma.FieldRef<"Withdrawal", 'String'>
+  readonly chainSlot: Prisma.FieldRef<"Withdrawal", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"Withdrawal", 'DateTime'>
   readonly settledAt: Prisma.FieldRef<"Withdrawal", 'DateTime'>
 }

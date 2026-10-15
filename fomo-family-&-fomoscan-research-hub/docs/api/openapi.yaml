@@ -1766,7 +1766,7 @@ paths:
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/vaults/{id}/pool:
     get:
-      summary: Pool detail Calm (P2) — NAV series, positions, signals, log, exposure, mask
+      summary: Pool detail Calm (P2) — NAV series, positions, signals, log, exposure, mask (+ chain block when vault is chain-bound)
       operationId: getPoolDetail
       parameters:
         - name: id
@@ -1794,6 +1794,39 @@ paths:
           in: path
           required: true
           schema: { type: integer }
+  /api/chain/faucet:
+    post:
+      summary: Devnet SOL faucet for chain testing (P2) — auth required, genesis-gated, 1 grant/24h/user
+      operationId: chainFaucet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address: { type: string, description: 'Destination wallet (base58, 32-44 chars)' }
+                amountSol: { type: number, description: '0.1-2, default 1' }
+      responses:
+        '200':
+          description: Airdrop signature
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      signature: { type: string }
+                      address: { type: string }
+                      amountSol: { type: number }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+        '429': { $ref: '#/components/responses/ErrorEnvelope' }
       responses:
         '200':
           description: text/event-stream — CONNECTED, REPLAY, SIGNAL (SKIP|ENTER|EXIT), PING

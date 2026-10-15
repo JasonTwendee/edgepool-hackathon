@@ -185,12 +185,19 @@ model Vault {
   // Environment isolation (fund-roles-auth D7): SANDBOX default; PRODUCTION
   // execution paths are not implemented and must refuse explicitly.
   environment     String   @db.VarChar(10) @default("SANDBOX")
+  // P2 chain link: on-chain program/vault identity + paused mirror.
+  // All NULL until a vault is bound to a deployed program (opt-in per vault).
+  chainProgramId  String?  @map("chain_program_id") @db.VarChar(64)
+  chainVault      String?  @map("chain_vault") @db.VarChar(64)
+  chainEnv        String?  @map("chain_env") @db.VarChar(10)
+  chainPaused     Boolean? @map("chain_paused")
   createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz()
   updatedAt       DateTime @map("updated_at") @updatedAt @db.Timestamptz()
 
   deposits    Deposit[]
   withdrawals Withdrawal[]
   epochs      EpochCheckpoint[]
+  events      ChainEvent[]
   traders     VaultTrader[]
   bots        Bot[]
   payouts     PartnerPayout[]
@@ -212,6 +219,9 @@ model Deposit {
   status       String   @db.VarChar(16) @default("QUEUED")
   sharesMinted Decimal? @map("shares_minted") @db.Decimal(24, 12)
   sharePrice   Decimal? @map("share_price") @db.Decimal(24, 12)
+  // P2 chain mirror: on-chain signature + slot once settled on-chain.
+  chainSig     String?  @map("chain_sig") @db.VarChar(96)
+  chainSlot    BigInt?  @map("chain_slot") @db.BigInt
   createdAt    DateTime @map("created_at") @default(now()) @db.Timestamptz()
   settledAt    DateTime? @map("settled_at") @db.Timestamptz()
 
@@ -231,6 +241,9 @@ model Withdrawal {
   status          String   @db.VarChar(16) @default("QUEUED")
   sharePrice      Decimal? @map("share_price") @db.Decimal(24, 12)
   payoutSol       Decimal? @map("payout_sol") @db.Decimal(24, 12)
+  // P2 chain mirror: on-chain signature + slot once settled on-chain.
+  chainSig        String?  @map("chain_sig") @db.VarChar(96)
+  chainSlot       BigInt?  @map("chain_slot") @db.BigInt
   createdAt       DateTime @map("created_at") @default(now()) @db.Timestamptz()
   settledAt       DateTime? @map("settled_at") @db.Timestamptz()
 
@@ -246,12 +259,36 @@ model EpochCheckpoint {
   sharePrice        Decimal  @map("share_price") @db.Decimal(24, 12)
   sharesOutstanding Decimal  @map("shares_outstanding") @db.Decimal(24, 12)
   feeSol            Decimal  @map("fee_sol") @db.Decimal(24, 12) @default(0)
+  // P2 chain mirror: settle_epoch signature once settled on-chain.
+  chainSig          String?  @map("chain_sig") @db.VarChar(96)
   createdAt         DateTime @map("created_at") @default(now()) @db.Timestamptz()
 
   payouts PartnerPayout[]
 
   @@map("vault_epochs")
   @@index([vaultId, createdAt(sort: Desc)])
+}
+
+// P2 chain module: append-only mirror of on-chain program events.
+// Idempotency: @@unique([signature, ixIndex, eventIndex]) — the indexer
+// upserts on this key, so log replays never duplicate rows.
+model ChainEvent {
+  id         Int      @id @default(autoincrement())
+  vaultId    Int      @map("vault_id")
+  vault      Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  signature  String   @db.VarChar(96)
+  ixIndex    Int      @map("ix_index")
+  eventIndex Int      @map("event_index")
+  // VaultInit | DepositEvent | WithdrawEvent | MarkEvent | EpochSettled |
+  // SimTradeEvent | PausedEvent | FeesCollected
+  kind       String   @db.VarChar(32)
+  slot       BigInt   @db.BigInt
+  payload    Json?    @db.JsonB
+  createdAt  DateTime @map("created_at") @default(now()) @db.Timestamptz()
+
+  @@map("chain_events")
+  @@unique([signature, ixIndex, eventIndex])
+  @@index([vaultId, kind])
 }
 
 // Fund roles/auth (intent 2026-10-02 Rev 2): identity + RBAC + audit +

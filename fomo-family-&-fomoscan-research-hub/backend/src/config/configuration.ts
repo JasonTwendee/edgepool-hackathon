@@ -11,6 +11,23 @@ export interface DbConfig {
   name: string;
 }
 
+export interface ChainConfig {
+  /** Master gate — mọi đường chain từ chối khi false. */
+  enabled: boolean;
+  /** devnet | mainnet. Faucet chỉ chạy ở devnet. */
+  cluster: string;
+  /** Program ID của edgepool-vault. */
+  programId: string;
+  /** Keeper keypair base58 (BE hot key). Local-only, không log. */
+  keeperKey?: string;
+  /** Marks cũ hơn số slot này bị coi là stale. */
+  maxStaleSlots: number;
+  /** Jupiter swap API (dự phòng P4, chưa dùng). */
+  jupiterSwapApiUrl: string;
+  /** Luôn false cho tới khi có quyết định vốn thật + audit. */
+  mainnetSwapEnabled: boolean;
+}
+
 export interface BackendConfig {
   port: number;
   solanaRpcUrl: string;
@@ -26,6 +43,7 @@ export interface BackendConfig {
   devnetRpcUrl: string;
   appUrl?: string;
   geminiApiKey?: string;
+  chain: ChainConfig;
   db: DbConfig;
 }
 
@@ -45,6 +63,18 @@ export function getConfig(): BackendConfig {
     devnetRpcUrl: process.env.DEVNET_RPC_URL || 'https://api.devnet.solana.com',
     appUrl: process.env.APP_URL || undefined,
     geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+    chain: {
+      enabled: process.env.CHAIN_ENABLED === 'true',
+      cluster: process.env.CHAIN_CLUSTER || 'devnet',
+      programId:
+        process.env.CHAIN_PROGRAM_ID || '5zkeKsjTYLkx9QKPMRdGDXuPR6C5AkT8jYuKfE7es3CQ',
+      keeperKey: process.env.CHAIN_KEEPER_KEY || undefined,
+      maxStaleSlots: process.env.CHAIN_MAX_STALE_SLOTS
+        ? parseInt(process.env.CHAIN_MAX_STALE_SLOTS, 10)
+        : 750,
+      jupiterSwapApiUrl: process.env.JUPITER_SWAP_API_URL || '',
+      mainnetSwapEnabled: process.env.MAINNET_SWAP_ENABLED === 'true',
+    },
     db: {
       host: process.env.POSTGRES_HOST || 'localhost',
       port: process.env.POSTGRES_PORT ? parseInt(process.env.POSTGRES_PORT, 10) : 5433,
