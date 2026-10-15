@@ -8,12 +8,6 @@ Everything here is a **design reference built in HTML**: a working prototype sho
 
 - `edgepool-app-offline.html`: **open this first.** Single self-contained file, works offline, fully clickable.
 - `source/Edgepool App.dc.html`: the editable source. The `<script data-dc-script>` block at the bottom holds every sample value, state transition and formula; it's the best place to look up exact behavior.
-> **Lưu ý (dọn HTML Oct 2026):** 2 file prototype `edgepool-app-offline.html` và
-> `source/Edgepool App.dc.html` đã được gỡ khỏi repo để đỡ rối — nội dung đã gộp vào
-> `../../01-edgepool-core-logic-spec.html` (core + spec), `../../02-edgepool-contract-test-tickets.html`
-> (pool-math + test tickets) và `../../03-edgepool-ops-demo.html` (ops + demo).
-> Logic sống (`nextjs/lib/pool-math.ts`, `types.ts`, `styles/tokens.css`, `assets/`) giữ nguyên.
-
 - `nextjs/styles/tokens.css`: all colors, fonts, radii, shadows and layout values as CSS variables.
 - `nextjs/lib/pool-math.ts`: business rules (shares, PnL, fees, withdrawals, slots, masking, strategy defaults) as pure TypeScript. Port as-is.
 - `nextjs/lib/types.ts`: data shapes the UI expects.
