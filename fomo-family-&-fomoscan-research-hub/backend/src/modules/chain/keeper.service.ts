@@ -5,13 +5,19 @@
  * hoặc thiếu keeper key. Mọi lỗi mạng/tx chỉ warn, không crash loop.
  */
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
+import { createRequire } from 'node:module';
 import { PrismaService } from '../../database/prisma.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { computeMarksLamports } from './events.js';
 import { ChainProgramClient } from './program.client.js';
+
+// @coral-xyz/anchor là CJS — ESM import named export gãy runtime, phải qua createRequire
+// (bài học P1c: BN.eqn cũng hỏng với number > 2^26).
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { BN }: { BN: new (n: number | string) => any } = require('@coral-xyz/anchor');
 
 const TICK_MS = 45_000;
 const SETTLE_EVERY_TICKS = 10;
