@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edgepool — Solana Program: đặc tả + ticket kiểm thử</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#161826;--abyss:#0D0F18;--surface:#232532;--line:#3F424D;--text:#E9E9ED;--muted:#9397AB;--faint:#75798C;--aqua:#49E6D7;--violet:#9184D9;--gain:#73DEA4;--loss:#F28881;--caution:#F0BE67;--r:14px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,sans-serif;line-height:1.65}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1020px;margin:0 auto;padding:0 24px}
+.hero{padding:64px 0 40px;border-bottom:1px solid var(--line);background:radial-gradient(800px 300px at 80% 0%,rgba(145,132,217,.09),transparent)}
+.kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--violet);font-weight:600}
+h1{font-family:'Inter Tight',sans-serif;font-size:clamp(30px,5vw,48px);margin:12px 0;letter-spacing:-.02em;line-height:1.1}
+h1 .aq{color:var(--aqua)}.lead{color:var(--muted);font-size:16px;max-width:800px}.meta{margin-top:14px;font-size:12px;color:var(--faint)}
+nav.toc{position:sticky;top:0;z-index:20;background:rgba(22,24,38,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding:10px 24px}
+nav.toc a{white-space:nowrap;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+nav.toc a:hover{color:var(--aqua);border-color:var(--aqua)}
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+h2{font-family:'Inter Tight',sans-serif;font-size:26px;margin:0 0 6px}.sub{color:var(--muted);margin:0 0 24px;max-width:800px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.aqua{background:rgba(73,230,215,.12);color:var(--aqua);border-color:rgba(73,230,215,.35)}
+.tag.gain{background:rgba(115,222,164,.1);color:var(--gain);border-color:rgba(115,222,164,.3)}
+.tag.loss{background:rgba(242,136,129,.1);color:var(--loss);border-color:rgba(242,136,129,.3)}
+.tag.warn{background:rgba(240,190,103,.1);color:var(--caution);border-color:rgba(240,190,103,.3)}
+.formula{font-family:'JetBrains Mono',monospace;background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:14px;margin:12px 0;overflow-x:auto}
+.formula b{color:var(--aqua)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}td.num{font-family:'JetBrains Mono',monospace;white-space:nowrap}
+pre{background:var(--abyss);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-size:12.5px;line-height:1.55}
+code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-size:12.5px}
+.ticket{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0;background:var(--surface)}
+.ticket h4{margin:0 0 6px;font-size:14px}.ticket p{margin:6px 0;font-size:13.5px;color:#C9CCDA}
+.pass{color:var(--gain);font-weight:600}.fail{color:var(--loss);font-weight:600}
+footer{padding:36px 0 64px;color:var(--faint);font-size:12.5px}a{color:var(--aqua)}
+ul.tight{margin:8px 0;padding-left:20px}ul.tight li{margin:6px 0;font-size:14px;color:#C9CCDA}
+</style>
+</head>
+<body>
+<div class="hero"><div class="wrap">
+<div class="kicker">Edgepool · Solana Program — Đặc tả + Ticket kiểm thử</div>
+<h1>Solana Program: <span class="aq">đặc tả</span> + ticket kiểm thử</h1>
+<p class="lead">Tài liệu tham khảo thiết kế program <span class="mono">edgepool-vault</span>: custody SOL + kế toán vSHARE on-chain —
+accounts, 9 instructions, số học, lỗi, sự kiện — cùng bộ ticket nghiệm thu cho giai đoạn triển khai.</p>
+<div class="meta mono">Anchor · SPL share mint decimals 9 · Kế toán SOL · Tài liệu tham khảo thiết kế</div>
+</div></div>
+<nav class="toc"><div class="wrap">
+<a href="#p1">§1 · Tổng quan + nguyên tắc</a><a href="#p2">§2 · Accounts</a><a href="#p3">§3 · Instructions</a><a href="#p4">§4 · Lỗi + sự kiện</a><a href="#p5">§5 · Ticket kiểm thử</a><a href="#p6">§6 · Lộ trình</a>
+</div></nav>
+<div class="wrap">
+
+<section id="p1">
+<h2>§1 — Tổng quan + nguyên tắc</h2>
+<p class="sub">Tài liệu tham khảo cho giai đoạn triển khai Solana program: mô hình custody SOL + kế toán vSHARE on-chain.</p>
+<pre>User ký deposit/withdraw ──▶ Program (giữ luật + giữ tiền) ◀── Keeper ký marks/settle
+                                    │  Manager: policy / pause / collect
+      NAV = treasury cash + marks − fee_credit      giá = NAV / tổng shares</pre>
+<ul class="tight">
+<li><b>Program không giữ keypair.</b> Mọi quyền là PDA seeds + role (keeper/manager). Treasury là system account do PDA ký.</li>
+<li><b>Settle tức thì, không xếp hàng.</b> Deposit mint share ngay tại giá hiện tại; withdraw burn và trả SOL ngay. Không có pending queue, không có epoch account — epoch chỉ là counter + event.</li>
+<li><b>Touch-settle trước mọi định giá.</b> Deposit tính giá trên cash <i>trước khi</i> tiền vào; withdraw touch-settle trước khi trả — phí luôn tính trên lãi mới nhất.</li>
+<li><b>Làm tròn floor, lợi về vault.</b> Mọi phép chia floor về đơn vị nhỏ nhất; phần lẻ (dust) ở lại treasury. Số học u128 checked, tràn số → lỗi, không panic.</li>
+<li><b>Fail-closed với dữ liệu cũ.</b> Marks quá 750 slot mà vault còn positions → deposit và withdraw đều revert cho tới khi keeper refresh.</li>
+<li><b>Rút vốn không bao giờ bị chặn.</b> Kể cả khi paused, withdraw vẫn chạy — thoát vốn là quyền tối thượng.</li>
+</ul>
+</section>
+
+<section id="p2">
+<h2>§2 — Accounts</h2>
+<p class="sub">4 PDA cho mỗi vault. Share là SPL mint chuẩn (decimals 9), user giữ trong ATA của chính mình.</p>
+<table><tr><th>PDA</th><th>Seeds</th><th>Vai trò</th></tr>
+<tr><td><code>vault</code></td><td class="num">["vault", name]</td><td>Bản ghi Vault (manager, keeper, supply, HWM, marks, fee_credit, policy, flags, env).</td></tr>
+<tr><td><code>shares</code></td><td class="num">["shares", vault]</td><td>Share mint, mint authority = authority PDA.</td></tr>
+<tr><td><code>treasury</code></td><td class="num">["treasury", vault]</td><td>System account giữ SOL. Tiền chỉ rời khi withdraw hoặc collect fee.</td></tr>
+<tr><td><code>authority</code></td><td class="num">["authority", vault]</td><td>PDA signer thuần (không chứa data): ký mint và ký chuyển SOL đi.</td></tr></table>
+<table><tr><th>Hằng số</th><th>Giá trị</th><th>Ý nghĩa</th></tr>
+<tr><td class="num">MIN_DEPOSIT</td><td>0.5 SOL</td><td>Nạp tối thiểu (khớp gate off-chain).</td></tr>
+<tr><td class="num">MAX_STALE_SLOTS</td><td>750 slot</td><td>Marks cũ hơn → pricing revert.</td></tr>
+<tr><td class="num">MAX_MARK_DELTA</td><td>20% NAV/lần</td><td>Trần thay đổi marks mỗi lần đẩy.</td></tr>
+<tr><td class="num">MIN_TREASURY_BUFFER</td><td>0.01 SOL</td><td>Treasury luôn giữ tối thiểu sau mọi payout/fee.</td></tr>
+<tr><td class="num">INITIAL_TREASURY_FUND</td><td>0.01 SOL</td><td>Manager fund buffer khi init.</td></tr>
+<tr><td class="num">BOOTSTRAP_PRICE</td><td>1.0</td><td>Nạp đầu tiên: 1 SOL → 1 share.</td></tr>
+<tr><td class="num">MAX_NAME_LEN</td><td>24 bytes</td><td>Độ dài tên trong seed PDA.</td></tr>
+<tr><td class="num">env</td><td>0 / 1</td><td>devnet/sandbox hoặc mainnet — bất biến sau init.</td></tr></table>
+</section>
+
+<section id="p3">
+<h2>§3 — Instructions (9)</h2>
+
+<h4>1 · initialize_vault — manager</h4>
+<p style="font-size:14px;color:var(--muted)">Tạo 4 PDA + fund treasury 0.01 SOL (manager trả). Tham số: name, keeper, fee_bps, withdraw_fee_bps, reserve_bps, max_trade_bps, max_marks_bps, env. Từ chối khi tên rỗng/dài quá 24 bytes, bất kỳ bps nào &gt; 10000, env &gt; 1. Khởi tạo supply = 0, hwm = 1.0, fee_credit = 0, marks = 0, epoch = 0. Giai đoạn đầu: fee_sink = manager (chia 80/15/5 chạy off-chain).</p>
+
+<h4>2 · deposit(amount) — user</h4>
+<p style="font-size:14px;color:var(--muted)">Bị chặn khi paused. Tối thiểu 0.5 SOL. Marks còn positions mà cũ quá 750 slot → revert. Touch-settle và tính giá trên cash <i>trước khi</i> tiền vào → mint floor (<span class="mono">amount × supply / nav</span>; supply 0 → mint = amount) → chuyển SOL vào treasury → mint share vào ATA user (tự tạo nếu chưa có). Mint ra 0 → từ chối.</p>
+
+<h4>3 · update_marks(marks) — keeper</h4>
+<p style="font-size:14px;color:var(--muted)">Keeper đẩy giá trị positions. Chỉ keeper được gọi (sai role → constraint). Thay đổi không vượt 20% NAV cũ (NAV 0 → chỉ chấp nhận marks 0). Không vượt trần <span class="mono">cash × max_marks_bps</span> (0 = tắt). Cập nhật marks_slot = slot hiện tại.</p>
+
+<h4>4 · withdraw(shares, min_payout) — user</h4>
+<p style="font-size:14px;color:var(--muted)">Không bị chặn khi paused. shares &gt; 0 và ATA đủ số dư. Marks cũ → revert. Touch-settle → payout floor (<span class="mono">shares × nav / supply</span>) → trừ phí rút (nếu có) → payout thực &lt; min_payout do user chốt → revert (<span class="mono">PayoutBelowMin</span>). Phần còn lại trong treasury phải đủ buffer 0.01 SOL và không phá sàn reserve (<span class="mono">leftover ≥ nav × reserve_bps</span>). Burn share → chuyển SOL về user.</p>
+
+<h4>5 · settle_epoch — keeper</h4>
+<p style="font-size:14px;color:var(--muted)">Chốt epoch: touch-settle (accrue phí hiệu suất nếu giá vượt HWM + ratchet HWM) → tăng epoch counter → phát event. Không nhận NAV đầu vào — keeper đẩy marks trước bằng update_marks. Settle lại cùng trạng thái không phát sinh thêm phí.</p>
+
+<h4>6 · collect_fees(amount) — manager</h4>
+<p style="font-size:14px;color:var(--muted)">Thu phí đã accrual về fee_sink. amount &gt; 0, không vượt fee_credit, treasury đủ cash. Trừ fee_credit tương ứng.</p>
+
+<h4>7 · set_paused(flag) — manager</h4>
+<p style="font-size:14px;color:var(--muted)">Kill-switch (ngày −5%, tuần −15%). Giai đoạn đầu chỉ manager được gọi. Chặn deposit (và swap ở phase sau); withdraw không bị chặn.</p>
+
+<h4>8 · update_policy(...) — manager</h4>
+<p style="font-size:14px;color:var(--muted)">Đổi 5 tham số bps (mỗi cái ≤ 10000). Không đổi được env, manager, keeper. Hiệu lực từ epoch tiếp theo, không hồi tố.</p>
+
+<h4>9 · record_sim_trade(...) — keeper, devnet-only</h4>
+<p style="font-size:14px;color:var(--muted)">Ghi audit trade mô phỏng (mint, side, size, giá, pnl). Event thuần, không đổi state. Vault env mainnet → từ chối.</p>
+
+<div class="formula"><b>NAV</b> = cash + marks − fee_credit (âm → revert)<br><b>price</b> = floor(NAV × 1e9 / supply) · <b>fee</b> = floor((price − hwm) × supply × fee_bps / 1e9 / 10000), chỉ khi price &gt; hwm và fee_bps &gt; 0</div>
+</section>
+
+<section id="p4">
+<h2>§4 — Lỗi + sự kiện + phân quyền</h2>
+<table><tr><th>Mã lỗi</th><th>Khi nào</th></tr>
+<tr><td class="num">VaultPaused</td><td>deposit khi paused</td></tr>
+<tr><td class="num">NotKeeper / NotManager</td><td>sai role (dự phòng; triển khai dùng has_one constraint)</td></tr>
+<tr><td class="num">StaleMarks</td><td>marks cũ quá 750 slot khi vault còn positions</td></tr>
+<tr><td class="num">MarksDeltaExceeded</td><td>marks đổi quá 20% NAV/lần</td></tr>
+<tr><td class="num">MarksCapExceeded</td><td>marks vượt trần cash × max_marks_bps</td></tr>
+<tr><td class="num">DepositTooSmall</td><td>dưới 0.5 SOL, hoặc mint floor ra 0</td></tr>
+<tr><td class="num">InsufficientShares</td><td>ATA không đủ share để burn</td></tr>
+<tr><td class="num">InsufficientLiquidity</td><td>treasury không đủ cash trả payout/fee</td></tr>
+<tr><td class="num">ReserveFloorBreached</td><td>payout làm treasury tụt dưới sàn reserve</td></tr>
+<tr><td class="num">NavInvalid</td><td>NAV âm, giá trên supply 0, chia cho 0</td></tr>
+<tr><td class="num">PayoutBelowMin</td><td>payout thực dưới min_payout user chốt</td></tr>
+<tr><td class="num">EnvMismatch</td><td>sim trade trên vault mainnet</td></tr>
+<tr><td class="num">TradeTooLarge / SlippageExceeded</td><td>dành cho execute_swap (phase sau)</td></tr>
+<tr><td class="num">FeeExceedsCredit</td><td>collect vượt fee_credit đã accrual</td></tr>
+<tr><td class="num">MathOverflow</td><td>tràn số u64/u128 ở bất kỳ phép tính nào</td></tr>
+<tr><td class="num">NameTooLong / InvalidParam</td><td>tên rỗng/dài, bps vượt 10000, shares = 0, env &gt; 1</td></tr></table>
+<p style="font-size:14px;color:var(--muted)">Sự kiện mỗi instruction thành công: <span class="mono">VaultInit · DepositEvent · WithdrawEvent · MarkEvent · EpochSettled · SimTradeEvent · PausedEvent · FeesCollected</span>. Indexer off-chain đọc các sự kiện này để dựng dashboard và audit ledger. Phân quyền: user ký tiền của mình · keeper đẩy marks/settle/sim (BE hot key) · manager đổi policy/pause/thu phí (mainnet: multisig).</p>
+</section>
+
+<section id="p5">
+<h2>§5 — Ticket nghiệm thu</h2>
+<p class="sub">Bộ ticket nghiệm thu cho giai đoạn triển khai: mỗi ticket là tiêu chí Given–When–Then với kỳ vọng số học chính xác (số minh họa tính tay).</p>
+<div class="ticket"><h4>T1 · Khởi tạo đúng state <span class="tag gain">vòng đời</span></h4><p>Init (fee 2000, max_marks 5000, env 0) → manager/keeper đúng key; supply 0; hwm 1.0; fee_credit 0; chưa pause; mint decimals 9; treasury 0.01 SOL.</p></div>
+<div class="ticket"><h4>T2 · Bootstrap 1:1 <span class="tag gain">vòng đời</span></h4><p>Nạp 1 SOL vào vault trống → đúng 1e9 raw share, giá vẫn 1.0, treasury 1.01 SOL (gồm buffer).</p></div>
+<div class="ticket"><h4>T3 · Giá theo NAV <span class="tag gain">vòng đời</span></h4><p>Marks +0.1 → NAV 1.11. User2 nạp 1 SOL → floor(1e9 × 1e9 / 1.11e9) = 900_900_900 raw; tổng supply 1_900_900_900.</p></div>
+<div class="ticket"><h4>T4 · Rút đúng giá + min_payout <span class="tag gain">vòng đời</span></h4><p>Giá 1.01, rút 0.4e9 raw → payout đúng 404_000_000. min_payout bằng payout thật → qua; cao hơn 1 lamport → <span class="fail">PayoutBelowMin</span>, state không đổi.</p></div>
+<div class="ticket"><h4>T5 · Phí HWM + collect <span class="tag gain">vòng đời</span></h4><p>Nạp 10 SOL, marks +2 → settle: giá 1.201 &gt; hwm 1.0 → fee = 0.201 × 10 × 20% = 402_000_000; HWM ratchet 1.1608; epoch 1. Settle lại → không thu thêm. Collect đúng 402M về fee_sink → credit 0; collect thêm 1 → <span class="fail">FeeExceedsCredit</span>.</p></div>
+<div class="ticket"><h4>T6 · Pause chặn vào, không chặn ra <span class="tag loss">vòng đời</span></h4><p>Pause → deposit mới <span class="fail">VaultPaused</span>; withdraw 0.1e9 → 101_000_000 vẫn qua. Unpause → deposit mở lại.</p></div>
+<div class="ticket"><h4>T7 · Marks cũ đóng pricing <span class="tag loss">vòng đời</span></h4><p>Warp quá 750 slot → deposit và withdraw đều <span class="fail">StaleMarks</span>. Keeper refresh cùng giá trị → mở lại; nạp 0.5 SOL tại NAV 1.11 → 450_450_450 raw.</p></div>
+<div class="ticket"><h4>T8 · Nạp dưới tối thiểu <span class="tag warn">kiểm soát</span></h4><p>Nạp 0.4 SOL → <span class="fail">DepositTooSmall</span>.</p></div>
+<div class="ticket"><h4>T9 · Delta cap + trần marks <span class="tag warn">kiểm soát</span></h4><p>Cash 10.01 → cap 2.002e9: đẩy 2.1e9 → <span class="fail">MarksDeltaExceeded</span>; 2.0e9 → qua; tiếp +2.4e9 → qua. Trần marks 50% cash: 5.1e9 → <span class="fail">MarksCapExceeded</span>, state giữ 4.4e9 (tx fail không đổi state).</p></div>
+<div class="ticket"><h4>T10 · Thiếu cash <span class="tag warn">kiểm soát</span></h4><p>NAV 1.21 (cash chỉ 1.01): rút hết 1e9 share → payout 1.21e9 &gt; cash → <span class="fail">InsufficientLiquidity</span>. Rút 0.1e9 → 121_000_000 vẫn qua.</p></div>
+<div class="ticket"><h4>T11 · Sàn reserve <span class="tag warn">kiểm soát</span></h4><p>Reserve 50%, NAV 1.01: rút 0.6e9 → payout 606M, còn lại 404M &lt; floor 505M → <span class="fail">ReserveFloorBreached</span>. Rút 0.1e9 → 101M → qua.</p></div>
+<div class="ticket"><h4>T12 · Share và số dương <span class="tag warn">kiểm soát</span></h4><p>Rút 0 share → <span class="fail">InvalidParam</span>. Rút 600M khi chỉ có 500M → <span class="fail">InsufficientShares</span>.</p></div>
+<div class="ticket"><h4>T13 · Phân quyền <span class="tag loss">kiểm soát</span></h4><p>User gọi marks/pause/sim → constraint has_one revert. Keeper gọi sim trên vault devnet → qua.</p></div>
+<div class="ticket"><h4>T14 · Cổng môi trường <span class="tag loss">kiểm soát</span></h4><p>Vault env mainnet: sim trade → <span class="fail">EnvMismatch</span>; deposit/withdraw vẫn chạy bình thường.</p></div>
+<div class="ticket"><h4>T15 · Thu phí giới hạn cash <span class="tag warn">kiểm soát</span></h4><p>Fee accrual vượt cash thật (lãi trên marks chưa thành tiền): collect đúng bằng cash → treasury về 0 vẫn qua; thêm 1 lamport → <span class="fail">InsufficientLiquidity</span>.</p></div>
+<div class="ticket"><h4>T16 · Số học unit <span class="tag gain">số học</span></h4><p>12 unit tests: mint floor (1×3/10 → 0 → từ chối), payout floor, phí đúng ví dụ 0.08 SOL, touch-settle đủ kịch bản (vượt/không vượt HWM, bootstrap), chia cho 0 và tràn số đều revert.</p></div>
+<pre># Khuyến nghị: kiểm thử toàn bộ ticket trên môi trường local trước khi triển khai.
+# Khi chạy song song: đối chiếu từng epoch với logic off-chain.</pre>
+</section>
+
+<section id="p6">
+<h2>§6 — Lộ trình</h2>
+<p class="sub">Kế hoạch tham khảo: thiết kế (tài liệu này) → triển khai → kiểm thử theo ticket §5 → devnet → audit → mainnet.</p>
+<ul class="tight">
+<li><b>Sau program (backend):</b> tích hợp vault tự định giá — marks tự động, DB khớp chain 1-1, deposit ký ví đầu tiên từ web.</li>
+<li><b>Sau đó (flows + mainnet):</b> withdraw end-to-end, demo hoàn chỉnh, <span class="mono">execute_swap</span> để phase sau, gói audit-ready, báo cáo cuối.</li>
+</ul>
+</section>
+</div>
+<footer><div class="wrap">Paper-only, sandbox. On-chain vault + cash-out là phase sau.</div></footer>
+</body>
+</html>
