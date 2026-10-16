@@ -1,0 +1,34 @@
+# Tune overlay THỬ NGHIỆM (không dùng mặc định, không Dokploy, không GHCR).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.tune.yml up -d
+# - Chỉ chạm env + resource, KHÔNG chạm code, KHÔNG chạm .env server, KHÔNG migration.
+# ⚠️ 2026-10-16 đo thực tế: backend mem_limit 1g => V8 heap ~511MB => FATAL OOM
+#     crash-loop trong boot sync (exit 139). Boot sync 35d/cap-1000 cần >2GB RSS.
+#     => KHÔNG siết backend dưới 3g khi ENABLE_SYNC=true. Muốn VPS nhỏ thì tắt
+#     sync tại chỗ (ENABLE_SYNC=false + DB ngoài) thay vì bóp limit.
+
+services:
+  postgres:
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=512MB
+      -c max_connections=50
+      -c work_mem=2MB
+      -c maintenance_work_mem=64MB
+      -c autovacuum_work_mem=64MB
+    mem_limit: 1g
+    mem_reservation: 256m
+
+  backend:
+    # Thực đo 2026-10-16: boot sync cần ~2.2GB RSS. Limit dưới mức này = crash-loop.
+    mem_limit: 3g
+    mem_reservation: 1g
+    environment:
+      # Về default code sau catch-up demo (đỡ scan 25h mỗi tick 5 phút)
+      AUTO_FIRE_WINDOW_MAX_MIN: "120"
+      # Safety-net thưa ra 3x (20s -> 60s)
+      SYNC_INTERVAL_MS: "60000"
+
+  frontend:
+    mem_limit: 300m
+    mem_reservation: 150m
