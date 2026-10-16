@@ -42,5 +42,5 @@ npm run typecheck            # root = BE tsc -p backend + FE tsc -p frontend
 npm run build:frontend       # next build must pass
 curl -s http://localhost:3000/api/health                       # BE direct
 curl -s http://localhost:3001/api/health                       # via FE rewrites (must be green)
-curl -s https://edgepool-dev.tailec308e.ts.net/api/vaults/pools # prod pools
+# prod pools: thay bằng URL reverse-proxy do chủ hệ thống cấp
 ```

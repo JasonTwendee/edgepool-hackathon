@@ -48,6 +48,6 @@ PROJ="$APP_DIR/fomo-family-&-fomoscan-research-hub"
 chmod 600 "$PROJ/backend/.env" "$PROJ/frontend/.env" || true
 
 echo "OK. Next:"
-echo "  1) nano $PROJ/backend/.env   # fill secrets (see docs/setup/CICD_SERVER.md)"
+echo "  1) nano $PROJ/backend/.env   # fill secrets (see docs/setup/OPERATOR.md)"
 echo "  2) Register self-hosted runner below (GitHub repo Settings > Actions > Runners)"
 echo "  3) docker compose up: cd $PROJ && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build"

@@ -15,7 +15,7 @@ High-level AI-readable map of this repository.
 - Lint command: `npm run typecheck` (root = BE + FE `tsc --noEmit -p`)
 - Build command: `npm run build` (BE `tsc -p tsconfig.build.json` + FE `next build`)
 - Typecheck command: `npm run typecheck`
-- Smoke command: `curl -s http://localhost:3000/api/health` (BE) + `curl -s http://localhost:3001/api/health` (qua FE rewrites); prod: `https://edgepool-dev.tailec308e.ts.net/` (Tailscale Funnel)
+- Smoke command: `curl -s http://localhost:3000/api/health` (BE) + `curl -s http://localhost:3001/api/health` (qua FE rewrites); prod: URL reverse-proxy do chủ hệ thống cấp (xem `docs/setup/OPERATOR.md`)
 - Docker runtime (2026-10-01, thay PM2): `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` → `postgres` (5433) + `backend` (3000, `node dist/main.js` sau `prisma migrate deploy`) + `frontend` (3001, `node server.js` standalone ~311MB, 2026-10-16) + `caddy` (:80/:443 single entry). Pull-only overlay: `docker-compose.ghcr.yml` (`image: ghcr.io/...`, mem limits, pg tune). Runbooks: `docs/setup/DOCKER.md`, `docs/setup/CICD_SERVER.md`
 
 ## Key Areas

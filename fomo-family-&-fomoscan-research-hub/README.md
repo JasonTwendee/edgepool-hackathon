@@ -28,7 +28,7 @@ docs/
   ai/                      navigation layer (indexes, context-map, rules)
   architecture/            ARCHITECTURE.md, DATA_FLOW.md, ADR-001
   api/                     openapi.yaml (contract duy nhất) + README
-  setup/                   LOCAL_SETUP.md, ENV.md
+  setup/                   OPERATOR.md, DEMO_SCRIPT.md, LAUNCH_RUNBOOK.md
   codexminimal/            plans, trackers, runtime state
 frontend/  (fomo-frontend) Next.js App Router runtime
   app/ layout.tsx, page.tsx · components/ data/ lib/ hooks/ types/ public/
@@ -53,5 +53,5 @@ SYSTEM_DOCUMENTATION.md    Deep spec (giữ nguyên, link từ docs/architecture
 - Entry AI: `AGENTS.md` → `docs/ai/project-index.md` → `docs/ai/context-map.json`
 - Kiến trúc: `docs/architecture/ARCHITECTURE.md`
 - API: `docs/api/README.md` + `openapi.yaml`
-- Setup: `docs/setup/LOCAL_SETUP.md`
+- Setup: `docs/setup/OPERATOR.md` · Demo: `docs/setup/DEMO_SCRIPT.md`
 - Quy ước tsx-safe (bắt buộc cho BE): `backend/README.md`

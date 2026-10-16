@@ -130,7 +130,7 @@
     "rugcheck": "RUGCHECK_API_KEY Qualify mcap/liquidity gate",
     "coingecko": "majors ticker via BE proxy /api/market/ticks; FE never holds keys",
     "jito": "JITO_BLOCK_ENGINE_URL (future copy-trade)",
-    "publicUrl": "Tailscale Funnel https://edgepool-dev.tailec308e.ts.net/ (fixed; quick-tunnel removed)"
+    "publicUrl": "reverse-proxy URL do chủ hệ thống cấp (xem docs/setup/OPERATOR.md)"
   },
   "jobs": {
     "onchainPoll": "backend/src/server/solana.service.ts poll loop (tracked actives only)",
@@ -334,8 +334,8 @@
       "npx tsx src/modules/vaults/assert-pools.ts (from backend/)",
       "curl -s http://localhost:3000/api/health",
       "curl -s http://localhost:3001/api/health (via FE rewrites)",
-      "docker compose ps (4/4 healthy incl. caddy)",
-      "curl -s https://edgepool-dev.tailec308e.ts.net/api/vaults/pools"
+      "docker compose ps (healthy)",
+      "curl -s <PUBLIC_URL>/api/vaults/pools (URL do chủ hệ thống cấp)"
     ]
   },
   "version": 3

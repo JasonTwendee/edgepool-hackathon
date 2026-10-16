@@ -9,7 +9,7 @@
 #   prod thật: dùng Named Tunnel + domain riêng trong tài khoản Cloudflare.
 # - Server chỉ cần outbound 443/QUIC ra internet (hợp mạng cty sau NAT).
 # - Public URL lộ FE + /api (qua rewrites) → auth BE vẫn chặn, nhưng KHÔNG dùng
-#   khi đã có tiền thật (xem LAUNCH_RUNBOOK_PRODUCT.md).
+#   khi đã có tiền thật (xem docs/setup/LAUNCH_RUNBOOK.md).
 
 services:
   trycloudflare:
