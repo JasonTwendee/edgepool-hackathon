@@ -25,8 +25,12 @@ function makeFake(opts: { tx: Row[]; ev: Row[]; failDelete?: boolean }) {
   const cutoffOf = (w: Row): number => Number((w.blockTime as { lt: bigint }).lt);
   const prisma = {
     transaction: {
-      findMany: async ({ where }: { where: Row }) =>
-        db.tx.filter((r) => Number(r.blockTime as bigint) < cutoffOf(where as Row)),
+      count: async ({ where }: { where: Row }) =>
+        db.tx.filter((r) => Number(r.blockTime as bigint) < cutoffOf(where as Row)).length,
+      findMany: async ({ where, take }: { where: Row; take?: number }) => {
+        const rows = db.tx.filter((r) => Number(r.blockTime as bigint) < cutoffOf(where as Row));
+        return take === undefined ? rows : rows.slice(0, take);
+      },
       deleteMany: async ({ where }: { where: Row }) => {
         deletes.push('transaction');
         if (opts.failDelete) throw new Error('DB down');
@@ -37,8 +41,12 @@ function makeFake(opts: { tx: Row[]; ev: Row[]; failDelete?: boolean }) {
       },
     },
     realtimeEvent: {
-      findMany: async ({ where }: { where: Row }) =>
-        db.ev.filter((r) => (r.broadcastedAt as Date) < ((where.broadcastedAt as Row)?.lt as Date)),
+      count: async ({ where }: { where: Row }) =>
+        db.ev.filter((r) => (r.broadcastedAt as Date) < ((where.broadcastedAt as Row)?.lt as Date)).length,
+      findMany: async ({ where, take }: { where: Row; take?: number }) => {
+        const rows = db.ev.filter((r) => (r.broadcastedAt as Date) < ((where.broadcastedAt as Row)?.lt as Date));
+        return take === undefined ? rows : rows.slice(0, take);
+      },
       deleteMany: async ({ where }: { where: Row }) => {
         deletes.push('realtimeEvent');
         if (opts.failDelete) throw new Error('DB down');
@@ -120,6 +128,19 @@ async function main(): Promise<void> {
     assert.equal(await svc.pruneOnce(), 0);
     assert.equal(db.tx.length, 1);
     assert.deepEqual(deletes, []);
+  }
+
+  // 4. Multi-batch: 2500 old rows → 2000 + 500, cuốn chiếu, đủ tổng.
+  {
+    const dir = mkdtempSync(join(tmpdir(), 'prune-batch-'));
+    const many = Array.from({ length: 2500 }, (_, i) => oldTx(`b${i}`));
+    const { svc, db, deletes, audits } = makeFake({ tx: many, ev: [] });
+    svc.archiveDir = dir;
+    assert.equal(await svc.pruneOnce(), 2500);
+    assert.equal(db.tx.length, 0);
+    assert.equal(audits.length, 2);
+    assert.deepEqual(deletes, ['transaction', 'transaction']);
+    assert.ok(readdirSync(dir).some((f) => f.endsWith('-transactions.jsonl')));
   }
 
   console.log('sync asserts: ALL GREEN');

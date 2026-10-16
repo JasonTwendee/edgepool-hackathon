@@ -5,6 +5,9 @@ import type { OnChainTransactionEvent } from '../onchain/entities/onchain-event.
 
 type TxRow = Prisma.TransactionGetPayload<{ include: { wallet: true } }>;
 
+/** Sig mới nhất/ví giữ trong cache (vượt là cắt cũ nhất; deep-mode fallback DB). */
+const SIG_CACHE_CAP = 5000;
+
 export interface LedgerQuery {
   walletAddress?: string;
   /** 'ALL' or undefined = no action filter. */
@@ -24,6 +27,17 @@ export interface LedgerQuery {
 @Injectable()
 export class TransactionsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  /**
+   * Bounded per-wallet signature cache (RAM cut, 2026-10-16).
+   * getSignatures() used to load EVERY signature from DB on EVERY sync tick
+   * (100k+ rows × 30 ví mỗi 60s). Cache giữ tối đa SIG_CACHE_CAP sig mới
+   * nhất/ví (~13MB cho 30 ví), append qua recordTransaction.
+   * An toàn khi stale: signature là @id + P2002 guard → bản ghi trùng không
+   * bao giờ insert được, chỉ tốn thêm RPC rồi bị nuốt. Deep-mode hiếm gặp
+   * fallback về DB load như cũ.
+   */
+  private readonly sigCache = new Map<string, { set: Set<string>; order: string[] }>();
 
   /** Insert unless the signature already exists; advances wallet cursor+counter on insert. */
   async recordTransaction(event: OnChainTransactionEvent, rawPayload: unknown): Promise<boolean> {
@@ -68,7 +82,24 @@ export class TransactionsService {
         totalTradesCount: { increment: 1 },
       },
     });
+    this.cacheSig(event.wallet, event.signature);
     return true;
+  }
+
+  /** Append 1 sig vào cache (write-through mọi đường insert; FIFO trim). */
+  private cacheSig(walletAddress: string, signature: string): void {
+    let entry = this.sigCache.get(walletAddress);
+    if (!entry) {
+      entry = { set: new Set(), order: [] };
+      this.sigCache.set(walletAddress, entry);
+    }
+    if (entry.set.has(signature)) return;
+    entry.set.add(signature);
+    entry.order.push(signature);
+    while (entry.order.length > SIG_CACHE_CAP) {
+      const old = entry.order.shift();
+      if (old !== undefined) entry.set.delete(old);
+    }
   }
 
   /** Patch an unenriched row with Helius-parsed fields (heal path). */
@@ -135,12 +166,19 @@ export class TransactionsService {
   }
 
   /** Signature set for dedup during sync (single column, cheap). */
+  /** Known signatures: cache mới nhất/ví, miss mới load DB (1 lần/boot/ví). */
   async getSignatures(walletAddress: string): Promise<Set<string>> {
+    const hit = this.sigCache.get(walletAddress);
+    if (hit) return new Set(hit.set);
     const rows = await this.prisma.transaction.findMany({
       where: { walletAddress },
+      orderBy: { blockTime: 'desc' },
+      take: SIG_CACHE_CAP,
       select: { signature: true },
     });
-    return new Set(rows.map((r) => r.signature));
+    const order = rows.map((r) => r.signature);
+    this.sigCache.set(walletAddress, { set: new Set(order), order });
+    return new Set(order);
   }
 
   /** Oldest blockTime for deep-vs-incremental sync decision (null = empty). */

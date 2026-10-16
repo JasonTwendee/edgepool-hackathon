@@ -11,6 +11,17 @@ import { AuditService } from '../audit/audit.service.js';
 
 const HISTORY_MAX_TX = 1000;
 
+/** Prune theo batch (tránh ôm triệu rows vào heap). */
+const PRUNE_BATCH = 2000;
+/** Số batch tối đa/tick; còn dư tick sau resume (guard 24h chỉ set khi hết việc). */
+const PRUNE_MAX_BATCHES = 5;
+
+/** Stats recompute thưa ra (RAM/CPU cut): chỉ khi có tx mới hoặc quá gap. */
+const STATS_MIN_GAP_MS =
+  process.env.SYNC_STATS_INTERVAL_MS && Number.isFinite(Number(process.env.SYNC_STATS_INTERVAL_MS))
+    ? Number(process.env.SYNC_STATS_INTERVAL_MS)
+    : 300000;
+
 /** ~4-month history window (days) for the safety-net sync (override via FULL_HISTORY_DAYS). */
 const HISTORY_DAYS =
   process.env.FULL_HISTORY_DAYS && Number.isFinite(Number(process.env.FULL_HISTORY_DAYS))
@@ -30,6 +41,7 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
   private lastPruneAt = 0;
+  private lastStatsAt = 0;
 
   constructor(
     @Inject(WalletsService) private readonly wallets: WalletsService,
@@ -79,7 +91,10 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
           console.error(`[SyncScheduler] ${w.address.slice(0, 8)}… failed:`, (err as Error).message);
         }
       }
-      const statsUpdated = await this.pnl.syncWalletStats(HISTORY_DAYS);
+      const statsUpdated =
+        fresh > 0 || Date.now() - this.lastStatsAt >= STATS_MIN_GAP_MS
+          ? await this.syncStatsThrottled()
+          : 0;
       const pruned = await this.pruneOnce();
       // eslint-disable-next-line no-console
       console.log(
@@ -99,51 +114,101 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
    * are NEVER in prune scope. Deletes target exactly the archived row IDs
    * (never a re-evaluated cutoff) so no unarchived row can slip through.
    */
+  /**
+   * Stats recompute có throttle: ví không có tx mới thì số không đổi,
+   * recompute lại mỗi tick là đốt RAM/CPU vô ích. Vẫn recompute ngay khi
+   * có tx mới nên UI chậm nhất 1 tick sau data mới.
+   */
+  private async syncStatsThrottled(): Promise<number> {
+    this.lastStatsAt = Date.now();
+    return this.pnl.syncWalletStats(HISTORY_DAYS);
+  }
+
+  /**
+   * Rolling window cleanup (max once/day). BATCHED (RAM cut, 2026-10-16):
+   * bản cũ load TOÀN BỘ rows quá hạn vào heap 1 lần (triệu rows sau mỗi
+   * restart vì lastPruneAt reset) → spike 2GB/OOM. Giờ count trước, xử lý
+   * cuốn chiếu mỗi batch 2000 rows (archive JSONL + audit rồi mới delete đúng
+   * IDs vừa archive), tối đa PRUNE_MAX_BATCHES batch/tick, tick sau resume.
+   * Fail-safe giữ nguyên: archive/audit lỗi → zero deletes batch đó.
+   * Scope vẫn CHỈ transactions + realtime_events (ledger/audit/orders/vaults
+   * KHÔNG BAO GIỜ vào diện prune).
+   */
   async pruneOnce(): Promise<number> {
     if (Date.now() - this.lastPruneAt < 86400000) return 0;
-    this.lastPruneAt = Date.now();
     const cutoff = new Date(Date.now() - HISTORY_DAYS * 86400000);
+    const cutoffSec = Math.floor(cutoff.getTime() / 1000);
     try {
-      const [oldTx, oldEv] = await Promise.all([
-        this.prisma.transaction.findMany({ where: { blockTime: { lt: BigInt(Math.floor(cutoff.getTime() / 1000)) } } }),
-        this.prisma.realtimeEvent.findMany({ where: { broadcastedAt: { lt: cutoff } } }),
+      const [txCount, evCount] = await Promise.all([
+        this.prisma.transaction.count({ where: { blockTime: { lt: BigInt(cutoffSec) } } }),
+        this.prisma.realtimeEvent.count({ where: { broadcastedAt: { lt: cutoff } } }),
       ]);
-      if (oldTx.length + oldEv.length === 0) return 0;
-      const day = cutoff.toISOString().slice(0, 10);
-      const txFile = await writeArchiveFile(this.archiveDir, `prune-${day}-transactions.jsonl`, oldTx);
-      const evFile = await writeArchiveFile(this.archiveDir, `prune-${day}-events.jsonl`, oldEv);
-      await this.audit.record({
-        actor: 'system:sync',
-        action: 'sync.prune_archive',
-        target: `${txFile.file},${evFile.file}`,
-        reason: `cutoff ${cutoff.toISOString()} (${HISTORY_DAYS}d): ${oldTx.length} tx + ${oldEv.length} events`,
-        metaJson: {
-          cutoff: cutoff.toISOString(),
-          historyDays: HISTORY_DAYS,
-          txCount: oldTx.length,
-          txFile: txFile.file,
-          txSha256: txFile.sha256,
-          eventCount: oldEv.length,
-          eventFile: evFile.file,
-          eventSha256: evFile.sha256,
-        },
-      });
-      const [tx, ev] = await Promise.all([
-        this.prisma.transaction.deleteMany({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          where: { signature: { in: oldTx.map((t) => (t as any).signature) } } as any,
-        }),
-        this.prisma.realtimeEvent.deleteMany({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          where: { id: { in: oldEv.map((e) => (e as any).id) } } as any,
-        }),
-      ]);
-      const n = tx.count + ev.count;
-      if (n > 0) {
-        // eslint-disable-next-line no-console
-        console.log(`[SyncScheduler] pruned ${tx.count} tx + ${ev.count} events older than ${HISTORY_DAYS}d (archived)`);
+      if (txCount + evCount === 0) {
+        this.lastPruneAt = Date.now();
+        return 0;
       }
-      return n;
+      const day = cutoff.toISOString().slice(0, 10);
+      let total = 0;
+      for (let b = 0; b < PRUNE_MAX_BATCHES; b++) {
+        const [oldTx, oldEv] = await Promise.all([
+          this.prisma.transaction.findMany({
+            where: { blockTime: { lt: BigInt(cutoffSec) } },
+            orderBy: { blockTime: 'asc' },
+            take: PRUNE_BATCH,
+          }),
+          this.prisma.realtimeEvent.findMany({
+            where: { broadcastedAt: { lt: cutoff } },
+            orderBy: { broadcastedAt: 'asc' },
+            take: PRUNE_BATCH,
+          }),
+        ]);
+        if (oldTx.length + oldEv.length === 0) break;
+        const txFile =
+          oldTx.length > 0
+            ? await writeArchiveFile(this.archiveDir, `prune-${day}-transactions.jsonl`, oldTx)
+            : null;
+        const evFile =
+          oldEv.length > 0
+            ? await writeArchiveFile(this.archiveDir, `prune-${day}-events.jsonl`, oldEv)
+            : null;
+        await this.audit.record({
+          actor: 'system:sync',
+          action: 'sync.prune_archive',
+          target: `${txFile?.file ?? '-'},${evFile?.file ?? '-'}`,
+          reason: `cutoff ${cutoff.toISOString()} (${HISTORY_DAYS}d): ${oldTx.length} tx + ${oldEv.length} events (batch ${b + 1})`,
+          metaJson: {
+            cutoff: cutoff.toISOString(),
+            historyDays: HISTORY_DAYS,
+            txCount: oldTx.length,
+            txFile: txFile?.file ?? null,
+            txSha256: txFile?.sha256 ?? null,
+            eventCount: oldEv.length,
+            eventFile: evFile?.file ?? null,
+            eventSha256: evFile?.sha256 ?? null,
+          },
+        });
+        const [tx, ev] = await Promise.all([
+          oldTx.length > 0
+            ? this.prisma.transaction.deleteMany({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                where: { signature: { in: oldTx.map((t) => (t as any).signature) } } as any,
+              })
+            : { count: 0 },
+          oldEv.length > 0
+            ? this.prisma.realtimeEvent.deleteMany({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                where: { id: { in: oldEv.map((e) => (e as any).id) } } as any,
+              })
+            : { count: 0 },
+        ]);
+        total += tx.count + ev.count;
+        if (oldTx.length < PRUNE_BATCH && oldEv.length < PRUNE_BATCH) break;
+      }
+      if (total > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`[SyncScheduler] pruned ${total} rows older than ${HISTORY_DAYS}d (archived, batched)`);
+      }
+      return total;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[SyncScheduler] prune failed (no rows deleted):', (err as Error).message);
