@@ -132,6 +132,10 @@ curl -s --max-time 30 "https://edgepool-dev.tailec308e.ts.net/api/vaults/pools" 
    (client tự throttle ≥1.1s); leaderboard limit 100.
 7. Seeded logins + API keys SỐNG trong server `.env` (mode 600) — không paste
    vào doc/chat/log.
+8. Caddy CHỈ bind `:80` trên server Funnel (`docker-compose.prod.yml`).
+   tailscaled giữ `tailscale0:443` → bind `0.0.0.0:443` EADDRINUSE, caddy kẹt
+   `Created` mãi, public 502 (gặp 2026-10-16 sau CD rebuild). Funnel tự TLS
+   và forward về `localhost:80` nên `:443` host thừa.
 
 ## 8. Rollback
 

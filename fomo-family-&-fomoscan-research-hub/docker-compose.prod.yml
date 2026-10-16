@@ -18,8 +18,10 @@ services:
     container_name: fomo-caddy
     restart: always
     ports:
+      # Chỉ :80 — public đi Tailscale Funnel (tự TLS, forward về localhost:80).
+      # KHÔNG bind :443: tailscaled giữ tailscale0:443, Docker bind 0.0.0.0:443
+      # sẽ EADDRINUSE làm caddy Created mãi không start (sập public 2026-10-16).
       - "80:80"
-      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - fomo-caddy-data:/data
