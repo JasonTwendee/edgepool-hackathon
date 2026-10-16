@@ -61,7 +61,9 @@ docker compose down                                # xuống nhưng GIỮ data
 
 Single-entry production: dùng thêm overlay chặn port host của BE/FE,
 chỉ public frontend qua reverse proxy (Caddy/Traefik) + TLS. Chi tiết
-xem `docker-compose.prod.yml` và Caddyfile trong repo.
+xem `docker-compose.prod.yml` và Caddyfile trong repo. Overlay khác:
+`docker-compose.ghcr.yml` (pull-only images), `docker-compose.tune.yml`,
+`docker-compose.tunnel.yml` (demo tunnel, opt-in).
 
 ## 4. Smoke (bắt buộc sau mỗi lần up/deploy)
 

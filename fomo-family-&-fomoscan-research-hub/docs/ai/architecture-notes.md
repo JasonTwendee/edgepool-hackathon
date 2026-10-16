@@ -17,7 +17,7 @@ Durable architecture facts and decisions.
 | 2026-10-05 | Global login wall: seeded admin/user/kol (scrypt), wallet multi-provider; không public registration | Terminal dời về `/terminal` (admin); pool app là main surface | `LoginModal`, `POST /api/auth/login|purge`, failed-login audit |
 | 2026-10-06 | Pool model: 1 pool = 1 vault + 1 AUTO bot + 3–5 traders; NAV theo trader trades qua MTM engine | Fee 20% HWM → 80 depositors / 15 partner / 5 Edgepool (basket 10/10) | Pool app P1–P5 (`/`, `/pools/[id]`, `/portfolio`, `/trader`); Calm + `?view=advanced` |
 | 2026-10-06 | Paper/sandbox only: shares sổ off-chain, claim ghi sổ, executor chặn mainnet bằng devnet genesis-check | Tiền thật cần custody + on-chain vault + mainnet executor (phase Product) | KOL claim sandbox; payout wallet verify ownership trước khi set |
-| 2026-10-06 | Public URL cố định qua Tailscale Funnel; deploy chỉ khi CI xanh qua runner `edgepool` | SSOT: `docs/setup/CICD_SERVER.md`; rolling prune 35d có archive | quick-tunnel ephemeral đã bỏ; audit/orders/vaults không prune |
+| 2026-10-06 | Public URL cố định qua reverse proxy; deploy chỉ khi CI xanh | SSOT vận hành: `docs/setup/OPERATOR.md`; rolling prune 35d có archive | quick-tunnel ephemeral đã bỏ; audit/orders/vaults không prune |
 
 ## Boundaries
 

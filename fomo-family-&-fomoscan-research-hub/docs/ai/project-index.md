@@ -16,7 +16,7 @@ High-level AI-readable map of this repository.
 - Build command: `npm run build` (BE `tsc -p tsconfig.build.json` + FE `next build`)
 - Typecheck command: `npm run typecheck`
 - Smoke command: `curl -s http://localhost:3000/api/health` (BE) + `curl -s http://localhost:3001/api/health` (qua FE rewrites); prod: URL reverse-proxy do chủ hệ thống cấp (xem `docs/setup/OPERATOR.md`)
-- Docker runtime (2026-10-01, thay PM2): `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` → `postgres` (5433) + `backend` (3000, `node dist/main.js` sau `prisma migrate deploy`) + `frontend` (3001, `node server.js` standalone ~311MB, 2026-10-16) + `caddy` (:80/:443 single entry). Pull-only overlay: `docker-compose.ghcr.yml` (`image: ghcr.io/...`, mem limits, pg tune). Runbooks: `docs/setup/DOCKER.md`, `docs/setup/CICD_SERVER.md`
+- Docker runtime: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` → `postgres` (5433) + `backend` (3000, sau `prisma migrate deploy`) + `frontend` (3001) + reverse proxy single entry. Overlays thêm: `docker-compose.ghcr.yml` (pull-only images), `docker-compose.tune.yml`. Runbook: `docs/setup/OPERATOR.md`
 
 ## Key Areas
 
@@ -34,7 +34,7 @@ High-level AI-readable map of this repository.
 | BE chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global singleton) | RPC listener, poll loop, SSE fan-out |
 | API contract | `docs/api/openapi.yaml` | REST + SSE source of truth |
 | Architecture | `docs/architecture/` | System design, data-flow, ADRs |
-| Setup | `docs/setup/` | Local runbook + env; CI/CD + deploy server SSOT: `docs/setup/CICD_SERVER.md` |
+| Setup | `docs/setup/` | Operator runbook + env (`OPERATOR.md`), demo script, launch runbook |
 | AI nav | `docs/ai/` | Indexes + context-map + rules |
 
 ## Main Workflows
