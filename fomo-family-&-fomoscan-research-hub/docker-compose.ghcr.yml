@@ -1,0 +1,32 @@
+# Pull-only overlay cho edgepool-dev (test tối ưu, không Dokploy).
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+# - backend/frontend dùng image GHCR prebuild, KHÔNG build trên server.
+# - postgres tune nhẹ cho RAM thấp + mem limits chống OOM.
+# TAG: pin SHA khi rollback, mặc định main.
+
+services:
+  postgres:
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=256MB
+      -c max_connections=50
+      -c work_mem=2MB
+    mem_limit: 300m
+    mem_reservation: 150m
+
+  backend:
+    image: ghcr.io/jasontwendee/fomo-backend:${TAG:-main}
+    build: !reset null
+    mem_limit: 400m
+    mem_reservation: 200m
+    environment:
+      NODE_OPTIONS: --max-old-space-size=256
+
+  frontend:
+    image: ghcr.io/jasontwendee/fomo-frontend:${TAG:-main}
+    build: !reset null
+    mem_limit: 300m
+    mem_reservation: 150m
+    environment:
+      NODE_OPTIONS: --max-old-space-size=256

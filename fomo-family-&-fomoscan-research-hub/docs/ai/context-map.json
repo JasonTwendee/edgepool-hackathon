@@ -116,7 +116,7 @@
   "entrypoints": {
     "backend": "backend/src/main.ts (NestFactory :3000)",
     "frontend": "frontend/app/page.tsx (pool index, Next :3001)",
-    "compose": "docker-compose.yml + docker-compose.prod.yml (Caddy :80/:443 single entry; tunnel overlay opt-in)"
+    "compose": "docker-compose.yml + docker-compose.prod.yml (Caddy :80/:443 single entry) + docker-compose.ghcr.yml (pull-only: ghcr images, mem limits, pg tune)"
   },
   "handlers": {
     "sseStream": "backend/src/modules/onchain/onchain.controller.ts#stream"
@@ -229,8 +229,8 @@
     "POST /api/demo/clone": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit, clone trader set to unlisted demo)",
     "POST /api/demo/reset": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit)",
     "POST /api/demo/scenario": "backend/src/modules/demo/demo.controller.ts (ADMIN+Audit, reset + 3 parallel seed/replay cases)",
-    "POST /api/partner/pools/:id/traders/:wallet/pause": "backend/src/modules/partner/partner.controller.ts (ADMIN)",
-    "DELETE /api/partner/pools/:id/traders/:wallet": "backend/src/modules/partner/partner.controller.ts (ADMIN)",
+    "POST /api/partner/pools/:id/traders/:wallet/pause": "backend/src/modules/partner/partner.controller.ts (owner)",
+    "DELETE /api/partner/pools/:id/traders/:wallet": "backend/src/modules/partner/partner.controller.ts (owner)",
     "POST /api/vaults/deposit/challenge": "backend/src/modules/signed-intent/signed-intent.controller.ts (Auth, 5-min single-use)",
     "POST /api/vaults/withdraw/challenge": "backend/src/modules/signed-intent/signed-intent.controller.ts (Auth, 5-min single-use)",
     "GET /api/vaults": "backend/src/modules/vaults/vaults.controller.ts",
@@ -260,8 +260,6 @@
     "POST /api/partner/claim": "backend/src/modules/partner/partner.controller.ts (AuthGuard, sandbox ledger)",
     "PATCH /api/partner/pools/:id/settings": "backend/src/modules/partner/partner.controller.ts (owner)",
     "GET /api/partner/pools/:id/traders": "backend/src/modules/partner/partner.controller.ts (owner)",
-    "POST /api/partner/pools/:id/traders/:wallet/pause": "backend/src/modules/partner/partner.controller.ts (owner)",
-    "DELETE /api/partner/pools/:id/traders/:wallet": "backend/src/modules/partner/partner.controller.ts (owner)",
     "POST /api/partner/pools/:id/request-trader": "backend/src/modules/partner/partner.controller.ts (owner)",
     "GET /api/partner/signals": "backend/src/modules/partner/partner.controller.ts (owner)",
     "GET /api/partner/payouts": "backend/src/modules/partner/partner.controller.ts (owner)",
@@ -286,7 +284,7 @@
   "services": {
     "postgres": "postgres:17-alpine, host 5433, volume fomo-postgres-data (NEVER down -v)",
     "backend": "fomo-backend :3000 (node dist/main.js + prisma migrate deploy), depends postgres healthy",
-    "frontend": "fomo-frontend :3001 (next start), BACKEND_URL=http://backend:3000, depends backend healthy",
+    "frontend": "fomo-frontend :3001 (node server.js standalone ~311MB, BACKEND_URL=http://backend:3000, depends backend healthy)",
     "caddy": "fomo-caddy :80/:443 single public entry -> frontend:3001 (prod overlay)",
     "cloudflared": "REMOVED from demo path; opt-in tunnel overlay only (TUNNEL_ENABLED=true)"
   },
@@ -340,5 +338,5 @@
       "curl -s https://edgepool-dev.tailec308e.ts.net/api/vaults/pools"
     ]
   },
-  "version": 2
+  "version": 3
 }

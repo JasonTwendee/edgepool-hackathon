@@ -33,15 +33,17 @@ FROM node:22-alpine AS runner
 WORKDIR /app/frontend
 ENV NODE_ENV=production
 ENV PORT=3001
-RUN apk add --no-cache wget
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-COPY --from=builder /app/frontend/.next ./.next
+ENV HOSTNAME=0.0.0.0
+RUN apk add --no-cache wget \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+  && rm -rf /root/.npm /tmp/* /var/cache/apk/*
+# Standalone: chỉ copy file trace + static, không ôm cả node_modules (~200MB thay vì ~570MB).
+COPY --from=builder /app/frontend/.next/standalone ./
+COPY --from=builder /app/frontend/.next/static ./.next/static
 COPY --from=builder /app/frontend/public ./public
-COPY frontend/next.config.ts frontend/postcss.config.mjs ./
 
 EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 --start-period=30s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
 
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]
