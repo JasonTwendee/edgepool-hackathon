@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, LockSimple, PauseCircle, UsersThree, XLogo } from '@phosphor-icons/react';
+import { ArrowLeft, LockSimple, PauseCircle, UsersThree, X, XLogo } from '@phosphor-icons/react';
 import {
   getAuthMe,
   getPoolDetail,
@@ -24,6 +24,7 @@ import {
 } from '../../../lib/api';
 import { getStoredToken } from '../../../lib/api';
 import { JourneyRail } from '../../../components/JourneyRail';
+import { LoginModal } from '../../../components/LoginModal';
 import { connectBrowserWallet, getInjectedProvider, signWithBrowserWallet } from '../../../lib/solana';
 import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
 import { Toaster, toast } from '../../../components/Toaster';
@@ -180,6 +181,9 @@ export default function PoolDetailPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasWallet, setHasWallet] = useState(false);
+  // Login gate ngay trên trang pool: user chưa login bấm CTA deposit phải
+  // thấy modal login, không phải tự mò nút wallet trên header.
+  const [loginOpen, setLoginOpen] = useState(false);
   // Admin demo console (ADMIN role only; never rendered for the public).
   const [isAdmin, setIsAdmin] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
@@ -222,6 +226,7 @@ export default function PoolDetailPage() {
     const token = getStoredToken();
     if (!token) {
       setMsg('Sign in first (login wall).');
+      setLoginOpen(true);
       return;
     }
     const amt = Number(amount);
@@ -902,6 +907,14 @@ export default function PoolDetailPage() {
               )}
               <a
                 href="#deposit-panel"
+                onClick={(e) => {
+                  // Chưa login → mở modal login ngay, không scroll lòng vòng.
+                  if (!getStoredToken()) {
+                    e.preventDefault();
+                    setMsg('Sign in first (login wall).');
+                    setLoginOpen(true);
+                  }
+                }}
                 className="block text-center w-full font-medium"
                 style={{ height: 40, lineHeight: '40px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}
               >
@@ -1075,6 +1088,35 @@ export default function PoolDetailPage() {
       <SiteFooter />
     </div>
     <Toaster />
+    {loginOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: 'rgba(13,15,24,0.72)', backdropFilter: 'blur(6px)' }}
+        onClick={() => setLoginOpen(false)}
+      >
+        <div className="w-full" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-end mb-2">
+            <button onClick={() => setLoginOpen(false)} aria-label="Close" className="p-1" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <LoginModal
+            session={null}
+            onSession={(s) => {
+              if (!s) return;
+              setLoginOpen(false);
+              const t = getStoredToken();
+              if (t) {
+                void getAuthMe(t)
+                  .then((r) => setIsAdmin(r.data.role === 'ADMIN'))
+                  .catch(() => setIsAdmin(false));
+              }
+              void refresh();
+            }}
+          />
+        </div>
+      </div>
+    )}
     </>
   );
 }
