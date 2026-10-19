@@ -1,11 +1,11 @@
 name: deploy
 
-# CD for main: runs ON the company Ubuntu box via a self-hosted runner
-# (works behind company NAT — runner dials OUT to GitHub, no inbound SSH needed).
+# CD for main: runs ON the GCP box (edgepool-dev, 136.85.91.206) via a
+# self-hosted runner (label edgepool-new; dials OUT, no inbound SSH needed).
 # The runner checks out with an ephemeral token, then rsyncs into DEPLOY_DIR —
 # the server itself needs NO GitHub credentials. Server .env files are NEVER
 # touched by rsync (excluded) — sync-env.sh only appends missing keys.
-# One-time server setup: scripts/setup-server.sh + register runner (label: edgepool).
+# Old company box (edgepool-dev-old) kept as rollback standby, no auto-deploy.
 
 on:
   workflow_run:
@@ -19,14 +19,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DEPLOY_DIR: /home/jason/Downloads/twendee/edgepool-hackathon
-  PROJ_DIR: /home/jason/Downloads/twendee/edgepool-hackathon/fomo-family-&-fomoscan-research-hub
+  DEPLOY_DIR: /home/ubuntu/edgepool-hackathon
+  PROJ_DIR: /home/ubuntu/edgepool-hackathon/fomo-family-&-fomoscan-research-hub
 
 jobs:
   deploy:
     # Only auto-deploy green CI; manual runs always allowed.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    runs-on: [self-hosted, edgepool]
+    runs-on: [self-hosted, edgepool-new]
     steps:
       - uses: actions/checkout@v4
         with:
