@@ -68,6 +68,9 @@ model Transaction {
 
   @@map("transactions")
   @@index([walletAddress, slot(sort: Desc)])
+  @@index([action, blockTime(sort: Desc)], map: "Transaction_action_blockTime_idx")
+  @@index([walletAddress, amountUsd, tokenMint], map: "Transaction_walletAddress_amountUsd_tokenMint_idx")
+  @@index([blockTime(sort: Desc)], map: "Transaction_blockTime_idx")
 }
 
 model RealtimeEvent {

@@ -18,7 +18,7 @@ function entry(wallet: string, username: string, verified = true): Row {
 }
 
 function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {}) {
-  const db = { wallet: [] as Row[] };
+  const db = { wallet: [] as Row[], tx: [] as Row[] };
   const audits: Row[] = [];
   let seq = 0;
   const match = (r: Row, w: Row): boolean =>
@@ -74,6 +74,12 @@ function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {
     },
     copyOrder: {
       findMany: async () => (opts.openWallets ?? []).map((masterWallet) => ({ masterWallet })),
+    },
+    transaction: {
+      groupBy: async ({ where }: { where: Row }) => {
+        const addrs = new Set((((where.walletAddress as Row)?.in as string[]) ?? []));
+        return db.tx.filter((r) => addrs.has(r.walletAddress as string)).map((r) => ({ walletAddress: r.walletAddress }));
+      },
     },
     vaultTrader: {
       findMany: async () => (opts.activeTraders ?? []).map((wallet) => ({ wallet })),
@@ -218,6 +224,41 @@ async function main(): Promise<void> {
     assert.equal(s.pruned, 1);
     assert.ok(!db.wallet.some((r) => r.address === 'OLD1')); // oldest pruned
     assert.ok(db.wallet.some((r) => r.address === walletOf(1) && r.isActive === true));
+    restore();
+  }
+
+  // 4b. Ví có lịch sử KHÔNG BAO GIỜ bị xóa cứng (deactivate-only rule):
+  //    victim có tx → giữ INACTIVE, chỉ ví trắng bị prune.
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '2', LEADERBOARD_CAP: '3', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const { prisma, db } = makeFake();
+    const oldRow = (id: number, address: string): Row => ({
+      id, address, label: 'o', handle: 'o', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    db.wallet.push(oldRow(101, 'OLD1'), oldRow(102, 'OLD2'), oldRow(103, 'OLD3'));
+    db.tx.push({ walletAddress: 'OLD2' }, { walletAddress: 'OLD3' });
+    const svc = svcWith(prisma, stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b')]));
+    const s = await svc.tick();
+    // total 5 > cap 3 → candidates OLD1, OLD2; OLD2 có history nên chỉ OLD1 bị xóa
+    assert.equal(s.pruned, 1);
+    assert.equal(s.total, 4);
+    assert.ok(!db.wallet.some((r) => r.address === 'OLD1'));
+    assert.ok(db.wallet.some((r) => r.address === 'OLD2'));
+    assert.ok(db.wallet.some((r) => r.address === 'OLD3'));
+    restore();
+  }
+
+  // 4c. Tick chồng tick bị bỏ qua (overlap guard).
+  {
+    const restore = env({ LEADERBOARD_TOP_N: '1', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0' });
+    const { prisma } = makeFake();
+    const svc = svcWith(prisma, stub([]));
+    (svc as unknown as { running: boolean }).running = true;
+    const s = await svc.tick();
+    assert.equal((s.note as string), 'concurrent-tick-skipped');
+    assert.equal(s.pruned, 0);
     restore();
   }
 

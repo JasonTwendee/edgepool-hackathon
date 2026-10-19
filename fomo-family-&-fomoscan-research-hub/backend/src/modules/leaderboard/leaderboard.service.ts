@@ -35,6 +35,7 @@ export interface RotationSummary {
   total: number;
   active: number;
   at: string;
+  note?: string;
 }
 
 function intEnv(name: string, fallback: number): number {
@@ -45,6 +46,7 @@ function intEnv(name: string, fallback: number): number {
 @Injectable()
 export class LeaderboardService implements OnModuleInit {
   private timer?: NodeJS.Timeout;
+  private running = false;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -90,6 +92,33 @@ export class LeaderboardService implements OnModuleInit {
   }
 
   async tick(): Promise<RotationSummary> {
+    // Overlap guard: rotation cascade trên DB 5M+ rows có thể chạy hàng chục
+    // phút — tick chồng tick là nguyên nhân pileup DELETE (sập API 19/10).
+    if (this.running) {
+      console.warn('[leaderboard] tick skipped (previous tick still running)');
+      return {
+        period: process.env.LEADERBOARD_PERIOD || DEFAULT_PERIOD,
+        topN: 0,
+        cap: 0,
+        added: 0,
+        reactivated: 0,
+        deactivated: 0,
+        pruned: 0,
+        total: 0,
+        active: 0,
+        at: new Date().toISOString(),
+        note: 'concurrent-tick-skipped',
+      };
+    }
+    this.running = true;
+    try {
+      return await this.tickInner();
+    } finally {
+      this.running = false;
+    }
+  }
+
+  private async tickInner(): Promise<RotationSummary> {
     const period = process.env.LEADERBOARD_PERIOD || DEFAULT_PERIOD;
     const topN = Math.max(intEnv('LEADERBOARD_TOP_N', DEFAULT_TOP_N), 1);
     const cap = Math.max(intEnv('LEADERBOARD_CAP', DEFAULT_CAP), topN);
@@ -208,13 +237,40 @@ export class LeaderboardService implements OnModuleInit {
       ]);
       const victims = candidates.filter((v) => !liveWallets.has(v.address));
       if (victims.length > 0) {
-        const gone = await this.prisma.trackedWallet.deleteMany({
-          where: { id: { in: victims.map((v) => v.id) } },
-        });
+        // Deactivate-only rule: ví có lịch sử KHÔNG BAO GIỜ bị xóa cứng —
+        // cascade FK sẽ cuốn cả trăm nghìn transactions + realtime events
+        // (sập API 19/10: DELETE 36 ví kẹt 100+ phút trên VPS 2GB).
+        // Chỉ xóa ví trắng (0 txns); còn lại giữ INACTIVE + history.
+        const withTx = new Set(
+          (
+            await this.prisma.transaction.groupBy({
+              by: ['walletAddress'],
+              where: { walletAddress: { in: victims.map((v) => v.address) } },
+              _count: true,
+            })
+          ).map((g) => g.walletAddress),
+        );
+        const deletable = victims.filter((v) => !withTx.has(v.address));
+        const kept = victims.length - deletable.length;
+        if (kept > 0) {
+          console.warn(
+            `[leaderboard] cap ${cap}/${total}: kept ${kept} inactive wallets WITH history (never hard-delete)`,
+          );
+        }
+        if (deletable.length === 0) {
+          console.warn(
+            `[leaderboard] cap ${cap}/${total}: all ${victims.length} excess wallets carry history, pruned 0`,
+          );
+        } else {
+          const gone = await this.prisma.trackedWallet.deleteMany({
+            where: { id: { in: deletable.map((v) => v.id) } },
+          });
         pruned = gone.count;
         // Pruned wallets must leave the live pipeline too — otherwise their
         // WS subs + poll slots keep burning RPC after the DB row is gone.
-        for (const v of victims) {
+        // (Chỉ deletable: ví giữ lại đã INACTIVE sẵn, reconcile cuối tick
+        // dọn nốt nếu còn sót trong listener.)
+        for (const v of deletable) {
           this.listener.removeTrackedWallet(v.address);
           await this.stream.unwatch(v.address).catch(() => undefined);
         }
@@ -222,12 +278,13 @@ export class LeaderboardService implements OnModuleInit {
           .record({
             actor: 'system:rotation',
             action: 'wallet.rotation_prune',
-            target: victims.map((v) => v.address).join(',').slice(0, 200),
-            reason: `cap ${cap}/${total}: pruned ${pruned} inactive unreferenced wallets`,
+            target: deletable.map((v) => v.address).join(',').slice(0, 200),
+            reason: `cap ${cap}/${total}: pruned ${pruned} empty wallets, kept ${kept} with history`,
           })
           .catch((e: unknown) => {
             console.warn('[leaderboard] prune audit failed:', (e as Error).message);
           });
+        }
       } else if (candidates.length > 0) {
         console.warn(`[leaderboard] cap ${cap}/${total}: ${candidates.length} excess wallets all live-referenced, pruned 0`);
       }
