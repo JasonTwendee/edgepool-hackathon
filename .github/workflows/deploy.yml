@@ -63,6 +63,8 @@ jobs:
           done
           curl -sf http://localhost:3000/api/health | head -c 120; echo
           curl -sf -o /dev/null -w 'FE :3001 %{http_code}\n' http://localhost:3001/
+          # Warm heavy endpoints so first public hit isn't a 20s cold plan
+          curl -sf --max-time 120 http://localhost:3001/api/vaults/pools -o /dev/null -w 'pools warm %{http_code}\n'
 
       - name: Cleanup old images (keep recent for rollback, never volumes)
         working-directory: ${{ env.PROJ_DIR }}
