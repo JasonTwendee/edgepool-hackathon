@@ -44,7 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build+push backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v5
         with:
           context: fomo-family-&-fomoscan-research-hub
           file: fomo-family-&-fomoscan-research-hub/backend/Dockerfile
