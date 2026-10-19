@@ -12,21 +12,22 @@ services:
       -c effective_cache_size=256MB
       -c max_connections=50
       -c work_mem=2MB
-    mem_limit: 300m
-    mem_reservation: 150m
+    # Đo 2026-10-16: tuned pg ~260-570MB, spike sync ~600MB. Dưới 1g là OOM.
+    mem_limit: 1g
+    mem_reservation: 256m
 
   backend:
     image: ghcr.io/jasontwendee/fomo-backend:${TAG:-main}
     build: !reset null
-    mem_limit: 400m
-    mem_reservation: 200m
-    environment:
-      NODE_OPTIONS: --max-old-space-size=256
+    # Đo 2026-10-16: boot sync cần >512MB heap (crash exit 139 ở heap 511MB).
+    # CẤM heap cap nhỏ + CẤM mem_limit dưới 2g khi ENABLE_SYNC=true.
+    mem_limit: 3g
+    mem_reservation: 512m
 
   frontend:
     image: ghcr.io/jasontwendee/fomo-frontend:${TAG:-main}
     build: !reset null
     mem_limit: 300m
-    mem_reservation: 150m
+    mem_reservation: 100m
     environment:
       NODE_OPTIONS: --max-old-space-size=256
