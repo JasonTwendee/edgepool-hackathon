@@ -281,18 +281,6 @@ export class VaultService {
     return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
   }
 
-  /** Session-scoped balance: userId OR legacy depositor==wallet rows. */
-  async depositorSharesByUser(vaultId: number, user: { id: number; wallet: string }): Promise<number> {
-    const where = { vaultId, status: 'SETTLED', OR: [{ userId: user.id }, { depositor: user.wallet }] };
-    const [ins, outs] = await Promise.all([
-      this.prisma.deposit.findMany({ where }),
-      this.prisma.withdrawal.findMany({ where }),
-    ]);
-    const minted = ins.reduce((s, r) => s + num(r.sharesMinted), 0);
-    const burned = outs.reduce((s, r) => s + burnedOf(r), 0);
-    return Math.max(0, Math.round((minted - burned) * 1e9) / 1e9);
-  }
-
   async requestWithdraw(
     vaultId: number,
     userOrDepositor: { id: number; wallet: string } | string,
@@ -317,7 +305,8 @@ export class VaultService {
     const balance =
       typeof userOrDepositor === 'string'
         ? await this.depositorShares(resolvedId, depositor.trim())
-        : await this.depositorSharesByUser(resolvedId, userOrDepositor);
+        // Strict per-wallet balance: never union by session userId (see mine()).
+        : await this.depositorShares(resolvedId, userOrDepositor.wallet.trim());
     if (shares - balance > 1e-9) {
       fail(`Insufficient shares: requested ${shares}, balance ${balance}.`);
     }
@@ -461,13 +450,10 @@ export class VaultService {
       let treasuryFee = 0;
       for (const w of withdrawals) {
         const want = num(w.sharesRequested);
-        // Linked identity (same scope as request-time depositorSharesByUser):
-        // the session userId OR the depositor string. A withdrawal requested
-        // with a connected wallet settles against the exact balance it was
-        // approved against — never a silent 0 payout on identity mismatch.
-        const scope = (w.userId as number | null | undefined) != null
-          ? { OR: [{ userId: w.userId }, { depositor: w.depositor }] }
-          : { depositor: w.depositor };
+        // Strict per-depositor scope: shares belong to the wallet that
+        // deposited them (same as on-chain per-wallet ATA balances). Unioning
+        // by session userId let one login drain other wallets' shares.
+        const scope = { depositor: w.depositor };
         // Balance inside the tx (same snapshot as the mint loop above).
         const [ins, outs] = await Promise.all([
           tx.deposit.findMany({ where: { vaultId, status: 'SETTLED', ...scope } }),
@@ -1325,6 +1311,10 @@ export class VaultService {
     vaultId = id;
     const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
     if (!vault) fail(`Vault ${vaultId} not found.`);
+    // Display scope aggregates wallets linked to this login (legacy + linked
+    // identity, D5): convenient for portfolio views. Binding rule — settlement
+    // and withdrawal validation (below) are STRICTLY per-depositor wallet, so
+    // displayed aggregate can never be drained across wallets (pool 14).
     const mine = { vaultId, OR: [{ userId: user.id }, { depositor: user.wallet }] };
     const [deposits, withdrawals, last] = await Promise.all([
       this.prisma.deposit.findMany({ where: mine, orderBy: { id: 'asc' } }),

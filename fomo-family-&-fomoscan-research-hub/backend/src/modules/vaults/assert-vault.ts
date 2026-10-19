@@ -177,15 +177,17 @@ async function main(): Promise<void> {
     await assert.rejects(() => svcH.deposit(1, 'mallory', 5), /Kill-switch/);
   }
 
-  // 9. Cross-identity withdrawal settles against the linked (userId OR
-  // depositor) balance — the Oct-9 pool-14 shape: deposit under `cred:kol`,
-  // withdrawal requested from a kol session with a connected wallet.
+  // 9. Cross-wallet withdrawal is capped at the signing wallet's own shares —
+  // a shared session userId must NOT let one wallet spend another's (pool 14
+  // incident: shared login drained other wallets, holder shares > supply).
   {
     const svcX = new VaultService(makeFake());
     const vx = await svcX.getOrCreateVault('xpool');
     await svcX.deposit(vx.id, 'cred:kol', 10, 8);
     await svcX.settleEpoch(vx.id, 10);
-    await svcX.requestWithdraw(vx.id, { id: 8, wallet: 'W9' }, 4);
+    await assert.rejects(() => svcX.requestWithdraw(vx.id, { id: 8, wallet: 'W9' }, 4), /Insufficient/);
+    // Same wallet withdrawing its own shares: works.
+    await svcX.requestWithdraw(vx.id, { id: 8, wallet: 'cred:kol' }, 4);
     const sx = await svcX.settleEpoch(vx.id, 12);
     assert.deepEqual(sx.settledWithdrawals.map((w) => w.payoutSol), [4.8]);
     const mx = await svcX.mine(vx.id, { id: 8, wallet: 'cred:kol' });
@@ -262,6 +264,27 @@ async function main(): Promise<void> {
     const se2 = await svcE.settleEpoch(ve.id);
     assert.equal(se2.sharePrice, 1.2);
     assert.equal(await svcE.depositorShares(ve.id, 'erin'), 6);
+  }
+
+  // 14. Shared-login isolation (pool 14 incident): two wallets funded under one
+  // session userId must NOT pool balances. Withdrawal is validated and
+  // settled strictly against the named wallet's own shares.
+  {
+    const svcI = new VaultService(makeFake());
+    const vi = await svcI.getOrCreateVault('isolate');
+    await svcI.deposit(vi.id, { id: 8, wallet: 'kol' }, 10);
+    await svcI.settleEpoch(vi.id, 10);
+    await svcI.deposit(vi.id, { id: 8, wallet: 'dbu' }, 1);
+    await svcI.settleEpoch(vi.id, 11);
+    // dbu owns exactly 1 share; requesting 5 must fail even though userId 8
+    // collectively holds 11.
+    await assert.rejects(() => svcI.requestWithdraw(vi.id, { id: 8, wallet: 'dbu' }, 5), /Insufficient/);
+    // dbu CAN withdraw its own 1 share; kol untouched.
+    await svcI.requestWithdraw(vi.id, { id: 8, wallet: 'dbu' }, 1);
+    const si = await svcI.settleEpoch(vi.id, 11);
+    assert.deepEqual(si.settledWithdrawals.map((w) => w.payoutSol), [1]);
+    assert.equal(await svcI.depositorShares(vi.id, 'kol'), 10);
+    assert.equal(await svcI.depositorShares(vi.id, 'dbu'), 0);
   }
 
   console.log('vault asserts: ALL GREEN');
