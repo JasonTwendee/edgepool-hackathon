@@ -2,6 +2,9 @@ name: deploy
 
 # CD for main: runs ON the GCP box (edgepool-dev, 136.85.91.206) via a
 # self-hosted runner (label edgepool-new; dials OUT, no inbound SSH needed).
+# Triggered by build-push (which itself only runs after green CI), so GHCR
+# images for this exact SHA are guaranteed to exist — server NEVER builds,
+# only pulls (2GB box cannot afford local builds; measured load 27 + OOM).
 # The runner checks out with an ephemeral token, then rsyncs into DEPLOY_DIR —
 # the server itself needs NO GitHub credentials. Server .env files are NEVER
 # touched by rsync (excluded) — sync-env.sh only appends missing keys.
@@ -9,7 +12,7 @@ name: deploy
 
 on:
   workflow_run:
-    workflows: [ci]
+    workflows: [build-push]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -46,11 +49,11 @@ jobs:
           bash scripts/sync-env.sh backend/.env.example backend/.env
           bash scripts/sync-env.sh frontend/.env.example frontend/.env
 
-      - name: Migrate + rebuild + restart (prod overlay)
+      - name: Pull + restart (prod + ghcr overlays, no local build)
         working-directory: ${{ env.PROJ_DIR }}
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml build backend frontend
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          TAG="${{ github.event.workflow_run.head_sha || 'main' }}" docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml pull backend frontend
+          TAG="${{ github.event.workflow_run.head_sha || 'main' }}" docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.ghcr.yml up -d
 
       - name: Smoke (fail deploy on red)
         run: |

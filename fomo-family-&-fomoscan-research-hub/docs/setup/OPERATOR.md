@@ -78,9 +78,10 @@ curl -s "http://localhost:3001/api/portfolio/transactions?pageSize=2" | head -c 
 
 - **CI** (cloud): `npm ci` → `typecheck` (BE+FE) → parse openapi → kiểm tra
   env contract → chạy asserts (`assert-*.ts`, mocked) → build FE.
-- **CD** (self-hosted runner trên server): checkout → đồng bộ code (giữ nguyên
-  `.env` server) → append key mới từ `.env.example` (không overwrite secrets)
-  → `build` + `up -d` → smoke đỏ thì fail deploy.
+- **CD** (self-hosted runner trên server, trigger sau khi build-push xanh):
+  checkout → đồng bộ code (giữ nguyên `.env` server) → append key mới từ
+  `.env.example` (không overwrite secrets) → `pull` image GHCR theo SHA
+  + `up -d` (KHÔNG build trên server) → smoke đỏ thì fail deploy → dọn ảnh cũ.
 - Deploy thủ công: copy đúng các bước CD ở trên, đừng tự chế biến thể.
   Đổi `.env` phải `up -d <service>` (restart thường không đọc lại env).
 
