@@ -82,7 +82,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Máy nhỏ boot chậm (migrate + Nest init ~90s): start_period ngắn là
+      # compose kết luận unhealthy sớm, kéo frontend fail theo.
+      start_period: 120s
 
   frontend:
     build:

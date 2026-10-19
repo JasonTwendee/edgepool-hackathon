@@ -57,7 +57,10 @@ jobs:
 
       - name: Smoke (fail deploy on red)
         run: |
-          sleep 10
+          for i in $(seq 1 18); do
+            if curl -sf http://localhost:3000/api/health | head -c 60; then echo; break; fi
+            echo "waiting backend... ($i/18)"; sleep 10
+          done
           curl -sf http://localhost:3000/api/health | head -c 120; echo
           curl -sf -o /dev/null -w 'FE :3001 %{http_code}\n' http://localhost:3001/
 
