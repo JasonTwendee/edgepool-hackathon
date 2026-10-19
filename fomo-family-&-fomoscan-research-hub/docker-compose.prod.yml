@@ -17,6 +17,11 @@ services:
     image: caddy:2-alpine
     container_name: fomo-caddy
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       # Chỉ :80 — public đi Tailscale Funnel (tự TLS, forward về localhost:80).
       # KHÔNG bind :443: tailscaled giữ tailscale0:443, Docker bind 0.0.0.0:443

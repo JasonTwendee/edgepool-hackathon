@@ -12,6 +12,11 @@ services:
     image: postgres:17-alpine
     container_name: fomo-postgres
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-fomo}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fomo}
@@ -33,6 +38,11 @@ services:
       dockerfile: ./backend/Dockerfile
     container_name: fomo-backend
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     # backend/.env là live secrets (KHÔNG commit). Compose environment dưới đây thắng env_file,
     # đảm bảo DNS nội bộ + port nội bộ đúng khi chạy container.
     env_file:
@@ -82,6 +92,11 @@ services:
         BACKEND_URL: http://backend:3000
     container_name: fomo-frontend
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - ./frontend/.env
     environment:

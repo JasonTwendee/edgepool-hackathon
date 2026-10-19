@@ -58,6 +58,11 @@ jobs:
           curl -sf http://localhost:3000/api/health | head -c 120; echo
           curl -sf -o /dev/null -w 'FE :3001 %{http_code}\n' http://localhost:3001/
 
+      - name: Cleanup old images (keep recent for rollback, never volumes)
+        working-directory: ${{ env.PROJ_DIR }}
+        run: |
+          KEEP=72h bash scripts/docker-cleanup.sh
+
       - name: Public demo URL via trycloudflare (opt-in, ephemeral)
         if: ${{ vars.TUNNEL_ENABLED == 'true' }}
         working-directory: ${{ env.PROJ_DIR }}
