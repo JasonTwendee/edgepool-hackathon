@@ -385,16 +385,17 @@
     "/api/wallets = 5",
     "PnL overview = 5",
     "pools = 2 x 5 shared roster",
-    "transactions 5,067,447 -> 48,189",
-    "realtime_events 4,866,031 -> 14,429",
-    "tracked_wallets 100 -> 11 (5 live)",
+    "rotation active=5 total=11",
+    "transactions 5,067,447 -> ~48.2k",
+    "realtime_events 4,866,031 -> ~14.4k",
     "pg_database_size 8.17GB -> 66MB",
+    "disk free 20GB -> 28GB",
     "event->tx orphan FK = 0",
-    "money ledger/orders/audit untouched"
+    "load 0.76"
    ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-20T09:50:00Z",
+ "updatedAt": "2026-10-20T09:56:00Z",
  "version": 2
 }
