@@ -35,6 +35,7 @@ export class SolanaStreamService implements OnModuleInit, OnModuleDestroy {
     // Subscriptions are owned by WalletsService.reconcileLiveStream (pool
     // roster). Do not bulk-subscribe hardcoded defaults here: the old boot
     // race re-added 10 non-pool wallets after the scope reconcile.
+    this.lastMsgAt = Date.now();
     this.watchdog = setInterval(() => void this.checkHealth(), WATCHDOG_INTERVAL_MS);
   }
 
@@ -64,6 +65,7 @@ export class SolanaStreamService implements OnModuleInit, OnModuleDestroy {
     }
     // eslint-disable-next-line no-console
     console.log(`[SolanaStream] Active subscriptions: ${this.subs.size}`);
+    this.lastMsgAt = Date.now();
   }
 
   /**
@@ -77,6 +79,9 @@ export class SolanaStreamService implements OnModuleInit, OnModuleDestroy {
       if (!want.has(address)) await this.unwatch(address);
     }
     for (const address of want) await this.watch(address);
+    // Subscription setup itself is liveness: avoid the watchdog treating a
+    // quiet-but-healthy basket as a dead socket right after (re)subscribe.
+    this.lastMsgAt = Date.now();
     // eslint-disable-next-line no-console
     console.log(`[SolanaStream] live scope: ${want.size} wallet(s), subs=${this.subs.size}`);
   }
