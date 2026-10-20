@@ -23,10 +23,11 @@ export interface RealtimeEventDto {
 }
 
 /**
- * Live pipeline: WS stream delivers wallet activity instantly → fetch new
- * signatures → Helius enrich → persist ledger + realtime_events → SSE fan-out.
- * The 60s history sync is the safety net (cursor-based catch-up). Persistence
- * failures are logged, never crash the loop. In-flight guard per wallet.
+ * Live pipeline: WS stream delivers wallet activity instantly → debounce per
+ * wallet (3s) → fetch new signatures → Helius enrich → persist ledger +
+ * realtime_events → SSE fan-out. The safety-net sync is the correctness net
+ * (cursor-based catch-up). Persistence failures are logged, never crash the
+ * loop. In-flight guard per wallet.
  */
 @Injectable()
 export class OnchainService implements OnModuleInit, OnModuleDestroy {

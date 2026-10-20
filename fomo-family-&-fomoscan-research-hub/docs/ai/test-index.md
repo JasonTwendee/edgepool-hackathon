@@ -26,12 +26,16 @@
 | `modules/leaderboard/assert-leaderboard.ts` | rotation topN=30 cap=50 reconcile |
 | `modules/market/assert-market.ts` | ticks/prices proxy |
 | `modules/partner/assert-partner.ts` | trader portal flows |
+| `modules/signed-intent/assert-signed-intent.ts` | wallet-signed deposit/withdraw intents |
+| `modules/sync/assert-rpc-parse.ts` | RPC parser fallback in WS sync |
 | `modules/sync/assert-sync.ts` | full-sync + backfill cursors |
 | `modules/vaults/assert-vault.ts` | HWM ratchet, shares mint/burn, fee math |
 | `modules/vaults/assert-multivault.ts` | multi-pool isolation |
 | `modules/vaults/assert-treasury.ts` | treasury + dust routing |
 | `modules/vaults/assert-windows.ts` | settle windows open/closed |
 | `modules/vaults/assert-pools.ts` | pool detail + advanced ladder payload |
+| `modules/vaults/assert-ledger.ts` | fund-flow statement + reconciliation + paywall |
+| `modules/vaults/assert-journeys.ts` | admin signal-journey rail mapping |
 | `modules/vaults/assert-portfolio.ts` | investor overview math |
 | `modules/vaults/assert-partner.ts` | 75/25 fee split + payout ledger |
 | `modules/wallets/assert-enrich.ts` | bio/EVM enrich |

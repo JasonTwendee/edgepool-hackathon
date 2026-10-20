@@ -358,21 +358,22 @@
    "at": "2026-10-20T08:35:00Z",
    "topic": "two-pool-live-scope-slimming",
    "phase": "P1-P5",
-   "status": "in_progress",
-   "detail": "2 pools share 5 traders; live scope pool-only; debounce/SSE; DB cleanup done; deployed a29afcf/059d1ad; 28/28 asserts; measuring post-deploy load",
+   "status": "done",
+   "detail": "2 pools share 5 traders; live scope pool-only; debounce/SSE; DB cleanup done; final deploy 1bff5e5; 28/28 asserts; post-scope 8 events/29min (-99.89%)",
    "verification": [
     "28/28 asserts GREEN",
     "BE/FE typecheck + builds GREEN",
     "env contract 56+2 GREEN",
     "public pools=2 shared 5x2000bps",
     "live subs=5 / sync wallets=5",
-    "events 08:18-08:28 = 3 vs 14685/h baseline",
+    "events 08:18-08:47 = 8 vs 14685/h baseline (-99.89%)",
+    "load 0.44 / RAM 819MB / 0 locks",
     "FE 6 routes 200 / BE 200 / auth 401",
-    "load 1.24, 0 locks"
+    "SSE CONNECTED + tailnet health 200"
    ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-20T08:35:00Z",
+ "updatedAt": "2026-10-20T08:48:00Z",
  "version": 2
 }

@@ -180,7 +180,7 @@
     "packageManager": "npm",
     "smokeCommand": "curl -s http://localhost:3000/api/health",
     "stackProfile": "generic+dual-stack-override",
-    "testCommand": "npx tsx src/modules/**/assert-*.ts (23 suites, CI runs all)",
+    "testCommand": "for f in $(find src -name 'assert-*.ts'); do npx tsx \"$f\"; done (28 suites, CI runs all)",
     "typecheckCommand": "npm run typecheck"
   },
   "protectedPaths": {
@@ -334,7 +334,8 @@
     "assert-vault": "backend/src/modules/vaults/assert-vault.ts (HWM/shares/fees)",
     "assert-windows": "backend/src/modules/vaults/assert-windows.ts (settle windows)",
     "assert-enrich": "backend/src/modules/wallets/assert-enrich.ts",
-    "assert-live-scope": "backend/src/common/assert-live-scope.ts (pool/all/fallback scope + debouncer + SSE buffer)"
+    "assert-live-scope": "backend/src/common/assert-live-scope.ts (pool/all/fallback scope + debouncer + SSE buffer)",
+    "assert-rpc-parse": "backend/src/modules/sync/assert-rpc-parse.ts (RPC parser fallback in WS sync)"
   },
   "verification": {
     "commands": [

@@ -24,6 +24,8 @@ import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
  * Wallets CRUD — Postgres (reference schema `tracked_wallets`) is source of
  * truth; the in-memory listener Map is synced so polling/portfolio/SSE run unchanged.
  * Seeds 10 master wallets on empty table (mapped from DEFAULT_TRACKED_WALLETS).
+ * Live pipeline scope = active traders of public/live pools (fallback: DB-active);
+ * leaderboard may keep a wider display set without subscribing it.
  * DELETE cascades to transactions + realtime_events (FK ON DELETE CASCADE).
  */
 @Injectable()

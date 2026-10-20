@@ -14,8 +14,8 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
 | P2 | done | Debounce + scoped stats + SSE buffer + watchdog | `LIVE_DEBOUNCE_MS=3000`, `findAllLive` sync, `syncWalletStats(days, addresses)`, 500ms SSE buffer, 30-min watchdog |
 | P3 | done | Asserts + typecheck + builds + env contract | 28/28 assert suites; BE typecheck+build; FE typecheck+build; env contract 56+2; openapi 70 paths |
 | P4 | done | VPS cleanup to 2 pools | 7 vaults deleted; 41 orders / 7 intents / 7 bots cleaned; 14/15 share 5×2000bps; NAV unchanged |
-| P5 | in progress | Deploy + live metrics/smoke | deployed `a29afcf` + `059d1ad`; subs=5, sync=5, stats=4; 3 events 08:18–08:28 (vs 14,685/h); 2 pools shared 5×2000bps; FE/BE smoke green; load 1.24 / 0 locks; retention 120d re-confirmed |
-| P6 | pending | Docs/indexes/logs | — |
+| P5 | done | Deploy + live metrics/smoke | deployed `a29afcf` → `059d1ad` → `1bff5e5`; subs=5, sync=5, stats=4; **8 events 08:18–08:47 (~16.5/h vs 14,685/h, −99.89%)**, only top-5 wallets; 2 pools shared 5×2000bps; FE/BE smoke green; load 0.44 / RAM 819MB / 0 locks; retention 120d |
+| P6 | done | Docs/indexes/logs | intent+plan+tracker, refactor-log, rule-registry, context-map, project/test/module/entity indexes, artifact registry, telemetry |
 
 ## Baseline (2026-10-20)
 
@@ -48,6 +48,24 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
 - `realtime_events`: 4.86M rows / 5.2 GB; `transactions`: 5.06M / 2.8 GB.
 - Growth ~0.4–0.5 GB/day; VPS ~20 GB free.
 
+## Residual notes / follow-ups
+
+- The first scoped boot ran with the server's stale `FULL_HISTORY_DAYS=35`
+  before it was corrected to 120; `pruneOnce` archived+deleted **23** raw rows
+  older than 35 days (audit `sync.prune_archive`). Raw chain data is
+  re-fetchable from RPC; no money-ledger row is in prune scope.
+- Pool 15 still has closed copy orders from `sadcrissy` (2) and is otherwise
+  clean; pool 14 has 3 open orders from `throatycrab1008` (still in roster).
+  No open position belongs to a removed trader.
+- `LIVE_ROSTER_MODE=top` would follow the board top 5 (may include high-volume
+  wallets). Keep `pin` unless the user explicitly wants dynamic board churn.
+- Leaderboard display keeps `LEADERBOARD_TOP_N=30` active rows; only the 5
+  pool traders are live (WS/sync/stats). This is intentional load isolation.
+- On-demand `GET /api/portfolio/pnl/overview` (terminal, 180s poll when a client
+  is open) still FIFO-computes every tracked wallet; it is not part of the
+  background live loop. Candidate follow-up: scope it to active/live wallets or
+  cache per wallet. Not changed here to avoid altering terminal coverage.
+
 ## Handoff log
 
 - 2026-10-20: baseline captured; intent + plan + tracker created.
@@ -67,14 +85,13 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
   (2000 bps) with the same addresses; pool 14 max_traders 3→5; NAV unchanged
   (14: 10.0 @1.0; 15: 431.87 @1.016345957). Inactive old trader rows kept for
   history/fee audit.
-- 2026-10-20 P5 partial: deployed `a29afcf` then watchdog fix `059d1ad`.
-  Runtime logs: `live scope: 5 wallet(s), subs=5`, `Wallets live scope=pool
-  wallets=5`, `SyncScheduler (boot) wallets=5 statsUpdated=4`, retention log
-  `120d window`. Public `GET /api/vaults/pools` = 2 pools, both 5 traders
-  × 2000bps. Events 08:18–08:28 = 3 (all ogantd/collectible). FE 6 routes 200,
-  BE 200, auth 401. Load 1.24, 0 ungranted locks, DB 8.17 GB / 20 GB free.
-  Fixed watchdog: `lastMsgAt` is armed only on real subscription changes, not
-  every 60s reconcile (otherwise a dead socket would never be detected); no
-  quiet-resubscribe churn observed.
+- 2026-10-20 P5 done: 29-min post-scope window (08:18–08:47): **8
+  `realtime_events`** (~16.5/h) vs baseline 14,685/h = **−99.89%**; wallets
+  only `ogantd` (5), `collectible` (2), `Aurelius` (1). `transactions` +8.
+  Load 0.44, RAM used 819 MB, 0 ungranted locks, DB 8.17 GB / 20 GB free.
+  Live subs=5, sync wallets=5, statsUpdated=4. Public pools API + pool detail
+  14/15 + 6 FE routes 200; auth-gated 401; SSE `CONNECTED`; tailnet health 200.
+- 2026-10-20 P6 done: docs/indexes/rule-registry/context-map/artifact
+  registry/telemetry updated in the same commit as the final watchdog comments.
 - 2026-10-20: server `.env` `FULL_HISTORY_DAYS` corrected 35 → 120 per user
   confirmation; backup `.env.bak-20261020-retention` left on VPS.

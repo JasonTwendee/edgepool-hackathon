@@ -30,10 +30,10 @@ const HISTORY_DAYS =
 
 /**
  * Safety-net sync (RPC polling so the WS stream can never silently die):
- * every SYNC_INTERVAL_MS (default 20s), top up each wallet toward full
- * history (FULL_HISTORY_DAYS, default ~10y) from RPC, enrich via
- * Helius, persist, then recompute stats. First boot does the full backfill
- * in the background (non-blocking) with per-wallet progress logs.
+ * every SYNC_INTERVAL_MS (default 20s), top up each LIVE-SCOPE wallet toward
+ * full history (FULL_HISTORY_DAYS, default 120d) from RPC, enrich via Helius,
+ * persist, then recompute stats for the same set. First boot does the full
+ * backfill in the background (non-blocking) with per-wallet progress logs.
  * Overlap-guarded; failures are logged per wallet, never crash the loop.
  */
 @Injectable()

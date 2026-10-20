@@ -15,9 +15,9 @@ const WATCHDOG_STALE_MS = (() => {
 
 /**
  * WebSocket event stream (primary real-time source): one `onLogs` subscription
- * per tracked wallet. The 60s RPC sync in SyncModule is the safety net —
- * anything the socket misses (drop, 429, restart gap) is caught up by cursor.
- * Watchdog resubscribes when the socket goes quiet.
+ * per LIVE-SCOPE wallet (active public-pool traders). The safety-net RPC sync
+ * is the correctness net — anything the socket misses (drop, 429, restart gap)
+ * is caught up by cursor. Watchdog resubscribes after a long quiet period.
  */
 @Injectable()
 export class SolanaStreamService implements OnModuleInit, OnModuleDestroy {

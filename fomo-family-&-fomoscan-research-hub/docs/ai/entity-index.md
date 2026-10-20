@@ -5,8 +5,8 @@
 | Model | Table | Key fields | Notes |
 |---|---|---|---|
 | `TrackedWallet` | `tracked_wallets` | `address` unique, `isActive`, cursor `lastScannedSlot/Signature`, stats `totalTradesCount/winRate/cumulativePnlUsd`, FomoScan `fomoPnlUsd/fomoRank/rank24h/rank7d/rank30d/fomoSyncedAt`, `bio`, `evmAddress`, `avatarUrl` | 30 active universe; dropped → `isActive=false`, history kept |
-| `Transaction` | `transactions` | PK `signature`, `walletAddress` FK, `slot/blockTime`, `action`, `symbol/tokenMint`, `amountToken/amountUsd`, `dexVenue/feeSol/status` | Pruned >35d (archived first) |
-| `RealtimeEvent` | `realtime_events` | `eventType`, `walletAddress` FK, `txSignature` FK, `payload` | Pruned >35d (archived first) |
+| `Transaction` | `transactions` | PK `signature`, `walletAddress` FK, `slot/blockTime`, `action`, `symbol/tokenMint`, `amountToken/amountUsd`, `dexVenue/feeSol/status` | Pruned >120d (archived first) |
+| `RealtimeEvent` | `realtime_events` | `eventType`, `walletAddress` FK, `txSignature` FK, `payload` | Pruned >120d (archived first) |
 | `CopyOrder` | `copy_orders` | `masterWallet/Handle/txHash`, `symbol/action/tokenMint/amountUsd/venue`, `mode`, `status`, `devnetSignature`, `entry/peak/exitPrice`, `tp1Pct/stopPct/trailPct/tp2MultPct`, `closeReason/closedAt/realizedPnlUsd`, `vaultId` | Paper lifecycle; legs in `CopyOrderLeg` |
 | `CopyOrderLeg` | `copy_order_legs` | `orderId` FK, `leg` TP1\|TP2\|STOP\|TRAIL\|TIME, `fraction`, `exitPriceUsd/realizedPnlUsd` | unique(`orderId,leg`) |
 | `Vault` | `vaults` | `name`, `kind` FLAGSHIP\|PARTNER, `status`, `feeBps`, `hwmSharePrice/totalShares`, `maxSlots/maxTraders`, settle `settlePeriodHours/settleLengthMin`, `lockHours`, `treasurySol`, `ownerUserId`, `rulesJson` | 1 pool = 1 vault + 1 bot + 3–5 traders |
