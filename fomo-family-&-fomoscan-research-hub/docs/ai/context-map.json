@@ -68,9 +68,9 @@
     "MarketController": "backend/src/modules/market/market.controller.ts"
   },
   "dataAccess": {
-    "wallets": "tracked_wallets via Prisma (WalletsService; enrich bio/EVM; rotation topN display but live pipeline scoped to active public-pool traders)",
-    "ledger": "transactions via TransactionsService (DB-first, Flux+Helius backfill); portfolio converges to DB reads",
-    "events": "realtime_events via OnchainService; GET /api/onchain/events",
+    "wallets": "tracked_wallets via Prisma (WalletsService; /api/wallets returns findAllLive = 5 pool roster; rotation topN=5 display; raw tx/events kept only for live roster)",
+    "ledger": "transactions via TransactionsService (DB-first, Flux+Helius backfill); portfolio converges to DB reads; retained for 5 live wallets",
+    "events": "realtime_events via OnchainService; GET /api/onchain/events; retained for 5 live wallets",
     "vaults": "vaults/deposits/withdrawals/epoch_checkpoints/partner_payouts via VaultService (NAV engine mark-to-market, HWM ratchet)",
     "copyOrders": "copy_orders + copy_order_legs via CopyTrade/Manage services (TP1/TP2/STOP/TRAIL/TIME legs)",
     "prune": "rolling FULL_HISTORY_DAYS=120 window; prune archives to PRUNE_ARCHIVE_DIR before delete; audit/orders/vaults never pruned"
@@ -144,7 +144,7 @@
     "autoFire": "auto-fire.service COPY_AUTO_INTERVAL_MS (default 5m; demo 1500m lookback via AUTO_FIRE_WINDOW_MAX_MIN)",
     "manage": "manage.service COPY_MANAGE_INTERVAL_MS (default 5m; TP1/TP2/stop/trail/time exits)",
     "allocation": "allocation.service COPY_ALLOC_INTERVAL_MS (default 0 = manual; rebalance endpoint)",
-    "rotation": "leaderboard.service tick: FomoScan topN display, live pool traders pinned active, both public pools re-synced to same 5",
+    "rotation": "leaderboard.service tick: FomoScan topN=5 display, live pool traders pinned active, both public pools re-synced to same 5",
     "prune": "rolling 120d prune transactions/realtime_events with JSONL archive",
     "liveScopeReconcile": "wallets.service LIVE_SCOPE_RECONCILE_MS (60s): listener registry + WS subs + DB active pin"
   },

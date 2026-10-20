@@ -169,7 +169,7 @@ export class PnlService {
         // fall through to local FIFO
       }
     }
-    const wallets = await this.wallets.findAll();
+    const wallets = await this.wallets.findAllLive();
     return Promise.all(wallets.map((w) => this.getWalletPnl(w.address, days)));
   }
 
@@ -189,7 +189,7 @@ export class PnlService {
     // NOTE: POST /handles/pnl (batch) is 403 on the sponsor plan for >1 handle,
     // so the fast-path fans out to single GETs (client self-throttles ≥1.1s,
     // 5-min cache). Same shape, same fallback contract.
-    const wallets = await this.wallets.findAll();
+    const wallets = await this.wallets.findAllLive();
     const results = await Promise.all(
       wallets.map(async (w) => {
         const handle = (w.handle ?? '').trim();

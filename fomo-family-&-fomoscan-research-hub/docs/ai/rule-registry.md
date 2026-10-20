@@ -80,6 +80,8 @@ This file is the durable rule source.
 - 2026-10-20 (user-confirmed): Giữ retention **120 ngày** (`FULL_HISTORY_DAYS=120`); không hạ xuống 35 ngày hay thấp hơn nếu chưa có approval mới. Prune scope vẫn chỉ transactions + realtime_events, archive trước khi delete.
 - 2026-10-20: WS burst debounce 3s/ví (`LIVE_DEBOUNCE_MS`), SSE flush 500ms với buffer cap 200 (`SSE_FLUSH_MS`), watchdog chỉ resubscribe sau 30 phút im lặng và chỉ subscription change mới arm `lastMsgAt` (không reset mỗi reconcile 60s).
 - 2026-10-20: Xoá pool là thao tác phá huỷ — bắt buộc backup dump 12 bảng vault trước; keep-list 14/15; `copy_orders`, `signed_intents`, `bots` phải delete tường minh vì không có FK cascade về vault.
+- 2026-10-20 (user-confirmed): Display surface chỉ 5 ví live pool roster. `GET /api/wallets` và `GET /api/portfolio/pnl/overview` phải scope `findAllLive()` (không trả 100 tracked history); `LEADERBOARD_TOP_N=5`, cap=20. Internal jobs vẫn có thể dùng `findAll()`.
+- 2026-10-20 (user-approved): Raw `transactions`/`realtime_events` của ví ngoài live roster có thể trim để giảm DB (TRUNCATE keep-5 trong transaction, verify orphan FK=0). Raw chain data re-fetchable; money ledger/orders/audit không nằm trong scope. Luôn ghi counts trước/sau.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
 ## User Overrides

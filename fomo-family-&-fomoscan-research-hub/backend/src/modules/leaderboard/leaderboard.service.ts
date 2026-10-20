@@ -19,8 +19,8 @@ import { resolveLiveScope } from '../../common/live-scope.js';
  * Manual tick() doubles as the ADMIN test hook; the interval loop is the
  * production path (LEADERBOARD_SYNC_INTERVAL_MS, default 24h, `0` = manual only).
  */
-export const DEFAULT_TOP_N = 20;
-/** Unified 20-wallet universe (user-confirmed 2026-10-06): top 20 active, max 20 rows. */
+export const DEFAULT_TOP_N = 5;
+/** History rows are kept for inactive wallets; cap only limits total tracked rows. */
 export const DEFAULT_CAP = 20;
 export const DEFAULT_PERIOD = 'weekly';
 export const DEFAULT_INTERVAL_MS = 86400000;

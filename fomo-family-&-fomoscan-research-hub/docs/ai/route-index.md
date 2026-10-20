@@ -9,11 +9,11 @@ Canonical contract: `docs/api/openapi.yaml` (70 paths).
 | GET | `/api/health` | `health.controller.ts` → `getHealth` | `api.ts#getHealth` | RPC, `heliusEnabled`, wallet count, secrets masked |
 | GET | `/api/market/ticks` | `market.controller.ts` | `useMarketTicker` | CoinGecko majors proxy |
 | GET | `/api/market/prices` | `market.controller.ts` | pool/portfolio | DataStream bulk prices proxy |
-| GET | `/api/wallets` | `wallets.controller.ts` → `findAll` | `api.ts#listWallets` | Tracked actives (rotation-owned) |
+| GET | `/api/wallets` | `wallets.controller.ts` → `findAll` | `api.ts#listWallets` | Live pool roster (5), not full rotation history |
 | PATCH | `/api/wallets/:address` | `wallets.controller.ts` → `updateCopyConfig` | `api.ts#updateWalletCopy` | `isCopyEnabled`, `allocationWeight` |
 | POST | `/api/wallets/:address/enrich` | `wallets.controller.ts` | — | bio/EVM enrich |
-| GET | `/api/wallets/rotation/status` | `leaderboard.controller.ts` | terminal | 30 active Solana traders |
-| POST | `/api/wallets/rotation/tick` | `leaderboard.controller.ts` | — (ADMIN+Audit) | topN=30 cap=50 reconcile |
+| GET | `/api/wallets/rotation/status` | `leaderboard.controller.ts` | terminal | 5 active Solana traders |
+| POST | `/api/wallets/rotation/tick` | `leaderboard.controller.ts` | — (ADMIN+Audit) | topN=5 cap=20 reconcile |
 
 ## REST — portfolio / onchain
 
@@ -21,7 +21,7 @@ Canonical contract: `docs/api/openapi.yaml` (70 paths).
 |---|---|---|---|---|
 | GET | `/api/portfolio/transactions` | `portfolio.controller.ts` | `api.ts#getPortfolioTransactions` | `?wallet=ALL\|<addr>&limit=` |
 | GET | `/api/portfolio/pnl` | `portfolio.controller.ts` | `api.ts#getWalletPnl` | FIFO realized per wallet |
-| GET | `/api/portfolio/pnl/overview` | `portfolio.controller.ts` | `api.ts#getPnlOverview` | sidebar realized totals |
+| GET | `/api/portfolio/pnl/overview` | `portfolio.controller.ts` | `api.ts#getPnlOverview` | sidebar realized totals (5 live roster) |
 | GET | `/api/portfolio/holdings` | `portfolio.controller.ts` | `api.ts#getHoldings` | live holdings |
 | GET | `/api/portfolio/fomoscan` | `portfolio.controller.ts` | leaderboard PnL | FomoScan fast-path display |
 | GET | `/api/onchain/events` | `onchain.controller.ts` | `api.ts#listRealtimeEvents` | persisted events |

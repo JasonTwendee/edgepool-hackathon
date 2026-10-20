@@ -49,7 +49,7 @@ export class PortfolioService {
         walletsCount: 1,
       };
     }
-    const wallets = await this.wallets.findAll();
+    const wallets = await this.wallets.findAllLive();
     const { rows, total } = await this.tx.queryLedger({
       action: query.action,
       hideZero: query.hideZero,

@@ -22,7 +22,9 @@ export class WalletsController {
 
   @Get()
   async findAll() {
-    const data = await this.wallets.findAll();
+    // Product surface: only the live pool roster (5 wallets), not the wider
+    // rotation/display history. Internal jobs use findAll()/findAllLive().
+    const data = await this.wallets.findAllLive();
     return { success: true, total: data.length, data };
   }
 

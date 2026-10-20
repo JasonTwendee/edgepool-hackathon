@@ -16,6 +16,7 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
 | P4 | done | VPS cleanup to 2 pools | 7 vaults deleted; 41 orders / 7 intents / 7 bots cleaned; 14/15 share 5×2000bps; NAV unchanged |
 | P5 | done | Deploy + live metrics/smoke | deployed `a29afcf` → `059d1ad` → `1bff5e5`; subs=5, sync=5, stats=4; **8 events 08:18–08:47 (~16.5/h vs 14,685/h, −99.89%)**, only top-5 wallets; 2 pools shared 5×2000bps; FE/BE smoke green; load 0.44 / RAM 819MB / 0 locks; retention 120d |
 | P6 | done | Docs/indexes/logs | intent+plan+tracker, refactor-log, rule-registry, context-map, project/test/module/entity indexes, artifact registry, telemetry |
+| P7 | done | Display only 5 + trim raw ledger/events outside roster | `/api/wallets`=5, PnL overview=5, `LEADERBOARD_TOP_N=5`; DB **8.17 GB → 66 MB**; tx **5,067,447 → 48,185**; events **4,866,031 → 14,425**; orphan FK=0 |
 
 ## Baseline (2026-10-20)
 
@@ -59,12 +60,10 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
   No open position belongs to a removed trader.
 - `LIVE_ROSTER_MODE=top` would follow the board top 5 (may include high-volume
   wallets). Keep `pin` unless the user explicitly wants dynamic board churn.
-- Leaderboard display keeps `LEADERBOARD_TOP_N=30` active rows; only the 5
-  pool traders are live (WS/sync/stats). This is intentional load isolation.
-- On-demand `GET /api/portfolio/pnl/overview` (terminal, 180s poll when a client
-  is open) still FIFO-computes every tracked wallet; it is not part of the
-  background live loop. Candidate follow-up: scope it to active/live wallets or
-  cache per wallet. Not changed here to avoid altering terminal coverage.
+- Leaderboard display keeps only 5 rows; only the 5 pool traders are live
+  (WS/sync/stats). This is the requested product surface.
+- On-demand `GET /api/portfolio/pnl/overview` is now scoped to the 5 live
+  wallets, so the terminal sidebar no longer FIFO-scans 100 wallets.
 
 ## Handoff log
 
@@ -93,5 +92,12 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
   14/15 + 6 FE routes 200; auth-gated 401; SSE `CONNECTED`; tailnet health 200.
 - 2026-10-20 P6 done: docs/indexes/rule-registry/context-map/artifact
   registry/telemetry updated in the same commit as the final watchdog comments.
+- 2026-10-20 P7 done (user follow-up): display surface narrowed to the 5 live
+  pool traders — `GET /api/wallets` and PnL overview use `findAllLive()`;
+  `LEADERBOARD_TOP_N=5` (cap 20) in code + VPS `.env`. Raw ledger/events for
+  wallets outside the roster were trimmed in one locked transaction:
+  `transactions` 5,067,447 → **48,185**, `realtime_events` 4,866,031 →
+  **14,425**, DB **8.17 GB → 66 MB**. Kept rows are exactly the 5 roster
+  wallets; event→tx orphan check = 0; money ledger/orders/audit untouched.
 - 2026-10-20: server `.env` `FULL_HISTORY_DAYS` corrected 35 → 120 per user
-  confirmation; backup `.env.bak-20261020-retention` left on VPS.
+  confirmation; the temporary `.env` backup was removed after verification.

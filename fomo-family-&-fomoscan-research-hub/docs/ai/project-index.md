@@ -44,8 +44,8 @@ High-level AI-readable map of this repository.
 | Full-stack dev (split) | `npm run dev:backend` (:3000) + `npm run dev:frontend` (:3001) | Mở http://localhost:3001 |
 | BE dev (NestJS) | `backend/src/main.ts` | `npm run dev:backend` |
 | FE dev (Next.js) | `frontend/app/page.tsx` | `npm run dev:frontend` (rewrites `/api` → BE) |
-| Wallet tracking | `backend/src/modules/wallets/`, `leaderboard/`, `server/solana.service.ts` | Leaderboard keeps topN display rows; LIVE pipeline follows only the shared 5 pool traders (`LIVE_SCOPE_MODE=pool`); drop→deactivate |
-| Portfolio ledger | `backend/src/modules/portfolio/` | DB-first + Flux/Helius backfill; FIFO realized PnL; **120d** rolling prune w/ archive |
+| Wallet tracking | `backend/src/modules/wallets/`, `leaderboard/`, `server/solana.service.ts` | Leaderboard keeps only 5 display rows; LIVE pipeline follows the shared 5 pool traders (`LIVE_SCOPE_MODE=pool`); `/api/wallets` returns only that roster |
+| Portfolio ledger | `backend/src/modules/portfolio/` | DB-first + Flux/Helius backfill; FIFO realized PnL; **120d** rolling prune w/ archive; raw ledger trimmed to live roster |
 | Realtime stream | `backend/src/modules/onchain/` | WS debounce 3s/wallet; SSE `CONNECTED` + `ONCHAIN_SWAP_EVENT`, 500ms flush, 15s heartbeat; Helius webhook ingest |
 | Copy-trade engine | `backend/src/modules/copy-trade/` | Paper-only devnet: auto-fire (Qualify→1% NAV→TP1 60%), manage legs, rebalance; genesis gate |
 | Pool app | `backend/src/modules/vaults/` + `partner/` + `frontend/app/{pools,portfolio,trader}/` | 1 pool = 1 vault + 1 bot + 3–5 traders; NAV MTM engine; HWM fee 75/25; deposit≥0.5 |

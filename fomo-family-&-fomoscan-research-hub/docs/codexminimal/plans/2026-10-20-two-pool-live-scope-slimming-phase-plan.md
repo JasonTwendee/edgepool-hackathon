@@ -18,6 +18,7 @@
 | P4 | VPS data cleanup: keep 14/15, delete 1/16/17/35–38 | Yes | No |
 | P5 | Push/deploy + live verification + 30/60-min metrics | No | Yes |
 | P6 | Docs/indexes/logs + retrospective | No | No |
+| P7 | Display only 5 + trim raw ledger/events outside roster | Yes (raw data only) | Yes |
 
 ## P0 — Baseline & safety
 
@@ -182,3 +183,24 @@ Backup fails → stop; do not proceed to P4.
 
 ### Acceptance
 - Docs match code/data; tracker has all evidence and commit SHA.
+
+## P7 — Display 5 + raw-data trim (follow-up 2026-10-20)
+
+### Steps
+1. `wallets.controller GET /api/wallets` → `findAllLive()` (5).
+2. `pnl.getOverview`/`getOverviewFast` and `portfolio.walletsCount` →
+   `findAllLive()`.
+3. `leaderboard DEFAULT_TOP_N=5`; `.env.example` and VPS `.env` topN=5, cap=20.
+4. VPS data trim in one transaction:
+   - lock `transactions` (ACCESS EXCLUSIVE);
+   - snapshot `keep_tx`/`keep_ev` for the 5 roster addresses;
+   - verify keep counts > 0 and no orphan event→tx refs;
+   - `TRUNCATE transactions CASCADE`; reinsert keep rows; reset event sequence;
+   - `ANALYZE`.
+5. Record before/after counts + DB size in tracker/refactor-log.
+6. Verify `/api/wallets` = 5, pools = 2×5, PnL overview = 5, smoke green.
+
+### Acceptance
+- Only 5 wallets returned by product APIs; internal jobs still work.
+- DB size drops from ~8.17 GB to <200 MB; money ledger/orders unchanged.
+- All assert suites + typecheck + builds stay green.

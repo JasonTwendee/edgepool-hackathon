@@ -42,6 +42,12 @@ Roster (top 5 by `rank_24h` among current curated public-pool traders, tie
 
 Both pools use equal weights (`2000` bps each) and `max_traders = 5`.
 
+**Display/data follow-up (2026-10-20, user-approved):** product surfaces show
+only these 5 wallets (`/api/wallets`, PnL overview, leaderboard topN=5).
+Raw `transactions`/`realtime_events` for wallets outside the roster are removed
+(TRUNCATE keep-5, FK-verified) because they were 98%+ of the 8.17 GB DB. Money
+ledger/orders/audit stay untouched; raw chain data remains re-fetchable.
+
 Delete pools `1`, `16`, `17`, `35`, `36`, `37`, `38` (and their bots/copy
 orders/signed intents). Keep pools `14`, `15` and their deposits/withdrawals/
 epoch history.
