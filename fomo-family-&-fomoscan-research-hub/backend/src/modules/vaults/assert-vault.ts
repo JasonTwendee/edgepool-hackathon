@@ -287,6 +287,28 @@ async function main(): Promise<void> {
     assert.equal(await svcI.depositorShares(vi.id, 'dbu'), 0);
   }
 
+  // 15. Supply sanity (defense-in-depth): drifted history may leave a holder
+  // claiming more shares than the vault's outstanding supply (pre-fix drain).
+  // Request is rejected and settle caps the payout at the running supply —
+  // a corrupted claim can never pay out more shares than exist.
+  {
+    const svcS = new VaultService(makeFake());
+    const vs = await svcS.getOrCreateVault('supplycap');
+    await svcS.deposit(vs.id, 'kol', 10);
+    await svcS.settleEpoch(vs.id, 10);
+    // Simulate drifted history: vault records supply 2 while kol claims 10.
+    const pr = (svcS as unknown as { prisma: { vault: { update: (a: unknown) => Promise<unknown> } } }).prisma;
+    await pr.vault.update({ where: { id: vs.id }, data: { totalShares: 2 } } as never);
+    await assert.rejects(() => svcS.requestWithdraw(vs.id, 'kol', 10), /exceed vault supply/);
+    // A queued request that slipped in (pre-guard) is still capped at settle:
+    const row = await (svcS as unknown as { prisma: { withdrawal: { create: (a: unknown) => Promise<{ id: number }> } } }).prisma.withdrawal.create({
+      data: { vaultId: vs.id, depositor: 'kol', userId: 8, sharesRequested: 10, status: 'QUEUED' },
+    });
+    const ss = await svcS.settleEpoch(vs.id, 10);
+    assert.equal(ss.settledWithdrawals[0].payoutSol, 10); // 2 shares @ price 5 = 10 SOL, capped
+    void row;
+  }
+
   console.log('vault asserts: ALL GREEN');
 }
 

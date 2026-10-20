@@ -312,6 +312,13 @@ export class VaultService {
     }
     const vault = await this.prisma.vault.findUnique({ where: { id: resolvedId } });
     if (!vault) fail(`Vault ${resolvedId} not found.`);
+    // Supply sanity (defense-in-depth): a single request can never exceed the
+    // vault's outstanding shares, even if historical rows drifted (pre-fix
+    // cross-wallet drain left holders claiming more shares than supply).
+    const supply = num(vault.totalShares);
+    if (shares - supply > 1e-9) {
+      fail(`Requested shares ${shares} exceed vault supply ${supply}.`);
+    }
     // T2 lock: identity = depositor string OR linked userId (covers legacy + linked).
     const lockHours = vault.lockHours ?? 0;
     if (lockHours > 0) {
@@ -462,7 +469,9 @@ export class VaultService {
         const mintedIn = ins.reduce((s: number, r: { sharesMinted: unknown }) => s + num(r.sharesMinted as never), 0);
         const burnedOut = outs.reduce((s: number, r: { sharesRequested: unknown; payoutSol: unknown; sharePrice: unknown; status: unknown }) => s + burnedOf(r as never), 0);
         const held = Math.max(0, Math.round((mintedIn - burnedOut) * 1e9) / 1e9);
-        const payoutShares = Math.min(want, held);
+        // Hard cap: also bounded by the vault's running supply (defense-in-depth
+        // vs drifted history — see requestWithdraw supply guard).
+        const payoutShares = Math.min(want, held, shares);
         const gross = Math.round(payoutShares * price * 1e9) / 1e9;
         const fee = feeBps > 0 ? Math.round(((gross * feeBps) / 10000) * 1e9) / 1e9 : 0;
         const payout = Math.round((gross - fee) * 1e9) / 1e9;
