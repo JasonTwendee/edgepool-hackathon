@@ -309,6 +309,26 @@ async function main(): Promise<void> {
     void row;
   }
 
+  // 16. Withdraw fee must burn exact shares: burned = sharesRequested, not
+  // payout/price (a fee would otherwise inflate the holder's remaining balance
+  // and let them drain shares owned by others).
+  {
+    const svcW = new VaultService(makeFake());
+    const vw = await svcW.getOrCreateVault('withdrawfee');
+    await svcW.deposit(vw.id, 'holder', 10);
+    await svcW.settleEpoch(vw.id, 10);
+    const prW = (svcW as unknown as { prisma: { vault: { update: (a: unknown) => Promise<unknown> } } }).prisma;
+    await prW.vault.update({ where: { id: vw.id }, data: { withdrawFeeBps: 200 } } as never);
+    await svcW.requestWithdraw(vw.id, 'holder', 5);
+    const sw = await svcW.settleEpoch(vw.id, 10);
+    // 5 shares @1, 2% fee → payout 4.9, shares burned exactly 5.
+    assert.equal(sw.settledWithdrawals[0].payoutSol, 4.9);
+    assert.equal(await svcW.depositorShares(vw.id, 'holder'), 5);
+    const rows = await (svcW as unknown as { prisma: { withdrawal: { findMany: (a: { where: Row }) => Promise<Row[]> } } }).prisma.withdrawal.findMany({ where: {} });
+    const settled = rows.find((r) => r.status === 'SETTLED') as Row;
+    assert.equal(Number(settled.sharesBurned), 5);
+  }
+
   console.log('vault asserts: ALL GREEN');
 }
 

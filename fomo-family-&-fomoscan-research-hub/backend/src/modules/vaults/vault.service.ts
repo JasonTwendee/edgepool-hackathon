@@ -73,12 +73,19 @@ const r9 = (v: number): number => Math.round(v * 1e9) / 1e9;
 /**
  * Actual burned shares of a withdrawal row. Settle clamps over-requests to
  * the holder's balance (partial/zero payout), so counting sharesRequested
- * phantom-burns shares that never left the vault. payout/price is exact
- * (withdrawFeeBps is 0 on every vault); legacy rows without a settle price
- * fall back to sharesRequested.
+ * phantom-burns shares that never left the vault. `sharesBurned` is written
+ * by settle; older rows fall back to payout/price (exact while fees were 0),
+ * then to sharesRequested when no settle price exists.
  */
-const burnedOf = (w: { status: unknown; sharesRequested: unknown; payoutSol: unknown; sharePrice: unknown }): number => {
+const burnedOf = (w: {
+  status: unknown;
+  sharesRequested: unknown;
+  sharesBurned?: unknown;
+  payoutSol: unknown;
+  sharePrice: unknown;
+}): number => {
   if (w.status !== 'SETTLED') return 0;
+  if (w.sharesBurned !== null && w.sharesBurned !== undefined) return num(w.sharesBurned as never);
   const price = num(w.sharePrice as never);
   if (price > 0) return r9(num(w.payoutSol as never) / price);
   return num(w.sharesRequested as never);
@@ -478,7 +485,7 @@ export class VaultService {
         treasuryFee = Math.round((treasuryFee + fee) * 1e9) / 1e9;
         await tx.withdrawal.update({
           where: { id: w.id },
-          data: { status: 'SETTLED', sharePrice: dec(price), payoutSol: dec(payout), settledAt: new Date() },
+          data: { status: 'SETTLED', sharePrice: dec(price), payoutSol: dec(payout), sharesBurned: dec(payoutShares), settledAt: new Date() },
         });
         shares = Math.round((shares - payoutShares) * 1e9) / 1e9;
         settledWithdrawals.push({ id: w.id, payoutSol: payout });

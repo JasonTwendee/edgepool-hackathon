@@ -31,6 +31,7 @@ export type WithdrawalAvgAggregateOutputType = {
   vaultId: number | null
   userId: number | null
   sharesRequested: runtime.Decimal | null
+  sharesBurned: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
 }
@@ -40,6 +41,7 @@ export type WithdrawalSumAggregateOutputType = {
   vaultId: number | null
   userId: number | null
   sharesRequested: runtime.Decimal | null
+  sharesBurned: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
 }
@@ -50,6 +52,7 @@ export type WithdrawalMinAggregateOutputType = {
   depositor: string | null
   userId: number | null
   sharesRequested: runtime.Decimal | null
+  sharesBurned: runtime.Decimal | null
   status: string | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
@@ -63,6 +66,7 @@ export type WithdrawalMaxAggregateOutputType = {
   depositor: string | null
   userId: number | null
   sharesRequested: runtime.Decimal | null
+  sharesBurned: runtime.Decimal | null
   status: string | null
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
@@ -76,6 +80,7 @@ export type WithdrawalCountAggregateOutputType = {
   depositor: number
   userId: number
   sharesRequested: number
+  sharesBurned: number
   status: number
   sharePrice: number
   payoutSol: number
@@ -90,6 +95,7 @@ export type WithdrawalAvgAggregateInputType = {
   vaultId?: true
   userId?: true
   sharesRequested?: true
+  sharesBurned?: true
   sharePrice?: true
   payoutSol?: true
 }
@@ -99,6 +105,7 @@ export type WithdrawalSumAggregateInputType = {
   vaultId?: true
   userId?: true
   sharesRequested?: true
+  sharesBurned?: true
   sharePrice?: true
   payoutSol?: true
 }
@@ -109,6 +116,7 @@ export type WithdrawalMinAggregateInputType = {
   depositor?: true
   userId?: true
   sharesRequested?: true
+  sharesBurned?: true
   status?: true
   sharePrice?: true
   payoutSol?: true
@@ -122,6 +130,7 @@ export type WithdrawalMaxAggregateInputType = {
   depositor?: true
   userId?: true
   sharesRequested?: true
+  sharesBurned?: true
   status?: true
   sharePrice?: true
   payoutSol?: true
@@ -135,6 +144,7 @@ export type WithdrawalCountAggregateInputType = {
   depositor?: true
   userId?: true
   sharesRequested?: true
+  sharesBurned?: true
   status?: true
   sharePrice?: true
   payoutSol?: true
@@ -235,6 +245,7 @@ export type WithdrawalGroupByOutputType = {
   depositor: string
   userId: number | null
   sharesRequested: runtime.Decimal
+  sharesBurned: runtime.Decimal | null
   status: string
   sharePrice: runtime.Decimal | null
   payoutSol: runtime.Decimal | null
@@ -271,6 +282,7 @@ export type WithdrawalWhereInput = {
   depositor?: Prisma.StringFilter<"Withdrawal"> | string
   userId?: Prisma.IntNullableFilter<"Withdrawal"> | number | null
   sharesRequested?: Prisma.DecimalFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -286,6 +298,7 @@ export type WithdrawalOrderByWithRelationInput = {
   depositor?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   payoutSol?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -304,6 +317,7 @@ export type WithdrawalWhereUniqueInput = Prisma.AtLeast<{
   depositor?: Prisma.StringFilter<"Withdrawal"> | string
   userId?: Prisma.IntNullableFilter<"Withdrawal"> | number | null
   sharesRequested?: Prisma.DecimalFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -319,6 +333,7 @@ export type WithdrawalOrderByWithAggregationInput = {
   depositor?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   payoutSol?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -340,6 +355,7 @@ export type WithdrawalScalarWhereWithAggregatesInput = {
   depositor?: Prisma.StringWithAggregatesFilter<"Withdrawal"> | string
   userId?: Prisma.IntNullableWithAggregatesFilter<"Withdrawal"> | number | null
   sharesRequested?: Prisma.DecimalWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.DecimalNullableWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringWithAggregatesFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableWithAggregatesFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -350,6 +366,7 @@ export type WithdrawalScalarWhereWithAggregatesInput = {
 export type WithdrawalCreateInput = {
   depositor: string
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -365,6 +382,7 @@ export type WithdrawalUncheckedCreateInput = {
   depositor: string
   userId?: number | null
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -375,6 +393,7 @@ export type WithdrawalUncheckedCreateInput = {
 export type WithdrawalUpdateInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -390,6 +409,7 @@ export type WithdrawalUncheckedUpdateInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -403,6 +423,7 @@ export type WithdrawalCreateManyInput = {
   depositor: string
   userId?: number | null
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -413,6 +434,7 @@ export type WithdrawalCreateManyInput = {
 export type WithdrawalUpdateManyMutationInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -426,6 +448,7 @@ export type WithdrawalUncheckedUpdateManyInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -449,6 +472,7 @@ export type WithdrawalCountOrderByAggregateInput = {
   depositor?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
@@ -461,6 +485,7 @@ export type WithdrawalAvgOrderByAggregateInput = {
   vaultId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
 }
@@ -471,6 +496,7 @@ export type WithdrawalMaxOrderByAggregateInput = {
   depositor?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
@@ -484,6 +510,7 @@ export type WithdrawalMinOrderByAggregateInput = {
   depositor?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrder
   status?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
@@ -496,6 +523,7 @@ export type WithdrawalSumOrderByAggregateInput = {
   vaultId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   sharesRequested?: Prisma.SortOrder
+  sharesBurned?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
   payoutSol?: Prisma.SortOrder
 }
@@ -587,6 +615,7 @@ export type WithdrawalUncheckedUpdateManyWithoutUserNestedInput = {
 export type WithdrawalCreateWithoutVaultInput = {
   depositor: string
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -600,6 +629,7 @@ export type WithdrawalUncheckedCreateWithoutVaultInput = {
   depositor: string
   userId?: number | null
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -642,6 +672,7 @@ export type WithdrawalScalarWhereInput = {
   depositor?: Prisma.StringFilter<"Withdrawal"> | string
   userId?: Prisma.IntNullableFilter<"Withdrawal"> | number | null
   sharesRequested?: Prisma.DecimalFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFilter<"Withdrawal"> | string
   sharePrice?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.DecimalNullableFilter<"Withdrawal"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -652,6 +683,7 @@ export type WithdrawalScalarWhereInput = {
 export type WithdrawalCreateWithoutUserInput = {
   depositor: string
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -665,6 +697,7 @@ export type WithdrawalUncheckedCreateWithoutUserInput = {
   vaultId: number
   depositor: string
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -703,6 +736,7 @@ export type WithdrawalCreateManyVaultInput = {
   depositor: string
   userId?: number | null
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -713,6 +747,7 @@ export type WithdrawalCreateManyVaultInput = {
 export type WithdrawalUpdateWithoutVaultInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -726,6 +761,7 @@ export type WithdrawalUncheckedUpdateWithoutVaultInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -738,6 +774,7 @@ export type WithdrawalUncheckedUpdateManyWithoutVaultInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -750,6 +787,7 @@ export type WithdrawalCreateManyUserInput = {
   vaultId: number
   depositor: string
   sharesRequested: runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: string
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -760,6 +798,7 @@ export type WithdrawalCreateManyUserInput = {
 export type WithdrawalUpdateWithoutUserInput = {
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -773,6 +812,7 @@ export type WithdrawalUncheckedUpdateWithoutUserInput = {
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -785,6 +825,7 @@ export type WithdrawalUncheckedUpdateManyWithoutUserInput = {
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   depositor?: Prisma.StringFieldUpdateOperationsInput | string
   sharesRequested?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  sharesBurned?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   payoutSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -800,6 +841,7 @@ export type WithdrawalSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   depositor?: boolean
   userId?: boolean
   sharesRequested?: boolean
+  sharesBurned?: boolean
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
@@ -815,6 +857,7 @@ export type WithdrawalSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   depositor?: boolean
   userId?: boolean
   sharesRequested?: boolean
+  sharesBurned?: boolean
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
@@ -830,6 +873,7 @@ export type WithdrawalSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   depositor?: boolean
   userId?: boolean
   sharesRequested?: boolean
+  sharesBurned?: boolean
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
@@ -845,6 +889,7 @@ export type WithdrawalSelectScalar = {
   depositor?: boolean
   userId?: boolean
   sharesRequested?: boolean
+  sharesBurned?: boolean
   status?: boolean
   sharePrice?: boolean
   payoutSol?: boolean
@@ -852,7 +897,7 @@ export type WithdrawalSelectScalar = {
   settledAt?: boolean
 }
 
-export type WithdrawalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "sharesRequested" | "status" | "sharePrice" | "payoutSol" | "createdAt" | "settledAt", ExtArgs["result"]["withdrawal"]>
+export type WithdrawalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "sharesRequested" | "sharesBurned" | "status" | "sharePrice" | "payoutSol" | "createdAt" | "settledAt", ExtArgs["result"]["withdrawal"]>
 export type WithdrawalInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Withdrawal$userArgs<ExtArgs>
@@ -878,6 +923,7 @@ export type $WithdrawalPayload<ExtArgs extends runtime.Types.Extensions.Internal
     depositor: string
     userId: number | null
     sharesRequested: runtime.Decimal
+    sharesBurned: runtime.Decimal | null
     status: string
     sharePrice: runtime.Decimal | null
     payoutSol: runtime.Decimal | null
@@ -1313,6 +1359,7 @@ export interface WithdrawalFieldRefs {
   readonly depositor: Prisma.FieldRef<"Withdrawal", 'String'>
   readonly userId: Prisma.FieldRef<"Withdrawal", 'Int'>
   readonly sharesRequested: Prisma.FieldRef<"Withdrawal", 'Decimal'>
+  readonly sharesBurned: Prisma.FieldRef<"Withdrawal", 'Decimal'>
   readonly status: Prisma.FieldRef<"Withdrawal", 'String'>
   readonly sharePrice: Prisma.FieldRef<"Withdrawal", 'Decimal'>
   readonly payoutSol: Prisma.FieldRef<"Withdrawal", 'Decimal'>

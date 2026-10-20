@@ -86,6 +86,10 @@ model RealtimeEvent {
 
   @@map("realtime_events")
   @@index([walletAddress, broadcastedAt(sort: Desc)])
+  // Feed query (no wallet filter) and the daily prune both order/filter by
+  // broadcastedAt alone — without this index they seq-scan ~5M rows
+  // (public /api/onchain/events returned 500 after 31s on the 2GB box).
+  @@index([broadcastedAt(sort: Desc)])
   // Dedupe in recordRealtimeEvent/history-sync looks up by txSignature — the
   // missing index made every incoming event a 4.8M-row seq scan (VPS meltdown
   // 20/10: PG 300-600% CPU, load 15-20). Migration 20261020000000 adds it.
@@ -235,6 +239,10 @@ model Withdrawal {
   userId          Int?     @map("user_id")
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   sharesRequested Decimal  @map("shares_requested") @db.Decimal(24, 12)
+  // Exact shares burned at settle (before this column, burned shares were
+  // inferred as payout/sharePrice — exact only while withdrawFeeBps = 0;
+  // a future fee would inflate holder balances and leak other holders' shares).
+  sharesBurned    Decimal? @map("shares_burned") @db.Decimal(24, 12)
   status          String   @db.VarChar(16) @default("QUEUED")
   sharePrice      Decimal? @map("share_price") @db.Decimal(24, 12)
   payoutSol       Decimal? @map("payout_sol") @db.Decimal(24, 12)

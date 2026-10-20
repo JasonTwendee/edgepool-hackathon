@@ -2117,6 +2117,7 @@ export const WithdrawalScalarFieldEnum = {
   depositor: 'depositor',
   userId: 'userId',
   sharesRequested: 'sharesRequested',
+  sharesBurned: 'sharesBurned',
   status: 'status',
   sharePrice: 'sharePrice',
   payoutSol: 'payoutSol',

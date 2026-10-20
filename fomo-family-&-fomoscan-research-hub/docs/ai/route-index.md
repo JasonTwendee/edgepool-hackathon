@@ -1,6 +1,6 @@
 # Route Index
 
-Canonical contract: `docs/api/openapi.yaml` (61 paths).
+Canonical contract: `docs/api/openapi.yaml` (70 paths).
 
 ## REST — markets / wallets / rotation
 
@@ -51,8 +51,12 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | POST | `/api/users/:wallet/role` | `users.controller.ts` (ADMIN+Audit) | `api.ts#setUserRole` | setRole by username |
 | GET | `/api/audit` | `audit.controller.ts` (ADMIN) | `api.ts#listAudit` | append-only |
 | GET | `/api/demo/bot/:id/performance` | `demo.controller.ts` | terminal | bot perf |
-| POST | `/api/demo/seed|replay|reset` | `demo.controller.ts` (ADMIN+Audit) | — | demo controls |
+| POST | `/api/demo/seed` | `demo.controller.ts` (ADMIN+Audit) | — | demo seed |
+| POST | `/api/demo/replay` | `demo.controller.ts` (ADMIN+Audit) | — | replay window |
+| POST | `/api/demo/reset` | `demo.controller.ts` (ADMIN+Audit) | — | reset demo state |
 | POST | `/api/demo/scenario` | `demo.controller.ts` (ADMIN+Audit) | `api.ts#runDemoScenario` + AdminPanel demo tab | reset + 3 cases parallel |
+| POST | `/api/demo/partial-close` | `demo.controller.ts` (ADMIN+Audit) | — | partial close tick |
+| POST | `/api/demo/clone` | `demo.controller.ts` (ADMIN+Audit) | — | clone tick |
 | GET | `/api/bots` | `bots.controller.ts` | `api.ts#listBots` | pool bots |
 | POST | `/api/bots` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#createBot` | 1 pool = 1 bot |
 | POST | `/api/bots/:id/mode` | `bots.controller.ts` (ADMIN+Audit) | `api.ts#setBotMode` | AUTO/PAUSED |
@@ -64,9 +68,12 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | GET | `/api/vaults/pools` | `vaults.controller.ts` | `api.ts#listPools` | pool summaries (index) |
 | GET | `/api/vaults/:id/pool` | `vaults.controller.ts` | `api.ts#getPoolDetail` | detail + `advanced` (KPIs/risk/ladder/exposure) |
 | GET | `/api/vaults/:id/ledger` | `vaults.controller.ts` | — (admin/terminal later) | per-order fund flow + cash statement |
+| GET | `/api/vaults/:id/orders` | `vaults.controller.ts` (ADMIN) | — | orders journey for a pool |
 | GET | `/api/vaults/mine` | `vaults.controller.ts` (Auth) | `api.ts#getVaultMine` | my position per pool |
 | GET | `/api/vaults/portfolio` | `vaults.controller.ts` (Auth) | `api.ts#getPortfolioOverview` | investor overview |
 | GET | `/api/vaults/:id/earnings` | `vaults.controller.ts` (KOL-gated) | `api.ts#getVaultEarnings` | partner fee rows |
+| POST | `/api/vaults/deposit/challenge` | `signed-intent.controller.ts` (Auth) | `api.ts#depositChallenge` | signed-intent ownership proof |
+| POST | `/api/vaults/withdraw/challenge` | `signed-intent.controller.ts` (Auth) | `api.ts#withdrawChallenge` | signed-intent ownership proof |
 | POST | `/api/vaults/deposit` | `vaults.controller.ts` (Auth) | `api.ts#queueVaultDeposit` | min 0.5 SOL, slots gate |
 | POST | `/api/vaults/withdraw` | `vaults.controller.ts` (Auth) | `api.ts#requestVaultWithdraw` | flat=instant else queued |
 | DELETE | `/api/vaults/withdraw/:id` | `vaults.controller.ts` (Auth) | `api.ts#cancelWithdrawal` | cancel QUEUED |
@@ -83,6 +90,7 @@ Canonical contract: `docs/api/openapi.yaml` (61 paths).
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
 | POST | `/api/partner/apply` | `partner.controller.ts` | `api.ts#partnerApply` | public, pending review |
+| GET | `/api/partner/apply/status` | `partner.controller.ts` | `api.ts#partnerApplyStatus` | public status by wallet |
 | GET | `/api/partner/me` | `partner.controller.ts` (Auth) | `api.ts#partnerMe` | pending/claimable/paid fees |
 | POST | `/api/partner/payout-wallet/challenge` | `partner.controller.ts` (Auth) | `api.ts#partnerPayoutChallenge` | ownership proof |
 | POST | `/api/partner/payout-wallet` | `partner.controller.ts` (Auth) | `api.ts#partnerSetPayoutWallet` | verified set only |
