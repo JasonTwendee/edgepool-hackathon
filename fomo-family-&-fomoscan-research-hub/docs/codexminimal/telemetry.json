@@ -393,9 +393,22 @@
     "event->tx orphan FK = 0",
     "load 0.76"
    ]
+  },
+  {
+   "at": "2026-10-20T10:05:00Z",
+   "topic": "forward-only-trader-tracking",
+   "phase": "P0-planning",
+   "status": "planned",
+   "detail": "FomoScan selection/explainability + local forward-only tracking from enteredAt; no historical backfill/copy; plan+tracker created, awaiting G1-G4/G6 decisions",
+   "verification": [
+    "intent/plan/tracker files created",
+    "baseline 2 pools / 5 shared traders / 66MB / 28-28 asserts",
+    "no code changes yet",
+    "decision gates G1-G6 documented"
+   ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-20T09:56:00Z",
+ "updatedAt": "2026-10-20T10:05:00Z",
  "version": 2
 }
