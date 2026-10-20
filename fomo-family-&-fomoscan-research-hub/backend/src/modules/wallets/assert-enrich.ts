@@ -21,6 +21,17 @@ function makeFake() {
   const prisma = {
     trackedWallet: {
       findUnique: async ({ where }: { where: Row }) => db.wallet.find((r) => match(r, where)) ?? null,
+      findMany: async ({ where = {} }: { where?: Row } = {}) => db.wallet.filter((r) => match(r, where)),
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        const ids = ((where.address as Row)?.in as string[]) ?? '';
+        const rows = db.wallet.filter(
+          (r) =>
+            (Array.isArray(ids) ? ids.includes(r.address as string) : false) &&
+            (where.isActive === undefined || r.isActive === where.isActive),
+        );
+        for (const r of rows) Object.assign(r, data);
+        return { count: rows.length };
+      },
       update: async ({ where, data }: { where: Row; data: Row }) => {
         const r = db.wallet.find((x) => match(x, where)) as Row;
         // Mimic Prisma: Decimal columns come back as Decimal (toNumber()).
@@ -32,6 +43,8 @@ function makeFake() {
         return r;
       },
     },
+    // Empty roster → legacy fallback (DB-active) keeps this unit test hermetic.
+    vaultTrader: { findMany: async () => [] },
   } as never;
   const noop = { addTrackedWallet: () => undefined };
   return { prisma, solana: noop, stream: noop } as unknown as {
@@ -99,22 +112,31 @@ async function main(): Promise<void> {
     await assert.rejects(() => svc.enrich('W1'), /No verified FomoScan identity/);
   }
 
-  // 5. Deactivate → DB flag off + WS unwatched (sync + live both skip);
-  // reactivate re-watches. History rows are kept either way.
+  // 5. Deactivate → DB flag off + live scope reconciled to empty; reactivate
+  // re-adds it. The scope reconcile (not an ad-hoc unwatch) owns WS slots now.
   {
-    const watched: string[] = [];
-    const unwatched: string[] = [];
+    const resets: string[][] = [];
     const fake = makeFake();
     const stream = {
-      watch: async (a: string) => { watched.push(a); },
-      unwatch: async (a: string) => { unwatched.push(a); },
+      resetTo: async (addresses: string[]) => {
+        resets.push([...addresses]);
+      },
     };
-    const solana = { updateWalletCopyConfig: () => true };
+    const solana = {
+      updateWalletCopyConfig: () => true,
+      getTrackedWallets: () => [],
+      removeTrackedWallet: () => false,
+      addTrackedWallet: () => undefined,
+    };
     const svc = new WalletsService(fake.prisma as never, solana as never, stream as never, stubFomoscan(null, []) as never);
     assert.equal(await svc.updateCopyConfig('W1', { isCopyEnabled: false } as never), true);
-    assert.deepEqual(unwatched, ['W1']);
+    assert.deepEqual(resets.at(-1), []);
+    const afterOff = await (
+      fake.prisma as unknown as { trackedWallet: { findUnique: (a: unknown) => Promise<Row> } }
+    ).trackedWallet.findUnique({ where: { address: 'W1' } });
+    assert.equal(afterOff.isActive, false);
     assert.equal(await svc.updateCopyConfig('W1', { isCopyEnabled: true } as never), true);
-    assert.deepEqual(watched, ['W1']);
+    assert.deepEqual(resets.at(-1), ['W1']);
     assert.equal(await svc.updateCopyConfig('W9', { isCopyEnabled: false } as never), false);
   }
 

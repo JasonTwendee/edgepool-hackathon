@@ -1,5 +1,13 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, type OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
+import { resolveLiveScope } from '../../common/live-scope.js';
 import {
   DEFAULT_TRACKED_WALLETS,
   SolanaOnChainListenerService,
@@ -19,7 +27,10 @@ import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
  * DELETE cascades to transactions + realtime_events (FK ON DELETE CASCADE).
  */
 @Injectable()
-export class WalletsService implements OnModuleInit {
+export class WalletsService implements OnModuleInit, OnModuleDestroy {
+  private liveTimer?: NodeJS.Timeout;
+  private reconciling = false;
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SolanaOnChainListenerService)
@@ -44,14 +55,91 @@ export class WalletsService implements OnModuleInit {
         skipDuplicates: true,
       });
     }
-    const all = await this.prisma.trackedWallet.findMany({ orderBy: { id: 'asc' } });
-    for (const w of all) this.solana.addTrackedWallet(toTrackedWallet(w));
-    // Reconcile WS subscriptions AFTER the DB registry is loaded (stream's own
-    // onModuleInit fires earlier with only the 10 default wallets).
-    // Dropped (inactive) wallets stay frozen: no live slot wasted on them.
-    const actives = all.filter((w) => w.isActive);
-    for (const w of actives) await this.stream.watch(w.address);
-    for (const w of all.filter((w) => !w.isActive)) await this.stream.unwatch(w.address);
+    // The live loop (WS + safety-net sync + stats) follows only the pool
+    // roster. Leaderboard rotation may keep a wider DB-active display set.
+    await this.reconcileLiveStream().catch((err: unknown) => {
+      console.warn('[Wallets] live-scope boot reconcile failed:', (err as Error).message);
+    });
+    const ms = Number(process.env.LIVE_SCOPE_RECONCILE_MS ?? 60000);
+    if (Number.isFinite(ms) && ms > 0) {
+      this.liveTimer = setInterval(() => {
+        void this.reconcileLiveStream().catch((err: unknown) => {
+          console.warn('[Wallets] live-scope reconcile failed:', (err as Error).message);
+        });
+      }, ms);
+      this.liveTimer.unref?.();
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.liveTimer) clearInterval(this.liveTimer);
+  }
+
+  /**
+   * Wallet set that the live pipeline is allowed to touch. In pool mode this
+   * is exactly the active traders of public/live pools; empty roster falls
+   * back to DB-active wallets (fresh/dev bootstrap).
+   */
+  async findAllLive(): Promise<TrackedWallet[]> {
+    const scope = await resolveLiveScope(this.prisma);
+    if (scope.mode === 'pool') {
+      const rows = await this.prisma.trackedWallet.findMany({
+        where: { address: { in: [...scope.addresses] } },
+        orderBy: { id: 'asc' },
+      });
+      return rows.map(toTrackedWallet);
+    }
+    const all = await this.findAll();
+    return all.filter((w) => w.isActive !== false);
+  }
+
+  /**
+   * Reconcile listener registry + WS subscriptions with the live scope.
+   * Live pool traders are pinned `isActive=true` so the ingestion guard and
+   * sync filter cannot silently drop them when rotation moves on.
+   */
+  async reconcileLiveStream(): Promise<number> {
+    if (this.reconciling) return 0;
+    this.reconciling = true;
+    try {
+      const scope = await resolveLiveScope(this.prisma);
+      let rows;
+      if (scope.mode === 'pool') {
+        const addresses = [...scope.addresses];
+        rows = await this.prisma.trackedWallet.findMany({
+          where: { address: { in: addresses } },
+          orderBy: { id: 'asc' },
+        });
+        await this.prisma.trackedWallet.updateMany({
+          where: { address: { in: addresses }, isActive: false },
+          data: { isActive: true },
+        });
+        const found = new Set(rows.map((r) => r.address));
+        const missing = addresses.filter((a) => !found.has(a));
+        if (missing.length > 0) {
+          console.warn(`[Wallets] ${missing.length} live pool trader(s) not in tracked_wallets — skipped`);
+        }
+      } else {
+        rows = await this.prisma.trackedWallet.findMany({
+          where: { isActive: true },
+          orderBy: { id: 'asc' },
+        });
+        console.warn('[Wallets] live scope fallback: no public pool traders — following DB-active wallets');
+      }
+
+      const live = rows.map(toTrackedWallet);
+      const liveSet = new Set(live.map((w) => w.address));
+      for (const w of this.solana.getTrackedWallets()) {
+        if (!liveSet.has(w.address)) this.solana.removeTrackedWallet(w.address);
+      }
+      for (const w of live) this.solana.addTrackedWallet(w);
+      await this.stream.resetTo([...liveSet]);
+      // eslint-disable-next-line no-console
+      console.log(`[Wallets] live scope=${scope.mode} wallets=${liveSet.size}`);
+      return liveSet.size;
+    } finally {
+      this.reconciling = false;
+    }
   }
 
   async findAll(): Promise<TrackedWallet[]> {
@@ -79,10 +167,10 @@ export class WalletsService implements OnModuleInit {
       updated.isActive,
       updated.allocationWeight.toNumber(),
     );
-    // Deactivation stops WS traffic too (sync already skips inactive rows).
-    // History is kept — rotation can reactivate anytime via the same endpoint.
-    if (!updated.isActive) await this.stream.unwatch(address).catch(() => undefined);
-    else await this.stream.watch(address).catch(() => undefined);
+    // The pool roster owns the live subscription set: reconcile instead of
+    // ad-hoc watch/unwatch so a manual toggle cannot leak a live slot outside
+    // the pool (or drop a live pool trader).
+    await this.reconcileLiveStream();
     return true;
   }
 

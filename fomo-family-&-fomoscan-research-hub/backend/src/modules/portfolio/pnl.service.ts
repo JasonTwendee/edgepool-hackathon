@@ -260,8 +260,10 @@ export class PnlService {
    * stays and the UI keeps showing the "seed" badge.
    * Returns the number of wallets updated.
    */
-  async syncWalletStats(days = 30): Promise<number> {
-    const wallets = await this.wallets.findAll();
+  async syncWalletStats(days = 30, addresses?: string[]): Promise<number> {
+    const all = await this.wallets.findAll();
+    const scope = addresses ? new Set(addresses) : null;
+    const wallets = scope ? all.filter((w) => scope.has(w.address)) : all;
     let updated = 0;
     for (const w of wallets) {
       const pnl = await this.getWalletPnl(w.address, days);

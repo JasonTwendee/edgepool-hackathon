@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Query, Sse } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { SSE_HEARTBEAT_MS } from '../../config/solana.config.js';
+import { EventBuffer } from '../../common/event-buffer.js';
 import { OnchainService } from './onchain.service.js';
 
 interface SseDataMessage {
@@ -22,15 +23,29 @@ export class OnchainController {
         },
       });
 
+      const buffer = new EventBuffer<unknown>(200);
       const unsubscribe = this.onchain.subscribe((event) => {
-        observer.next({ data: { type: 'ONCHAIN_SWAP_EVENT', event } });
+        buffer.push(event);
       });
+
+      // Coalesce fan-out: one flush per 500 ms instead of one writer per
+      // on-chain event. Bounded buffer drops oldest if a client stalls.
+      const flushMs = (() => {
+        const n = Number(process.env.SSE_FLUSH_MS ?? 500);
+        return Number.isFinite(n) && n >= 0 ? n : 500;
+      })();
+      const flush = setInterval(() => {
+        for (const event of buffer.drain()) {
+          observer.next({ data: { type: 'ONCHAIN_SWAP_EVENT', event } });
+        }
+      }, flushMs);
 
       const heartbeat = setInterval(() => {
         observer.next({ data: { type: 'PING', timestamp: Date.now() } });
       }, SSE_HEARTBEAT_MS);
 
       return () => {
+        clearInterval(flush);
         clearInterval(heartbeat);
         unsubscribe();
       };

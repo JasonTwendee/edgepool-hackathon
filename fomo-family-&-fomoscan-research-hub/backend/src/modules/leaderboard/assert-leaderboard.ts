@@ -17,13 +17,21 @@ function entry(wallet: string, username: string, verified = true): Row {
   return { rank: 1, wallet, username, isVerified: verified, pnlSol: 1, pnlUsd: 2, pnlPercent: 3, realizedPnlUsd: 4, unrealizedPnlUsd: 5 };
 }
 
-function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {}) {
-  const db = { wallet: [] as Row[], tx: [] as Row[] };
+function makeFake(opts: { openWallets?: string[]; activeTraders?: string[]; vaults?: number[] } = {}) {
+  const db = {
+    wallet: [] as Row[],
+    tx: [] as Row[],
+    vault: (opts.vaults ?? []).map((id) => ({ id, listing: 'public', status: 'live', maxTraders: 5 })),
+    trader: [] as Row[],
+  };
   const audits: Row[] = [];
   let seq = 0;
   const match = (r: Row, w: Row): boolean =>
     Object.entries(w).every(([k, v]) => {
-      if (v !== null && typeof v === 'object') return true;
+      if (v !== null && typeof v === 'object') {
+        const inVals = (v as Row).in;
+        return Array.isArray(inVals) ? inVals.includes(r[k]) : true;
+      }
       return r[k] === v;
     });
   const prisma = {
@@ -65,6 +73,16 @@ function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {
       },
       count: async ({ where }: { where?: Row } = {}) =>
         where ? db.wallet.filter((r) => match(r, where)).length : db.wallet.length,
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        const ids = ((where.address as Row)?.in as string[]) ?? [];
+        const rows = db.wallet.filter(
+          (r) =>
+            ids.includes(r.address as string) &&
+            (where.isActive === undefined || r.isActive === where.isActive),
+        );
+        for (const r of rows) Object.assign(r, data);
+        return { count: rows.length };
+      },
       deleteMany: async ({ where }: { where: Row }) => {
         const ids = ((where.id as Row)?.in as number[]) ?? [];
         const before = db.wallet.length;
@@ -83,6 +101,44 @@ function makeFake(opts: { openWallets?: string[]; activeTraders?: string[] } = {
     },
     vaultTrader: {
       findMany: async () => (opts.activeTraders ?? []).map((wallet) => ({ wallet })),
+      upsert: async ({ where, create, update }: { where: Row; create: Row; update: Row }) => {
+        const key = where.vaultId_wallet as Row;
+        const existing = db.trader.find(
+          (t) => t.vaultId === key.vaultId && t.wallet === key.wallet,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const row = { id: db.trader.length + 1, ...create };
+        db.trader.push(row);
+        return row;
+      },
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        const notIn = ((where.wallet as Row)?.notIn as string[]) ?? [];
+        const rows = db.trader.filter(
+          (t) =>
+            t.vaultId === where.vaultId &&
+            t.isActive === where.isActive &&
+            !notIn.includes(t.wallet as string),
+        );
+        for (const r of rows) Object.assign(r, data);
+        return { count: rows.length };
+      },
+    },
+    vault: {
+      findMany: async ({ where = {} }: { where?: Row } = {}) =>
+        db.vault.filter(
+          (v) =>
+            (where.listing === undefined || v.listing === where.listing) &&
+            (where.status === undefined || v.status === where.status),
+        ),
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        const ids = ((where.id as Row)?.in as number[]) ?? [];
+        const rows = db.vault.filter((v) => ids.includes(v.id as number));
+        for (const r of rows) Object.assign(r, data);
+        return { count: rows.length };
+      },
     },
     auditLog: {
       create: async ({ data }: { data: Row }) => {
@@ -116,12 +172,18 @@ const noopTransport = {
   getTrackedWallets: () => [],
   watch: async () => undefined,
   unwatch: async () => undefined,
+  resetTo: async () => undefined,
 } as never;
 
-/** Spy transport: records removals/unwatches for prune-pipeline asserts. */
-function spyTransport(registry: string[] = []): never & { removed: string[]; unwatched: string[] } {
+/** Spy transport: records removals/unwatches/resets for prune-pipeline asserts. */
+function spyTransport(registry: string[] = []): never & {
+  removed: string[];
+  unwatched: string[];
+  reset: string[][];
+} {
   const removed: string[] = [];
   const unwatched: string[] = [];
+  const reset: string[][] = [];
   const live = [...registry];
   return {
     addTrackedWallet: () => undefined,
@@ -136,8 +198,12 @@ function spyTransport(registry: string[] = []): never & { removed: string[]; unw
     unwatch: async (address: string) => {
       unwatched.push(address);
     },
+    resetTo: async (addresses: string[]) => {
+      reset.push(addresses);
+    },
     removed,
     unwatched,
+    reset,
   } as never;
 }
 
@@ -372,6 +438,72 @@ async function main(): Promise<void> {
     assert.ok((transport as { removed: string[] }).removed.includes(ghost));
     assert.ok((transport as { unwatched: string[] }).unwatched.includes(ghost));
     assert.ok(!(transport as { removed: string[] }).removed.includes(walletOf(1)));
+    restore();
+  }
+
+  // 12. Pool mode: a live roster wallet outside topN is pinned active and is
+  //     the only wallet wired into the live pipeline.
+  {
+    const restore = env({
+      LEADERBOARD_TOP_N: '3', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0',
+      LIVE_SCOPE_MODE: 'pool', LIVE_ROSTER_MODE: 'pin',
+    });
+    const liveAddr = walletOf(9);
+    const { prisma, db } = makeFake({ activeTraders: [liveAddr] });
+    db.wallet.push({
+      id: 501, address: liveAddr, label: 'live', handle: 'live', isActive: false,
+      avatarUrl: null, bio: null, evmAddress: null, cumulativePnlUsd: null,
+      winRate: null, allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+    });
+    const transport = spyTransport();
+    const svc = svcWith(
+      prisma,
+      stub([entry(walletOf(1), 'a'), entry(walletOf(2), 'b'), entry(walletOf(3), 'c')]),
+      undefined,
+      transport,
+    );
+    const s = await svc.tick();
+    assert.ok((db.wallet.find((r) => r.address === liveAddr) as Row).isActive === true);
+    const reset = (transport as { reset: string[][] }).reset.at(-1) ?? [];
+    assert.deepEqual([...reset].sort(), [liveAddr]);
+    assert.equal(s.active, 4); // 3 display actives + pinned live trader
+    restore();
+  }
+
+  // 13. Both public pools are re-synced to the same best-5 basket with equal
+  //     weights (no drift, no 6th trader).
+  {
+    const restore = env({
+      LEADERBOARD_TOP_N: '3', LEADERBOARD_CAP: '50', LEADERBOARD_SYNC_INTERVAL_MS: '0',
+      LIVE_SCOPE_MODE: 'pool', LIVE_ROSTER_MODE: 'pin',
+    });
+    const wallets = [1, 2, 3, 4, 5, 6].map((n) => walletOf(n));
+    const { prisma, db } = makeFake({ vaults: [14, 15], activeTraders: wallets });
+    wallets.forEach((address, i) => {
+      db.wallet.push({
+        id: 600 + i, address, label: `t${i}`, handle: `t${i}`, isActive: true,
+        rank24h: i + 1, rank7d: i + 1, rank30d: i + 1,
+        cumulativePnlUsd: { toNumber: () => 100 - i },
+        avatarUrl: 'pic', bio: null, evmAddress: null, winRate: null,
+        allocationWeight: { toNumber: () => 1 }, createdAt: new Date('2026-01-01'),
+      });
+    });
+    const svc = svcWith(prisma, stub(wallets.slice(0, 3).map((w, i) => entry(w, `n${i}`))));
+    await svc.tick();
+    const kept = wallets.slice(0, 5).sort();
+    for (const id of [14, 15]) {
+      const active = db.trader
+        .filter((t) => t.vaultId === id && t.isActive)
+        .map((t) => t.wallet as string)
+        .sort();
+      assert.deepEqual(active, kept, `vault ${id} shares the best-5 basket`);
+      assert.ok(
+        db.trader.filter((t) => t.vaultId === id).every((t) => t.weightBps === 2000),
+        `vault ${id} equal 2000bps weights`,
+      );
+    }
+    assert.equal((db.vault.find((v) => v.id === 14) as Row).maxTraders, 5);
+    assert.equal((db.vault.find((v) => v.id === 15) as Row).maxTraders, 5);
     restore();
   }
 

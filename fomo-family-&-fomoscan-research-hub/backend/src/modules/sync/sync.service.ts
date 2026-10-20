@@ -72,8 +72,9 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
-      // Dropped wallets stay frozen: no fresh signals needed, history kept.
-      const wallets = (await this.wallets.findAll()).filter((w) => w.isActive !== false);
+      // Live scope = active traders of public/live pools (fallback: DB-active).
+      // Non-pool leaderboard wallets stay frozen; history/orders are kept.
+      const wallets = await this.wallets.findAllLive();
       let fresh = 0;
       for (const w of wallets) {
         try {
@@ -93,7 +94,7 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
       }
       const statsUpdated =
         fresh > 0 || Date.now() - this.lastStatsAt >= STATS_MIN_GAP_MS
-          ? await this.syncStatsThrottled()
+          ? await this.syncStatsThrottled(wallets.map((w) => w.address))
           : 0;
       const pruned = await this.pruneOnce();
       // eslint-disable-next-line no-console
@@ -119,9 +120,9 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
    * recompute lại mỗi tick là đốt RAM/CPU vô ích. Vẫn recompute ngay khi
    * có tx mới nên UI chậm nhất 1 tick sau data mới.
    */
-  private async syncStatsThrottled(): Promise<number> {
+  private async syncStatsThrottled(addresses: string[]): Promise<number> {
     this.lastStatsAt = Date.now();
-    return this.pnl.syncWalletStats(HISTORY_DAYS);
+    return this.pnl.syncWalletStats(HISTORY_DAYS, addresses);
   }
 
   /**

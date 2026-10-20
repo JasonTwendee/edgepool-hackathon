@@ -6,6 +6,7 @@ import { SolanaOnChainListenerService } from '../../server/solana.service.js';
 import { SolanaStreamService } from '../../server/solana-stream.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
+import { resolveLiveScope } from '../../common/live-scope.js';
 
 /**
  * Leaderboard rotation (fomoscan topic): tracked wallets follow the verified
@@ -41,6 +42,46 @@ export interface RotationSummary {
 function intEnv(name: string, fallback: number): number {
   const v = Number(process.env[name]);
   return Number.isInteger(v) && v >= 0 ? v : fallback;
+}
+
+/**
+ * Deterministic top-N roster selection: 24h rank first, then 7d/30d, then
+ * cumulative PnL, then address. Missing ranks sort last (never win a slot).
+ */
+export function pickRoster(
+  rows: Array<{
+    address: string;
+    rank24h?: number | null;
+    rank7d?: number | null;
+    rank30d?: number | null;
+    cumulativePnlUsd?: unknown;
+  }>,
+  n = 5,
+): string[] {
+  const rank = (v: unknown): number =>
+    typeof v === 'number' && Number.isFinite(v) ? v : Number.POSITIVE_INFINITY;
+  const pnl = (v: unknown): number => {
+    if (v && typeof v === 'object' && 'toNumber' in (v as object)) {
+      try {
+        return (v as { toNumber(): number }).toNumber();
+      } catch {
+        return 0;
+      }
+    }
+    const num = Number(v ?? 0);
+    return Number.isFinite(num) ? num : 0;
+  };
+  return [...rows]
+    .sort(
+      (a, b) =>
+        rank(a.rank24h) - rank(b.rank24h) ||
+        rank(a.rank7d) - rank(b.rank7d) ||
+        rank(a.rank30d) - rank(b.rank30d) ||
+        pnl(b.cumulativePnlUsd) - pnl(a.cumulativePnlUsd) ||
+        a.address.localeCompare(b.address),
+    )
+    .slice(0, Math.max(n, 1))
+    .map((r) => r.address);
 }
 
 @Injectable()
@@ -139,6 +180,11 @@ export class LeaderboardService implements OnModuleInit {
     });
     const top = usable.slice(0, topN);
     const topSet = new Set(top.map((e) => e.wallet));
+    // Pool roster is the live set. It may contain wallets outside the current
+    // topN display universe; those stay active and must never be deactivated
+    // or unsubscribed by rotation.
+    const live = await resolveLiveScope(this.prisma);
+    const liveSet = live.mode === 'pool' ? live.addresses : null;
 
     let added = 0;
     let reactivated = 0;
@@ -192,10 +238,19 @@ export class LeaderboardService implements OnModuleInit {
       }
     }
 
+    // Pin live pool traders active before deactivation so a wallet that fell
+    // out of the topN display board is not silently dropped from ingestion.
+    if (liveSet && liveSet.size > 0) {
+      await this.prisma.trackedWallet.updateMany({
+        where: { address: { in: [...liveSet] }, isActive: false },
+        data: { isActive: true },
+      });
+    }
+
     let deactivated = 0;
     const actives = await this.prisma.trackedWallet.findMany({ where: { isActive: true } });
     for (const w of actives) {
-      if (!topSet.has(w.address)) {
+      if (!topSet.has(w.address) && !(liveSet?.has(w.address))) {
         await this.prisma.trackedWallet.update({ where: { address: w.address }, data: { isActive: false } });
         this.listener.removeTrackedWallet(w.address);
         await this.stream.unwatch(w.address).catch(() => undefined);
@@ -203,15 +258,9 @@ export class LeaderboardService implements OnModuleInit {
       }
     }
 
-    // Live-wire the new actives into the listener registry + WS stream so
-    // fresh swaps arrive without waiting for a backend restart.
-    for (const e of top) {
-      const row = await this.prisma.trackedWallet.findUnique({ where: { address: e.wallet } });
-      if (row?.isActive) {
-        this.listener.addTrackedWallet(toTrackedWallet(row));
-        await this.stream.watch(e.wallet).catch(() => undefined);
-      }
-    }
+    // Live-wiring is done once in the final reconcile below: it targets the
+    // live scope (or DB actives in legacy/all mode) and calls resetTo, so
+    // rotation can never re-subscribe the whole display board.
 
     // Fix 11 — guarded cap prune. Victims are INACTIVE only (existing rule)
     // AND carry no live references: no open copy orders (CopyOrder keeps a
@@ -294,20 +343,25 @@ export class LeaderboardService implements OnModuleInit {
       this.prisma.trackedWallet.count(),
       this.prisma.trackedWallet.count({ where: { isActive: true } }),
     ]);
-    // Reconcile live pipeline with DB truth: the listener registry is seeded
-    // with hardcoded defaults at construction and drifts (deactivations,
-    // prunes) — anything subscribed but not DB-active burns RPC for nothing.
-    const dbActives = await this.prisma.trackedWallet.findMany({
-      where: { isActive: true },
-      select: { address: true },
+    // Reconcile the live pipeline with the live scope (or DB truth in legacy
+    // all mode). resetTo is authoritative: anything outside the target is
+    // unsubscribed immediately, and the registry is pruned to the same set.
+    const targetRows = await this.prisma.trackedWallet.findMany({
+      where: liveSet ? { address: { in: [...liveSet] } } : { isActive: true },
     });
-    const dbActiveSet = new Set(dbActives.map((w) => w.address));
+    const targetSet = new Set(targetRows.map((w) => w.address));
+    if (liveSet && targetSet.size < liveSet.size) {
+      const missing = [...liveSet].filter((a) => !targetSet.has(a));
+      console.warn(`[leaderboard] live traders missing from tracked_wallets: ${missing.length}`);
+    }
+    for (const row of targetRows) this.listener.addTrackedWallet(toTrackedWallet(row));
     for (const w of this.listener.getTrackedWallets()) {
-      if (!dbActiveSet.has(w.address)) {
+      if (!targetSet.has(w.address)) {
         this.listener.removeTrackedWallet(w.address);
         await this.stream.unwatch(w.address).catch(() => undefined);
       }
     }
+    await this.stream.resetTo([...targetSet]).catch(() => undefined);
     // Window ranks for the pool basket display (Rank · 24h/7d/30d): snapshot
     // each FomoScan window independently of rotation membership. Reuses the
     // main board when the period matches to save a call. Never creates rows
@@ -352,6 +406,91 @@ export class LeaderboardService implements OnModuleInit {
         // rank snapshot is display-only — never break rotation.
       }
     }
+    // Keep both public pools on the same roster. Default `pin` re-picks the
+    // best 5 from the current union (idempotent); `top` takes the live board
+    // top 5. Never runs with an incomplete roster or in legacy all mode.
+    const rosterMode = process.env.LIVE_ROSTER_MODE ?? 'pin';
+    if (liveSet) {
+      await this.syncPublicPoolRosters(
+        rosterMode === 'top' ? top.slice(0, 5).map((e) => e.wallet) : undefined,
+      ).catch((e: unknown) => {
+        console.warn('[leaderboard] roster sync failed:', (e as Error).message);
+      });
+    }
+
     return { period, topN, cap, added, reactivated, deactivated, pruned, total: finalTotal, active: finalActive, at: new Date().toISOString() };
+  }
+
+  /**
+   * Enforce one shared 5-wallet basket across all public/live pools.
+   * - `boardTop` provided (`LIVE_ROSTER_MODE=top`): use those wallets.
+   * - otherwise (`pin`): rank the current active union and keep the best 5.
+   * Equal weights (10000 / n) and `max_traders = n`.
+   */
+  private async syncPublicPoolRosters(boardTop?: string[]): Promise<void> {
+    const pools = await this.prisma.vault.findMany({
+      where: { listing: 'public', status: 'live' },
+      select: { id: true },
+    });
+    if (pools.length === 0) return;
+    const ids = pools.map((p) => p.id);
+
+    let picks: string[];
+    if (boardTop && boardTop.length >= 5) {
+      picks = boardTop.slice(0, 5);
+    } else {
+      const current = await this.prisma.vaultTrader.findMany({
+        where: { vaultId: { in: ids }, isActive: true },
+        select: { wallet: true },
+      });
+      const addresses = [...new Set(current.map((t) => t.wallet))];
+      if (addresses.length < 5) {
+        console.warn(`[leaderboard] roster sync skipped: only ${addresses.length} active pool trader(s)`);
+        return;
+      }
+      const rows = await this.prisma.trackedWallet.findMany({
+        where: { address: { in: addresses } },
+      });
+      picks = pickRoster(rows, 5);
+    }
+    if (picks.length < 5) {
+      console.warn(`[leaderboard] roster sync skipped: only ${picks.length} tracked candidate(s)`);
+      return;
+    }
+
+    const weightBps = Math.floor(10000 / picks.length);
+    for (const vaultId of ids) {
+      for (const wallet of picks) {
+        await this.prisma.vaultTrader.upsert({
+          where: { vaultId_wallet: { vaultId, wallet } },
+          create: { vaultId, wallet, weightBps, isActive: true },
+          update: { weightBps, isActive: true },
+        });
+      }
+      await this.prisma.vaultTrader.updateMany({
+        where: { vaultId, isActive: true, wallet: { notIn: picks } },
+        data: { isActive: false },
+      });
+    }
+    await this.prisma.trackedWallet.updateMany({
+      where: { address: { in: picks }, isActive: false },
+      data: { isActive: true },
+    });
+    await this.prisma.vault.updateMany({
+      where: { id: { in: ids } },
+      data: { maxTraders: picks.length },
+    });
+    await this.audit
+      .record({
+        actor: 'system:rotation',
+        action: 'pool.roster_sync',
+        target: picks.join(',').slice(0, 200),
+        reason: `${picks.length} shared traders across ${ids.length} public pool(s), weight ${weightBps}bps`,
+      })
+      .catch((e: unknown) => {
+        console.warn('[leaderboard] roster audit failed:', (e as Error).message);
+      });
+    // eslint-disable-next-line no-console
+    console.log(`[leaderboard] roster synced: ${picks.length} wallets across ${ids.length} pools`);
   }
 }

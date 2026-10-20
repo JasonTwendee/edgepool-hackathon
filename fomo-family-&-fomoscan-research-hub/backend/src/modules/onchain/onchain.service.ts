@@ -1,6 +1,7 @@
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
+import { Debouncer } from '../../common/debounce.js';
 import {
   SolanaOnChainListenerService,
   type OnChainTransactionEvent,
@@ -28,8 +29,13 @@ export interface RealtimeEventDto {
  * failures are logged, never crash the loop. In-flight guard per wallet.
  */
 @Injectable()
-export class OnchainService implements OnModuleInit {
+export class OnchainService implements OnModuleInit, OnModuleDestroy {
   private inFlight = new Set<string>();
+  private readonly debounceMs = (() => {
+    const n = Number(process.env.LIVE_DEBOUNCE_MS ?? 3000);
+    return Number.isFinite(n) && n >= 0 ? n : 3000;
+  })();
+  private readonly debouncer = new Debouncer(this.debounceMs, (address) => this.onDebounced(address));
 
   constructor(
     @Inject(SolanaOnChainListenerService)
@@ -42,9 +48,23 @@ export class OnchainService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.stream.setHandler((address) => {
-      void this.handleWalletActivity(address);
-    });
+    // Coalesce WS bursts per wallet; the safety-net sync is the correctness net.
+    this.stream.setHandler((address) => this.debouncer.schedule(address));
+  }
+
+  onModuleDestroy(): void {
+    this.debouncer.clear();
+  }
+
+  private onDebounced(address: string): void {
+    // A slow enrich pass can still be running when the debounce fires. Re-arm
+    // once instead of dropping the activity (safety net would catch it only
+    // after the next sync interval).
+    if (this.inFlight.has(address)) {
+      this.debouncer.schedule(address);
+      return;
+    }
+    void this.handleWalletActivity(address);
   }
 
   /** Entry for push pipelines (Helius webhooks): same dedupe/enrich/persist/emit path as WS. */
