@@ -30,6 +30,7 @@ import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 export class WalletsService implements OnModuleInit, OnModuleDestroy {
   private liveTimer?: NodeJS.Timeout;
   private reconciling = false;
+  private lastLiveLog = '';
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -134,8 +135,12 @@ export class WalletsService implements OnModuleInit, OnModuleDestroy {
       }
       for (const w of live) this.solana.addTrackedWallet(w);
       await this.stream.resetTo([...liveSet]);
-      // eslint-disable-next-line no-console
-      console.log(`[Wallets] live scope=${scope.mode} wallets=${liveSet.size}`);
+      const signature = `${scope.mode}:${[...liveSet].sort().join(',')}`;
+      if (signature !== this.lastLiveLog) {
+        this.lastLiveLog = signature;
+        // eslint-disable-next-line no-console
+        console.log(`[Wallets] live scope=${scope.mode} wallets=${liveSet.size}`);
+      }
       return liveSet.size;
     } finally {
       this.reconciling = false;

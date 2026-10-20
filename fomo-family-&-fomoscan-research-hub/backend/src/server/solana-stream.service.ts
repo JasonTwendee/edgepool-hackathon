@@ -75,15 +75,30 @@ export class SolanaStreamService implements OnModuleInit, OnModuleDestroy {
    */
   async resetTo(addresses: string[]): Promise<void> {
     const want = new Set(addresses);
+    let added = 0;
+    let removed = 0;
     for (const address of [...this.subs.keys()]) {
-      if (!want.has(address)) await this.unwatch(address);
+      if (!want.has(address)) {
+        await this.unwatch(address);
+        removed++;
+      }
     }
-    for (const address of want) await this.watch(address);
-    // Subscription setup itself is liveness: avoid the watchdog treating a
-    // quiet-but-healthy basket as a dead socket right after (re)subscribe.
-    this.lastMsgAt = Date.now();
-    // eslint-disable-next-line no-console
-    console.log(`[SolanaStream] live scope: ${want.size} wallet(s), subs=${this.subs.size}`);
+    for (const address of want) {
+      if (!this.subs.has(address)) {
+        await this.watch(address);
+        if (this.subs.has(address)) added++;
+      }
+    }
+    if (added > 0 || removed > 0) {
+      // Only real subscription changes arm the watchdog. The 60s reconcile
+      // calls this with an unchanged set; resetting lastMsgAt on every no-op
+      // would hide a silently dead socket forever.
+      this.lastMsgAt = Date.now();
+      // eslint-disable-next-line no-console
+      console.log(
+        `[SolanaStream] live scope: ${want.size} wallet(s), subs=${this.subs.size} (+${added}/-${removed})`,
+      );
+    }
   }
 
   async watch(address: string): Promise<void> {

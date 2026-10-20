@@ -14,7 +14,7 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
 | P2 | done | Debounce + scoped stats + SSE buffer + watchdog | `LIVE_DEBOUNCE_MS=3000`, `findAllLive` sync, `syncWalletStats(days, addresses)`, 500ms SSE buffer, 30-min watchdog |
 | P3 | done | Asserts + typecheck + builds + env contract | 28/28 assert suites; BE typecheck+build; FE typecheck+build; env contract 56+2; openapi 70 paths |
 | P4 | done | VPS cleanup to 2 pools | 7 vaults deleted; 41 orders / 7 intents / 7 bots cleaned; 14/15 share 5×2000bps; NAV unchanged |
-| P5 | pending | Deploy + live metrics/smoke | — |
+| P5 | in progress | Deploy + live metrics/smoke | deployed `a29afcf` + `059d1ad`; subs=5, sync=5, stats=4; 3 events 08:18–08:28 (vs 14,685/h); 2 pools shared 5×2000bps; FE/BE smoke green; load 1.24 / 0 locks; retention 120d re-confirmed |
 | P6 | pending | Docs/indexes/logs | — |
 
 ## Baseline (2026-10-20)
@@ -67,3 +67,14 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
   (2000 bps) with the same addresses; pool 14 max_traders 3→5; NAV unchanged
   (14: 10.0 @1.0; 15: 431.87 @1.016345957). Inactive old trader rows kept for
   history/fee audit.
+- 2026-10-20 P5 partial: deployed `a29afcf` then watchdog fix `059d1ad`.
+  Runtime logs: `live scope: 5 wallet(s), subs=5`, `Wallets live scope=pool
+  wallets=5`, `SyncScheduler (boot) wallets=5 statsUpdated=4`, retention log
+  `120d window`. Public `GET /api/vaults/pools` = 2 pools, both 5 traders
+  × 2000bps. Events 08:18–08:28 = 3 (all ogantd/collectible). FE 6 routes 200,
+  BE 200, auth 401. Load 1.24, 0 ungranted locks, DB 8.17 GB / 20 GB free.
+  Fixed watchdog: `lastMsgAt` is armed only on real subscription changes, not
+  every 60s reconcile (otherwise a dead socket would never be detected); no
+  quiet-resubscribe churn observed.
+- 2026-10-20: server `.env` `FULL_HISTORY_DAYS` corrected 35 → 120 per user
+  confirmation; backup `.env.bak-20261020-retention` left on VPS.

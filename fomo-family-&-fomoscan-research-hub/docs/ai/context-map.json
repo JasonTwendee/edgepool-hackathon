@@ -41,7 +41,13 @@
       "SEED_ADMIN_USER",
       "SEED_USER_USER",
       "SEED_KOL_USER",
-      "PRUNE_ARCHIVE_DIR"
+      "PRUNE_ARCHIVE_DIR",
+      "LIVE_SCOPE_MODE",
+      "LIVE_SCOPE_RECONCILE_MS",
+      "LIVE_DEBOUNCE_MS",
+      "LIVE_WATCHDOG_STALE_MS",
+      "LIVE_ROSTER_MODE",
+      "SSE_FLUSH_MS"
     ]
   },
   "controllers": {
@@ -62,12 +68,12 @@
     "MarketController": "backend/src/modules/market/market.controller.ts"
   },
   "dataAccess": {
-    "wallets": "tracked_wallets via Prisma (WalletsService; enrich bio/EVM; rotation via LeaderboardService topN=30 cap=50)",
+    "wallets": "tracked_wallets via Prisma (WalletsService; enrich bio/EVM; rotation topN display but live pipeline scoped to active public-pool traders)",
     "ledger": "transactions via TransactionsService (DB-first, Flux+Helius backfill); portfolio converges to DB reads",
     "events": "realtime_events via OnchainService; GET /api/onchain/events",
     "vaults": "vaults/deposits/withdrawals/epoch_checkpoints/partner_payouts via VaultService (NAV engine mark-to-market, HWM ratchet)",
     "copyOrders": "copy_orders + copy_order_legs via CopyTrade/Manage services (TP1/TP2/STOP/TRAIL/TIME legs)",
-    "prune": "rolling FULL_HISTORY_DAYS=35 window; prune archives to PRUNE_ARCHIVE_DIR before delete; audit/orders/vaults never pruned"
+    "prune": "rolling FULL_HISTORY_DAYS=120 window; prune archives to PRUNE_ARCHIVE_DIR before delete; audit/orders/vaults never pruned"
   },
   "detectedStack": [
     "@nestjs/12",
@@ -94,20 +100,20 @@
   },
   "entities": {
     "CopyRecord": "backend/src/modules/copy-trade/copy-trade.service.ts (return shape)",
-    "CopyOrder": "prisma copy_orders (lifecycle PENDING→QUATED→SENT→CONFIRMED|FAILED, TP/stop params, vaultId)",
+    "CopyOrder": "prisma copy_orders (lifecycle PENDING\u2192QUATED\u2192SENT\u2192CONFIRMED|FAILED, TP/stop params, vaultId)",
     "CopyOrderLeg": "prisma copy_order_legs (TP1|TP2|STOP|TRAIL|TIME, unique per order)",
     "OnChainTransactionEvent": "backend/src/modules/onchain/entities/onchain-event.entity.ts",
     "TrackedWallet": "backend/src/modules/wallets/entities/tracked-wallet.entity.ts",
     "Vault": "prisma vaults (kind FLAGSHIP|PARTNER, status, slots/traders caps, settle windows, HWM)",
-    "Deposit": "prisma deposits (QUEUED→SETTLED, sharesMinted)",
-    "Withdrawal": "prisma withdrawals (QUEUED→SETTLED, payoutSol, cancellable)",
+    "Deposit": "prisma deposits (QUEUED\u2192SETTLED, sharesMinted)",
+    "Withdrawal": "prisma withdrawals (QUEUED\u2192SETTLED, payoutSol, cancellable)",
     "EpochCheckpoint": "prisma epoch_checkpoints (navSol/sharePrice/feeSol)",
     "VaultTrader": "prisma vault_traders (weightBps, isActive)",
     "User": "prisma users (wallet/username, scrypt passwordHash, role USER|KOL|ADMIN, payoutWallet+verifiedAt)",
     "Session": "prisma sessions (sha256 tokenHash, httpOnly cookie)",
     "AuthNonce": "prisma auth_nonces (wallet login challenge)",
     "PayoutWalletChallenge": "prisma payout_wallet_challenges (verify-before-set payout wallet)",
-    "PartnerPayout": "prisma partner_payouts (PERF_FEE ledger, ACCRUED→CLAIMED→PAID)",
+    "PartnerPayout": "prisma partner_payouts (PERF_FEE ledger, ACCRUED\u2192CLAIMED\u2192PAID)",
     "PartnerApplication": "prisma partner_applications (pending review)",
     "TraderRequest": "prisma trader_requests (per-pool trader ask)",
     "Bot": "prisma bots (mode AUTO|PAUSED, vaultId)",
@@ -130,16 +136,17 @@
     "rugcheck": "RUGCHECK_API_KEY Qualify mcap/liquidity gate",
     "coingecko": "majors ticker via BE proxy /api/market/ticks; FE never holds keys",
     "jito": "JITO_BLOCK_ENGINE_URL (future copy-trade)",
-    "publicUrl": "reverse-proxy URL do chủ hệ thống cấp (xem docs/setup/OPERATOR.md)"
+    "publicUrl": "reverse-proxy URL do ch\u1ee7 h\u1ec7 th\u1ed1ng c\u1ea5p (xem docs/setup/OPERATOR.md)"
   },
   "jobs": {
-    "onchainPoll": "backend/src/server/solana.service.ts poll loop (tracked actives only)",
-    "syncScheduler": "sync.service 60s full-sync + history-sync backfill",
+    "onchainPoll": "backend/src/server/solana.service.ts poll loop (live scope only)",
+    "syncScheduler": "sync.service SYNC_INTERVAL_MS safety-net sync (live pool traders only) + history backfill",
     "autoFire": "auto-fire.service COPY_AUTO_INTERVAL_MS (default 5m; demo 1500m lookback via AUTO_FIRE_WINDOW_MAX_MIN)",
     "manage": "manage.service COPY_MANAGE_INTERVAL_MS (default 5m; TP1/TP2/stop/trail/time exits)",
     "allocation": "allocation.service COPY_ALLOC_INTERVAL_MS (default 0 = manual; rebalance endpoint)",
-    "rotation": "leaderboard.service tick: FomoScan topN=30, cap=50, drop→deactivate keep history",
-    "prune": "rolling 35d prune transactions/realtime_events with JSONL archive"
+    "rotation": "leaderboard.service tick: FomoScan topN display, live pool traders pinned active, both public pools re-synced to same 5",
+    "prune": "rolling 120d prune transactions/realtime_events with JSONL archive",
+    "liveScopeReconcile": "wallets.service LIVE_SCOPE_RECONCILE_MS (60s): listener registry + WS subs + DB active pin"
   },
   "language": "typescript",
   "modules": {
@@ -240,7 +247,7 @@
     "GET /api/vaults/portfolio": "backend/src/modules/vaults/vaults.controller.ts (AuthGuard, overview)",
     "GET /api/vaults/:id/pool": "backend/src/modules/vaults/vaults.controller.ts (pool detail + advanced)",
     "GET /api/vaults/:id/ledger": "backend/src/modules/vaults/vaults.controller.ts (fund-flow: per-order allocation/MTM + cash reconciliation)",
-    "GET /api/vaults/:id/orders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN journey rail: per-signal Detect→Exit evidence)",
+    "GET /api/vaults/:id/orders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN journey rail: per-signal Detect\u2192Exit evidence)",
     "GET /api/vaults/:id/signals/stream": "backend/src/modules/vaults/vaults.controller.ts (SSE: CONNECTED, REPLAY, live SIGNAL via signal-bus)",
     "GET /api/vaults/:id/earnings": "backend/src/modules/vaults/vaults.controller.ts (KOL-gated partner fees)",
     "GET /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts",
@@ -314,7 +321,7 @@
     "assert-signed-intent": "backend/src/modules/signed-intent/assert-signed-intent.ts (challenge/verify/replay/tamper/expiry)",
     "assert-paper-executor": "backend/src/modules/copy-trade/assert-paper-executor.ts (devnet genesis gate)",
     "assert-demo": "backend/src/modules/demo/assert-demo.ts",
-    "assert-leaderboard": "backend/src/modules/leaderboard/assert-leaderboard.ts (rotation topN/cap)",
+    "assert-leaderboard": "backend/src/modules/leaderboard/assert-leaderboard.ts (rotation topN/cap + live pin + shared roster)",
     "assert-market": "backend/src/modules/market/assert-market.ts",
     "assert-partner": "backend/src/modules/partner/assert-partner.ts + vaults/assert-partner.ts (fees/claim)",
     "assert-sync": "backend/src/modules/sync/assert-sync.ts",
@@ -326,7 +333,8 @@
     "assert-treasury": "backend/src/modules/vaults/assert-treasury.ts",
     "assert-vault": "backend/src/modules/vaults/assert-vault.ts (HWM/shares/fees)",
     "assert-windows": "backend/src/modules/vaults/assert-windows.ts (settle windows)",
-    "assert-enrich": "backend/src/modules/wallets/assert-enrich.ts"
+    "assert-enrich": "backend/src/modules/wallets/assert-enrich.ts",
+    "assert-live-scope": "backend/src/common/assert-live-scope.ts (pool/all/fallback scope + debouncer + SSE buffer)"
   },
   "verification": {
     "commands": [
@@ -335,7 +343,7 @@
       "curl -s http://localhost:3000/api/health",
       "curl -s http://localhost:3001/api/health (via FE rewrites)",
       "docker compose ps (healthy)",
-      "curl -s <PUBLIC_URL>/api/vaults/pools (URL do chủ hệ thống cấp)"
+      "curl -s <PUBLIC_URL>/api/vaults/pools (URL do ch\u1ee7 h\u1ec7 th\u1ed1ng c\u1ea5p)"
     ]
   },
   "version": 3

@@ -1,5 +1,5 @@
 {
- "activeTopic": "partner-payout-prune-guards",
+ "activeTopic": "two-pool-live-scope-slimming",
  "artifacts": [
   {
    "path": "docs/architecture/ARCHITECTURE.md",
@@ -235,6 +235,21 @@
    "path": "docs/codexminimal/trackers/2026-10-06-partner-payout-prune-guards-tracker.md",
    "role": "tracker",
    "topic": "partner-payout-prune-guards"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-20-two-pool-live-scope-slimming-intent.md",
+   "role": "intent",
+   "topic": "two-pool-live-scope-slimming"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "two-pool-live-scope-slimming"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-20-two-pool-live-scope-slimming-tracker.md",
+   "role": "tracker",
+   "topic": "two-pool-live-scope-slimming"
   }
  ],
  "updatedAt": "2026-10-06T00:00:00Z",
