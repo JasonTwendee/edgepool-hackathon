@@ -82,6 +82,7 @@ This file is the durable rule source.
 - 2026-10-20: Xoá pool là thao tác phá huỷ — bắt buộc backup dump 12 bảng vault trước; keep-list 14/15; `copy_orders`, `signed_intents`, `bots` phải delete tường minh vì không có FK cascade về vault.
 - 2026-10-20 (user-confirmed): Display surface chỉ 5 ví live pool roster. `GET /api/wallets` và `GET /api/portfolio/pnl/overview` phải scope `findAllLive()` (không trả 100 tracked history); `LEADERBOARD_TOP_N=5`, cap=20. Internal jobs vẫn có thể dùng `findAll()`.
 - 2026-10-20 (user-approved): Raw `transactions`/`realtime_events` của ví ngoài live roster có thể trim để giảm DB (TRUNCATE keep-5 trong transaction, verify orphan FK=0). Raw chain data re-fetchable; money ledger/orders/audit không nằm trong scope. Luôn ghi counts trước/sau.
+- 2026-10-20: Rotation chỉ được activate live pool roster (trừ `LIVE_ROSTER_MODE=top`); không activate top board ngoài roster. Inactive wallet rỗng (không tx/event/open order/active trader) có thể xoá; ví còn open legacy order phải giữ.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
 ## User Overrides

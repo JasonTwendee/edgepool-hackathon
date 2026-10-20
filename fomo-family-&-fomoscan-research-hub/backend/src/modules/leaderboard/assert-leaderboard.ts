@@ -466,7 +466,7 @@ async function main(): Promise<void> {
     assert.ok((db.wallet.find((r) => r.address === liveAddr) as Row).isActive === true);
     const reset = (transport as { reset: string[][] }).reset.at(-1) ?? [];
     assert.deepEqual([...reset].sort(), [liveAddr]);
-    assert.equal(s.active, 4); // 3 display actives + pinned live trader
+    assert.equal(s.active, 1); // only the pinned live trader is active
     restore();
   }
 

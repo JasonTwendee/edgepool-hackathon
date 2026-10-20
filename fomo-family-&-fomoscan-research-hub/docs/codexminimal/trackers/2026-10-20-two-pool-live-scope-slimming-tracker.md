@@ -16,7 +16,7 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
 | P4 | done | VPS cleanup to 2 pools | 7 vaults deleted; 41 orders / 7 intents / 7 bots cleaned; 14/15 share 5×2000bps; NAV unchanged |
 | P5 | done | Deploy + live metrics/smoke | deployed `a29afcf` → `059d1ad` → `1bff5e5`; subs=5, sync=5, stats=4; **8 events 08:18–08:47 (~16.5/h vs 14,685/h, −99.89%)**, only top-5 wallets; 2 pools shared 5×2000bps; FE/BE smoke green; load 0.44 / RAM 819MB / 0 locks; retention 120d |
 | P6 | done | Docs/indexes/logs | intent+plan+tracker, refactor-log, rule-registry, context-map, project/test/module/entity indexes, artifact registry, telemetry |
-| P7 | done | Display only 5 + trim raw ledger/events outside roster | `/api/wallets`=5, PnL overview=5, `LEADERBOARD_TOP_N=5`; DB **8.17 GB → 66 MB**; tx **5,067,447 → 48,185**; events **4,866,031 → 14,425**; orphan FK=0 |
+| P7 | done | Display only 5 + trim raw ledger/events outside roster | `/api/wallets`=5, PnL overview=5, `LEADERBOARD_TOP_N=5`, live-only rotation; DB **8.17 GB → 66 MB**; tx **5,067,447 → 48,189**; events **4,866,031 → 14,429**; tracked wallets **100 → 11**; orphan FK=0 |
 
 ## Baseline (2026-10-20)
 
@@ -94,10 +94,14 @@ Plan: `docs/codexminimal/plans/2026-10-20-two-pool-live-scope-slimming-phase-pla
   registry/telemetry updated in the same commit as the final watchdog comments.
 - 2026-10-20 P7 done (user follow-up): display surface narrowed to the 5 live
   pool traders — `GET /api/wallets` and PnL overview use `findAllLive()`;
-  `LEADERBOARD_TOP_N=5` (cap 20) in code + VPS `.env`. Raw ledger/events for
-  wallets outside the roster were trimmed in one locked transaction:
-  `transactions` 5,067,447 → **48,185**, `realtime_events` 4,866,031 →
-  **14,425**, DB **8.17 GB → 66 MB**. Kept rows are exactly the 5 roster
+  `LEADERBOARD_TOP_N=5` (cap 20) in code + VPS `.env`; rotation only activates
+  the live roster (`LIVE_ROSTER_MODE=pin`). Raw ledger/events for wallets
+  outside the roster were trimmed in one locked transaction:
+  `transactions` 5,067,447 → **48,189**, `realtime_events` 4,866,031 →
+  **14,429**, DB **8.17 GB → 66 MB**. Kept rows are exactly the 5 roster
   wallets; event→tx orphan check = 0; money ledger/orders/audit untouched.
+  Then removed **12 empty inactive tracked wallets** (no tx/event/open order/
+  active trader): `tracked_wallets` 100 → **11** (5 live + 6 inactive history;
+  3 of them keep legacy open orders).
 - 2026-10-20: server `.env` `FULL_HISTORY_DAYS` corrected 35 → 120 per user
   confirmation; the temporary `.env` backup was removed after verification.

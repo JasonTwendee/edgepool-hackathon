@@ -144,7 +144,7 @@
     "autoFire": "auto-fire.service COPY_AUTO_INTERVAL_MS (default 5m; demo 1500m lookback via AUTO_FIRE_WINDOW_MAX_MIN)",
     "manage": "manage.service COPY_MANAGE_INTERVAL_MS (default 5m; TP1/TP2/stop/trail/time exits)",
     "allocation": "allocation.service COPY_ALLOC_INTERVAL_MS (default 0 = manual; rebalance endpoint)",
-    "rotation": "leaderboard.service tick: FomoScan topN=5 display, live pool traders pinned active, both public pools re-synced to same 5",
+    "rotation": "leaderboard.service tick: topN=5, only live pool roster activated, both public pools re-synced to same 5",
     "prune": "rolling 120d prune transactions/realtime_events with JSONL archive",
     "liveScopeReconcile": "wallets.service LIVE_SCOPE_RECONCILE_MS (60s): listener registry + WS subs + DB active pin"
   },

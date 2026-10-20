@@ -179,16 +179,22 @@ export class LeaderboardService implements OnModuleInit {
       }
     });
     const top = usable.slice(0, topN);
-    const topSet = new Set(top.map((e) => e.wallet));
     // Pool roster is the live set. It may contain wallets outside the current
     // topN display universe; those stay active and must never be deactivated
     // or unsubscribed by rotation.
     const live = await resolveLiveScope(this.prisma);
     const liveSet = live.mode === 'pool' ? live.addresses : null;
+    const rosterMode = process.env.LIVE_ROSTER_MODE ?? 'pin';
+    // In normal pool mode the display universe IS the live roster. Do not
+    // activate unrelated board wallets: they would show up in status/counts
+    // and create a second, non-live set. `top` mode keeps board-driven churn.
+    const liveOnly = Boolean(liveSet) && rosterMode !== 'top';
+    const activationTop = liveOnly ? top.filter((e) => liveSet?.has(e.wallet)) : top;
+    const topSet = new Set(activationTop.map((e) => e.wallet));
 
     let added = 0;
     let reactivated = 0;
-    for (const e of top) {
+    for (const e of activationTop) {
       const existing = await this.prisma.trackedWallet.findUnique({ where: { address: e.wallet } });
       const snapshot = {
         fomoPnlUsd: e.pnlUsd,
@@ -409,7 +415,6 @@ export class LeaderboardService implements OnModuleInit {
     // Keep both public pools on the same roster. Default `pin` re-picks the
     // best 5 from the current union (idempotent); `top` takes the live board
     // top 5. Never runs with an incomplete roster or in legacy all mode.
-    const rosterMode = process.env.LIVE_ROSTER_MODE ?? 'pin';
     if (liveSet) {
       await this.syncPublicPoolRosters(
         rosterMode === 'top' ? top.slice(0, 5).map((e) => e.wallet) : undefined,
