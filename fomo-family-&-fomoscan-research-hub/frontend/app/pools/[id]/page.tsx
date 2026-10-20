@@ -810,6 +810,14 @@ export default function PoolDetailPage() {
                     <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
                       #{t.ranks?.h24 ?? '—'} · #{t.ranks?.d7 ?? '—'} · #{t.ranks?.d30 ?? '—'}
                     </span>
+                    {(t.whyTop?.whyTop?.primary || t.trackedSince) && (
+                      <span className="font-mono" style={{ fontSize: 10, color: 'var(--ep-faint, #75798C)' }} title="FomoScan metrics captured when the trader entered the pool">
+                        {t.whyTop?.whyTop?.primary
+                          ? `Fomo ${t.whyTop.whyTop.primaryWindow ?? ''} · ${t.whyTop.whyTop.primary.trades ?? '—'} trades · ${t.whyTop.whyTop.primary.winRatePct !== null && t.whyTop.whyTop.primary.winRatePct !== undefined ? `${t.whyTop.whyTop.primary.winRatePct.toFixed(0)}% win` : '—'}`
+                          : ''}
+                        {t.trackedSince ? ` · since ${new Date(t.trackedSince).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                      </span>
+                    )}
                   </div>
                   <span className="font-mono" style={{ fontSize: 13 }}>
                     {expByWallet[t.wallet] !== undefined ? `${expByWallet[t.wallet].toFixed(1)}%` : '—'}

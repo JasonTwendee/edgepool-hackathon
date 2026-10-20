@@ -1461,6 +1461,9 @@ export class VaultService {
               d30: (tw?.rank30d as number | null) ?? null,
             },
             weightBps: (t.weightBps as number | null) ?? 0,
+            enteredAt: t.enteredAt ? new Date(t.enteredAt).toISOString() : null,
+            trackedSince: t.enteredAt ? new Date(t.enteredAt).toISOString() : null,
+            whyTop: (t.entrySnapshot as unknown) ?? null,
           };
         });
       const row: Record<string, unknown> = {
@@ -1531,12 +1534,19 @@ export class VaultService {
       }
     }
     if (existing) {
+      const needsTerm = activating || !existing.enteredAt;
       return this.prisma.vaultTrader.update({
         where: { id: existing.id },
-        data: { weightBps, isActive: true },
+        data: {
+          weightBps,
+          isActive: true,
+          ...(needsTerm ? { enteredAt: new Date(), exitedAt: null, exitReason: null } : {}),
+        },
       });
     }
-    return this.prisma.vaultTrader.create({ data: { vaultId: id, wallet: clean, weightBps, isActive: true } });
+    return this.prisma.vaultTrader.create({
+      data: { vaultId: id, wallet: clean, weightBps, isActive: true, enteredAt: new Date() },
+    });
   }
 
   async removeTrader(vaultId: number, wallet: string): Promise<unknown> {
@@ -1545,8 +1555,11 @@ export class VaultService {
       where: { vaultId_wallet: { vaultId: id, wallet: (wallet ?? '').trim() } },
     });
     if (!existing) missing(`Trader ${(wallet ?? '').trim()} is not tracked by vault ${id}.`);
-    // Soft-remove (keep history); re-assign reactivates subject to the cap.
-    return this.prisma.vaultTrader.update({ where: { id: existing.id }, data: { isActive: false } });
+    // Soft-remove (keep history); re-assign starts a new forward-only term.
+    return this.prisma.vaultTrader.update({
+      where: { id: existing.id },
+      data: { isActive: false, exitedAt: new Date(), exitReason: 'manual' },
+    });
   }
 
   // ---- Treasury policy (T2, ADMIN-gated in controller) ----

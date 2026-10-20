@@ -2,7 +2,7 @@
 
 ## Current state (2026-10-20)
 
-- No `jest`/`vitest` runner. Verification = **28 `assert-*.ts` suites** run with `tsx`
+- No `jest`/`vitest` runner. Verification = **30 `assert-*.ts` suites** run with `tsx`
   (mocked Prisma — no network/secrets), plus typecheck + FE build + live smoke.
 - CI (`ci.yml`) runs every suite: `for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do npx tsx "$f" || exit 1; done`
 - Run one suite: `cd backend && npx tsx src/modules/vaults/assert-pools.ts` → `… asserts: ALL GREEN`
@@ -12,6 +12,7 @@
 | Suite | Covers |
 |---|---|
 | `common/assert-live-scope.ts` | live scope pool/all/fallback + debouncer coalesce/flush + bounded SSE buffer |
+| `common/fomoscan/assert-selection-snapshot.ts` | Fomo why-top snapshot + stable hash + missing-PnL path |
 | `common/fomoscan/assert-fomoscan.ts` | FomoScan client, throttle, leaderboard parse |
 | `common/market/assert-datastream.ts` | DataStream prices/candles |
 | `common/rugcheck/assert-rugcheck.ts` | Qualify rug/mcap gate |
@@ -29,6 +30,7 @@
 | `modules/signed-intent/assert-signed-intent.ts` | wallet-signed deposit/withdraw intents |
 | `modules/sync/assert-rpc-parse.ts` | RPC parser fallback in WS sync |
 | `modules/sync/assert-sync.ts` | full-sync + backfill cursors |
+| `modules/sync/assert-retired-prune.ts` | retired raw-data grace + open-order guard + archive fail-safe |
 | `modules/vaults/assert-vault.ts` | HWM ratchet, shares mint/burn, fee math |
 | `modules/vaults/assert-multivault.ts` | multi-pool isolation |
 | `modules/vaults/assert-treasury.ts` | treasury + dust routing |

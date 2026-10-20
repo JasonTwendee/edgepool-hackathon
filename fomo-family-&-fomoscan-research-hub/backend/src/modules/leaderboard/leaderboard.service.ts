@@ -1,12 +1,23 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
-import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
+import {
+  FomoscanService,
+  type FomoscanPnl,
+  type LeaderboardEntry,
+} from '../../common/fomoscan/fomoscan.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { SolanaOnChainListenerService } from '../../server/solana.service.js';
 import { SolanaStreamService } from '../../server/solana-stream.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { toTrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
+import { WalletsService } from '../wallets/wallets.service.js';
 import { resolveLiveScope } from '../../common/live-scope.js';
+import {
+  buildSelectionSnapshot,
+  hashSelectionSnapshot,
+  type SelectionSnapshot,
+} from '../../common/fomoscan/selection-snapshot.js';
 
 /**
  * Leaderboard rotation (fomoscan topic): tracked wallets follow the verified
@@ -95,6 +106,7 @@ export class LeaderboardService implements OnModuleInit {
     @Inject(SolanaOnChainListenerService) private readonly listener: SolanaOnChainListenerService,
     @Inject(SolanaStreamService) private readonly stream: SolanaStreamService,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(WalletsService) private readonly wallets: WalletsService,
   ) {}
 
   onModuleInit(): void {
@@ -414,41 +426,150 @@ export class LeaderboardService implements OnModuleInit {
     }
     // Keep both public pools on the same roster. Default `pin` re-picks the
     // best 5 from the current union (idempotent); `top` takes the live board
-    // top 5. Never runs with an incomplete roster or in legacy all mode.
+    // top 5 and persists a Fomo selection snapshot for every new term.
     if (liveSet) {
-      await this.syncPublicPoolRosters(
-        rosterMode === 'top' ? top.slice(0, 5).map((e) => e.wallet) : undefined,
-      ).catch((e: unknown) => {
-        console.warn('[leaderboard] roster sync failed:', (e as Error).message);
+      if (rosterMode === 'top') {
+        const picks = top.slice(0, 5);
+        if (picks.length < 5) {
+          console.warn(`[leaderboard] top roster skipped: only ${picks.length} verified candidate(s)`);
+          await this.audit
+            .record({
+              actor: 'system:rotation',
+              action: 'rotation.fomo_unavailable',
+              target: 'top5',
+              reason: `only ${picks.length} verified candidates; keeping previous roster`,
+            })
+            .catch(() => undefined);
+        } else {
+          const snapshots = await this.buildSelectionSnapshots(picks, period);
+          await this.syncPublicPoolRosters(
+            picks.map((e) => e.wallet),
+            snapshots,
+          ).catch((e: unknown) => {
+            console.warn('[leaderboard] roster sync failed:', (e as Error).message);
+          });
+        }
+      } else {
+        await this.syncPublicPoolRosters().catch((e: unknown) => {
+          console.warn('[leaderboard] roster sync failed:', (e as Error).message);
+        });
+      }
+      // Legacy/current members may predate entrySnapshot. Fill their “why top”
+      // snapshot from Fomo without changing enteredAt.
+      await this.ensureEntrySnapshots(liveSet, top, period).catch((e: unknown) => {
+        console.warn('[leaderboard] entry snapshot backfill failed:', (e as Error).message);
+      });
+      // Make the new roster live immediately (WS + listener registry), instead
+      // of waiting up to 60s for the WalletsService interval.
+      await this.wallets.reconcileLiveStream().catch((e: unknown) => {
+        console.warn('[leaderboard] live-scope reconcile failed:', (e as Error).message);
       });
     }
 
     return { period, topN, cap, added, reactivated, deactivated, pruned, total: finalTotal, active: finalActive, at: new Date().toISOString() };
   }
 
+  /** Fetch Fomo “why top” metrics for the selected board (best-effort per row). */
+  private async buildSelectionSnapshots(
+    entries: LeaderboardEntry[],
+    period: string,
+  ): Promise<Map<string, SelectionSnapshot>> {
+    const fetchedAt = new Date();
+    const out = new Map<string, SelectionSnapshot>();
+    for (const entry of entries) {
+      let pnl: FomoscanPnl | null = null;
+      try {
+        if (entry.username) pnl = await this.fomoscan.getPnl(entry.username);
+      } catch {
+        // Board metrics are enough to rotate; snapshot keeps pnl null.
+      }
+      out.set(entry.wallet, buildSelectionSnapshot(entry, pnl, period, fetchedAt));
+    }
+    return out;
+  }
+
+  /**
+   * Backfill entrySnapshot for current members created before this feature
+   * (or manually assigned). Never changes enteredAt/weights.
+   */
+  private async ensureEntrySnapshots(
+    liveSet: Set<string>,
+    board: LeaderboardEntry[],
+    period: string,
+  ): Promise<void> {
+    const rows = await this.prisma.vaultTrader.findMany({
+      where: {
+        isActive: true,
+        vault: { listing: 'public', status: 'live' },
+      },
+      select: { wallet: true, entrySnapshot: true },
+    });
+    const missing = [
+      ...new Set(
+        rows
+          .filter((r) => !r.entrySnapshot && liveSet.has(r.wallet))
+          .map((r) => r.wallet),
+      ),
+    ];
+    if (missing.length === 0) return;
+    const fetchedAt = new Date();
+    for (const wallet of missing) {
+      const boardEntry = board.find((e) => e.wallet === wallet);
+      const tracked = boardEntry ? null : await this.prisma.trackedWallet.findUnique({ where: { address: wallet } });
+      const entry: LeaderboardEntry = boardEntry ?? {
+        rank: (tracked?.fomoRank as number | null) ?? 0,
+        wallet,
+        username: (tracked?.handle as string | null) ?? wallet.slice(0, 6),
+        isVerified: true,
+        pnlSol: 0,
+        pnlUsd: Number(tracked?.fomoPnlUsd ?? 0),
+        pnlPercent: 0,
+        realizedPnlUsd: 0,
+        unrealizedPnlUsd: 0,
+      };
+      let pnl: FomoscanPnl | null = null;
+      try {
+        pnl = await this.fomoscan.getPnl(entry.username);
+      } catch {
+        // board-only snapshot is still useful
+      }
+      const snapshot = buildSelectionSnapshot(entry, pnl, period, fetchedAt);
+      await this.prisma.vaultTrader.updateMany({
+        where: { wallet, isActive: true },
+        data: { entrySnapshot: snapshot as unknown as Prisma.InputJsonValue },
+      });
+    }
+  }
+
   /**
    * Enforce one shared 5-wallet basket across all public/live pools.
    * - `boardTop` provided (`LIVE_ROSTER_MODE=top`): use those wallets.
    * - otherwise (`pin`): rank the current active union and keep the best 5.
+   * New/reactivated members start a new forward-only term (`enteredAt=now`).
    * Equal weights (10000 / n) and `max_traders = n`.
    */
-  private async syncPublicPoolRosters(boardTop?: string[]): Promise<void> {
+  private async syncPublicPoolRosters(
+    boardTop?: string[],
+    snapshots?: Map<string, SelectionSnapshot>,
+  ): Promise<void> {
     const pools = await this.prisma.vault.findMany({
       where: { listing: 'public', status: 'live' },
       select: { id: true },
     });
     if (pools.length === 0) return;
     const ids = pools.map((p) => p.id);
+    const currentRows = await this.prisma.vaultTrader.findMany({
+      where: { vaultId: { in: ids } },
+    });
+    const currentByKey = new Map(currentRows.map((t) => [`${t.vaultId}:${t.wallet}`, t]));
 
     let picks: string[];
     if (boardTop && boardTop.length >= 5) {
       picks = boardTop.slice(0, 5);
     } else {
-      const current = await this.prisma.vaultTrader.findMany({
-        where: { vaultId: { in: ids }, isActive: true },
-        select: { wallet: true },
-      });
-      const addresses = [...new Set(current.map((t) => t.wallet))];
+      const addresses = [
+        ...new Set(currentRows.filter((t) => t.isActive).map((t) => t.wallet)),
+      ];
       if (addresses.length < 5) {
         console.warn(`[leaderboard] roster sync skipped: only ${addresses.length} active pool trader(s)`);
         return;
@@ -464,17 +585,45 @@ export class LeaderboardService implements OnModuleInit {
     }
 
     const weightBps = Math.floor(10000 / picks.length);
+    const now = new Date();
     for (const vaultId of ids) {
       for (const wallet of picks) {
+        const existing = currentByKey.get(`${vaultId}:${wallet}`);
+        const newTerm = !existing || !existing.isActive || !existing.enteredAt;
+        const snapshot = snapshots?.get(wallet) ?? null;
+        const snapshotJson = snapshot
+          ? (snapshot as unknown as Prisma.InputJsonValue)
+          : undefined;
         await this.prisma.vaultTrader.upsert({
           where: { vaultId_wallet: { vaultId, wallet } },
-          create: { vaultId, wallet, weightBps, isActive: true },
-          update: { weightBps, isActive: true },
+          create: {
+            vaultId,
+            wallet,
+            weightBps,
+            isActive: true,
+            enteredAt: now,
+            entrySnapshot: snapshotJson,
+          },
+          update: {
+            weightBps,
+            isActive: true,
+            ...(newTerm
+              ? {
+                  enteredAt: now,
+                  exitedAt: null,
+                  exitReason: null,
+                  entrySnapshot: snapshotJson ?? Prisma.DbNull,
+                }
+              : {}),
+            ...(!newTerm && !existing?.entrySnapshot && snapshotJson
+              ? { entrySnapshot: snapshotJson }
+              : {}),
+          },
         });
       }
       await this.prisma.vaultTrader.updateMany({
         where: { vaultId, isActive: true, wallet: { notIn: picks } },
-        data: { isActive: false },
+        data: { isActive: false, exitedAt: now, exitReason: 'rotation' },
       });
     }
     await this.prisma.trackedWallet.updateMany({
@@ -485,17 +634,22 @@ export class LeaderboardService implements OnModuleInit {
       where: { id: { in: ids } },
       data: { maxTraders: picks.length },
     });
+    const snapshotHash = snapshots
+      ? [...snapshots.values()].map((s) => hashSelectionSnapshot(s)).join(',')
+      : '';
     await this.audit
       .record({
         actor: 'system:rotation',
         action: 'pool.roster_sync',
         target: picks.join(',').slice(0, 200),
-        reason: `${picks.length} shared traders across ${ids.length} public pool(s), weight ${weightBps}bps`,
+        reason: `${picks.length} shared traders across ${ids.length} public pool(s), weight ${weightBps}bps${snapshotHash ? `, fomo ${snapshotHash.slice(0, 16)}…` : ''}`,
       })
       .catch((e: unknown) => {
         console.warn('[leaderboard] roster audit failed:', (e as Error).message);
       });
     // eslint-disable-next-line no-console
-    console.log(`[leaderboard] roster synced: ${picks.length} wallets across ${ids.length} pools`);
+    console.log(
+      `[leaderboard] roster synced: ${picks.length} wallets across ${ids.length} pools${snapshots ? `, fomo snapshots=${snapshots.size}` : ''}`,
+    );
   }
 }

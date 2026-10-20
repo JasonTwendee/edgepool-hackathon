@@ -44,6 +44,9 @@ export type VaultTraderMinAggregateOutputType = {
   wallet: string | null
   weightBps: number | null
   isActive: boolean | null
+  enteredAt: Date | null
+  exitedAt: Date | null
+  exitReason: string | null
   createdAt: Date | null
 }
 
@@ -53,6 +56,9 @@ export type VaultTraderMaxAggregateOutputType = {
   wallet: string | null
   weightBps: number | null
   isActive: boolean | null
+  enteredAt: Date | null
+  exitedAt: Date | null
+  exitReason: string | null
   createdAt: Date | null
 }
 
@@ -62,6 +68,10 @@ export type VaultTraderCountAggregateOutputType = {
   wallet: number
   weightBps: number
   isActive: number
+  enteredAt: number
+  exitedAt: number
+  entrySnapshot: number
+  exitReason: number
   createdAt: number
   _all: number
 }
@@ -85,6 +95,9 @@ export type VaultTraderMinAggregateInputType = {
   wallet?: true
   weightBps?: true
   isActive?: true
+  enteredAt?: true
+  exitedAt?: true
+  exitReason?: true
   createdAt?: true
 }
 
@@ -94,6 +107,9 @@ export type VaultTraderMaxAggregateInputType = {
   wallet?: true
   weightBps?: true
   isActive?: true
+  enteredAt?: true
+  exitedAt?: true
+  exitReason?: true
   createdAt?: true
 }
 
@@ -103,6 +119,10 @@ export type VaultTraderCountAggregateInputType = {
   wallet?: true
   weightBps?: true
   isActive?: true
+  enteredAt?: true
+  exitedAt?: true
+  entrySnapshot?: true
+  exitReason?: true
   createdAt?: true
   _all?: true
 }
@@ -199,6 +219,10 @@ export type VaultTraderGroupByOutputType = {
   wallet: string
   weightBps: number
   isActive: boolean
+  enteredAt: Date | null
+  exitedAt: Date | null
+  entrySnapshot: runtime.JsonValue | null
+  exitReason: string | null
   createdAt: Date
   _count: VaultTraderCountAggregateOutputType | null
   _avg: VaultTraderAvgAggregateOutputType | null
@@ -231,6 +255,10 @@ export type VaultTraderWhereInput = {
   wallet?: Prisma.StringFilter<"VaultTrader"> | string
   weightBps?: Prisma.IntFilter<"VaultTrader"> | number
   isActive?: Prisma.BoolFilter<"VaultTrader"> | boolean
+  enteredAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  exitedAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  entrySnapshot?: Prisma.JsonNullableFilter<"VaultTrader">
+  exitReason?: Prisma.StringNullableFilter<"VaultTrader"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VaultTrader"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
 }
@@ -241,6 +269,10 @@ export type VaultTraderOrderByWithRelationInput = {
   wallet?: Prisma.SortOrder
   weightBps?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  enteredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  entrySnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   vault?: Prisma.VaultOrderByWithRelationInput
 }
@@ -255,6 +287,10 @@ export type VaultTraderWhereUniqueInput = Prisma.AtLeast<{
   wallet?: Prisma.StringFilter<"VaultTrader"> | string
   weightBps?: Prisma.IntFilter<"VaultTrader"> | number
   isActive?: Prisma.BoolFilter<"VaultTrader"> | boolean
+  enteredAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  exitedAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  entrySnapshot?: Prisma.JsonNullableFilter<"VaultTrader">
+  exitReason?: Prisma.StringNullableFilter<"VaultTrader"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VaultTrader"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
 }, "id" | "vaultId_wallet">
@@ -265,6 +301,10 @@ export type VaultTraderOrderByWithAggregationInput = {
   wallet?: Prisma.SortOrder
   weightBps?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  enteredAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  entrySnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitReason?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.VaultTraderCountOrderByAggregateInput
   _avg?: Prisma.VaultTraderAvgOrderByAggregateInput
@@ -282,6 +322,10 @@ export type VaultTraderScalarWhereWithAggregatesInput = {
   wallet?: Prisma.StringWithAggregatesFilter<"VaultTrader"> | string
   weightBps?: Prisma.IntWithAggregatesFilter<"VaultTrader"> | number
   isActive?: Prisma.BoolWithAggregatesFilter<"VaultTrader"> | boolean
+  enteredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"VaultTrader"> | Date | string | null
+  exitedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"VaultTrader"> | Date | string | null
+  entrySnapshot?: Prisma.JsonNullableWithAggregatesFilter<"VaultTrader">
+  exitReason?: Prisma.StringNullableWithAggregatesFilter<"VaultTrader"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"VaultTrader"> | Date | string
 }
 
@@ -289,6 +333,10 @@ export type VaultTraderCreateInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
   vault: Prisma.VaultCreateNestedOneWithoutTradersInput
 }
@@ -299,6 +347,10 @@ export type VaultTraderUncheckedCreateInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
 }
 
@@ -306,6 +358,10 @@ export type VaultTraderUpdateInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   vault?: Prisma.VaultUpdateOneRequiredWithoutTradersNestedInput
 }
@@ -316,6 +372,10 @@ export type VaultTraderUncheckedUpdateInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -325,6 +385,10 @@ export type VaultTraderCreateManyInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
 }
 
@@ -332,6 +396,10 @@ export type VaultTraderUpdateManyMutationInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -341,6 +409,10 @@ export type VaultTraderUncheckedUpdateManyInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -365,6 +437,10 @@ export type VaultTraderCountOrderByAggregateInput = {
   wallet?: Prisma.SortOrder
   weightBps?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  enteredAt?: Prisma.SortOrder
+  exitedAt?: Prisma.SortOrder
+  entrySnapshot?: Prisma.SortOrder
+  exitReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -380,6 +456,9 @@ export type VaultTraderMaxOrderByAggregateInput = {
   wallet?: Prisma.SortOrder
   weightBps?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  enteredAt?: Prisma.SortOrder
+  exitedAt?: Prisma.SortOrder
+  exitReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -389,6 +468,9 @@ export type VaultTraderMinOrderByAggregateInput = {
   wallet?: Prisma.SortOrder
   weightBps?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  enteredAt?: Prisma.SortOrder
+  exitedAt?: Prisma.SortOrder
+  exitReason?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -444,6 +526,10 @@ export type VaultTraderCreateWithoutVaultInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
 }
 
@@ -452,6 +538,10 @@ export type VaultTraderUncheckedCreateWithoutVaultInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
 }
 
@@ -490,6 +580,10 @@ export type VaultTraderScalarWhereInput = {
   wallet?: Prisma.StringFilter<"VaultTrader"> | string
   weightBps?: Prisma.IntFilter<"VaultTrader"> | number
   isActive?: Prisma.BoolFilter<"VaultTrader"> | boolean
+  enteredAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  exitedAt?: Prisma.DateTimeNullableFilter<"VaultTrader"> | Date | string | null
+  entrySnapshot?: Prisma.JsonNullableFilter<"VaultTrader">
+  exitReason?: Prisma.StringNullableFilter<"VaultTrader"> | string | null
   createdAt?: Prisma.DateTimeFilter<"VaultTrader"> | Date | string
 }
 
@@ -498,6 +592,10 @@ export type VaultTraderCreateManyVaultInput = {
   wallet: string
   weightBps?: number
   isActive?: boolean
+  enteredAt?: Date | string | null
+  exitedAt?: Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: string | null
   createdAt?: Date | string
 }
 
@@ -505,6 +603,10 @@ export type VaultTraderUpdateWithoutVaultInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -513,6 +615,10 @@ export type VaultTraderUncheckedUpdateWithoutVaultInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -521,6 +627,10 @@ export type VaultTraderUncheckedUpdateManyWithoutVaultInput = {
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   weightBps?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  enteredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entrySnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  exitReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -532,6 +642,10 @@ export type VaultTraderSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   wallet?: boolean
   weightBps?: boolean
   isActive?: boolean
+  enteredAt?: boolean
+  exitedAt?: boolean
+  entrySnapshot?: boolean
+  exitReason?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vaultTrader"]>
@@ -542,6 +656,10 @@ export type VaultTraderSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   wallet?: boolean
   weightBps?: boolean
   isActive?: boolean
+  enteredAt?: boolean
+  exitedAt?: boolean
+  entrySnapshot?: boolean
+  exitReason?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vaultTrader"]>
@@ -552,6 +670,10 @@ export type VaultTraderSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   wallet?: boolean
   weightBps?: boolean
   isActive?: boolean
+  enteredAt?: boolean
+  exitedAt?: boolean
+  entrySnapshot?: boolean
+  exitReason?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["vaultTrader"]>
@@ -562,10 +684,14 @@ export type VaultTraderSelectScalar = {
   wallet?: boolean
   weightBps?: boolean
   isActive?: boolean
+  enteredAt?: boolean
+  exitedAt?: boolean
+  entrySnapshot?: boolean
+  exitReason?: boolean
   createdAt?: boolean
 }
 
-export type VaultTraderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "wallet" | "weightBps" | "isActive" | "createdAt", ExtArgs["result"]["vaultTrader"]>
+export type VaultTraderOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "wallet" | "weightBps" | "isActive" | "enteredAt" | "exitedAt" | "entrySnapshot" | "exitReason" | "createdAt", ExtArgs["result"]["vaultTrader"]>
 export type VaultTraderInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }
@@ -587,6 +713,10 @@ export type $VaultTraderPayload<ExtArgs extends runtime.Types.Extensions.Interna
     wallet: string
     weightBps: number
     isActive: boolean
+    enteredAt: Date | null
+    exitedAt: Date | null
+    entrySnapshot: runtime.JsonValue | null
+    exitReason: string | null
     createdAt: Date
   }, ExtArgs["result"]["vaultTrader"]>
   composites: {}
@@ -1017,6 +1147,10 @@ export interface VaultTraderFieldRefs {
   readonly wallet: Prisma.FieldRef<"VaultTrader", 'String'>
   readonly weightBps: Prisma.FieldRef<"VaultTrader", 'Int'>
   readonly isActive: Prisma.FieldRef<"VaultTrader", 'Boolean'>
+  readonly enteredAt: Prisma.FieldRef<"VaultTrader", 'DateTime'>
+  readonly exitedAt: Prisma.FieldRef<"VaultTrader", 'DateTime'>
+  readonly entrySnapshot: Prisma.FieldRef<"VaultTrader", 'Json'>
+  readonly exitReason: Prisma.FieldRef<"VaultTrader", 'String'>
   readonly createdAt: Prisma.FieldRef<"VaultTrader", 'DateTime'>
 }
     

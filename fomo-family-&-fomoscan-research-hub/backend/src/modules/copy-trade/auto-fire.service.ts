@@ -1,4 +1,5 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { CopyTradeService, type PaperOverrides } from './copy-trade.service.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -10,6 +11,7 @@ export interface AutoFireSummary {
   fired: number;
   skippedNoScope: number;
   skippedDedupe: number;
+  skippedBeforeEntry: number;
   blocked: number;
   errors: number;
   orderIds: number[];
@@ -22,6 +24,7 @@ const fresh = (): AutoFireSummary => ({
   fired: 0,
   skippedNoScope: 0,
   skippedDedupe: 0,
+  skippedBeforeEntry: 0,
   blocked: 0,
   errors: 0,
   orderIds: [],
@@ -79,8 +82,20 @@ export class AutoFireService implements OnModuleInit {
       // production stays at fresh-signal immediacy.
       const windowMax = Math.max(1, Number(process.env.AUTO_FIRE_WINDOW_MAX_MIN ?? 120) || 120);
       const since = new Date(Date.now() - Math.min(Math.max(windowMin, 1), windowMax) * 60000);
+      // Forward-only safety: production clocks on on-chain blockTime. The
+      // createdAt fallback is only for legacy/demo seeding where blockTime is
+      // synthetic; it must never be used for a live roster.
+      const signalClock = process.env.AUTO_FIRE_SIGNAL_CLOCK === 'createdAt' ? 'createdAt' : 'blockTime';
+      const signalWhere: Prisma.TransactionWhereInput =
+        signalClock === 'createdAt'
+          ? { action: 'BUY', createdAt: { gte: since }, NOT: [{ tokenMint: null }] }
+          : {
+              action: 'BUY',
+              blockTime: { gte: BigInt(Math.floor(since.getTime() / 1000)) },
+              NOT: [{ tokenMint: null }],
+            };
       const signals = await this.prisma.transaction.findMany({
-        where: { action: 'BUY', createdAt: { gte: since }, NOT: [{ tokenMint: null }] },
+        where: signalWhere,
         select: {
           signature: true,
           walletAddress: true,
@@ -150,6 +165,16 @@ export class AutoFireService implements OnModuleInit {
           continue;
         }
         const botVault = bot.vaultId ?? 1;
+        const trader = traders.find(
+          (t) => t.vaultId === botVault && t.wallet === s.walletAddress,
+        );
+        const enteredSec = trader?.enteredAt
+          ? Math.floor(trader.enteredAt.getTime() / 1000)
+          : 0;
+        if (Number(s.blockTime) < enteredSec) {
+          summary.skippedBeforeEntry++;
+          continue;
+        }
         if (halted.has(botVault)) {
           summary.blocked++;
           continue;

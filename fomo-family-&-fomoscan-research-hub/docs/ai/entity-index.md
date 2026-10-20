@@ -13,7 +13,7 @@
 | `Deposit` | `deposits` | `vaultId`, `depositor`, `userId`, `amountSol`, `status` QUEUED→SETTLED, `sharesMinted/sharePrice` | min 0.5 SOL |
 | `Withdrawal` | `withdrawals` | `vaultId`, `depositor`, `userId`, `sharesRequested`, `status`, `payoutSol` | QUEUED cancellable; flat pool = instant |
 | `EpochCheckpoint` | `epoch_checkpoints` | `vaultId`, `navSol/sharePrice/sharesOutstanding/feeSol` | NAV series source |
-| `VaultTrader` | `vault_traders` | `vaultId`, `wallet`, `weightBps`, `isActive` | basket assignment |
+| `VaultTrader` | `vault_traders` | `vaultId`, `wallet`, `weightBps`, `isActive`, `enteredAt`, `exitedAt`, `entrySnapshot`, `exitReason` | basket assignment + forward-only term/why-top |
 | `Bot` | `bots` | `name` unique, `mode` AUTO\|PAUSED, `vaultId`, `status` | per-pool engine |
 | `User` | `users` | `wallet`/`username` unique, `passwordHash` scrypt, `role` USER\|KOL\|ADMIN, `payoutWallet` + `payoutWalletVerifiedAt` | seeded admin/user/kol |
 | `Session` | `sessions` | `tokenHash` sha256 unique, `userId`, `expiresAt` | httpOnly cookie |

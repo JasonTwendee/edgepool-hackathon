@@ -124,6 +124,39 @@ paths:
                               wallet: { type: string }
                               handle: { type: string }
                               rank: { type: integer, nullable: true }
+                              weightBps: { type: integer }
+                              ranks:
+                                type: object
+                                properties:
+                                  h24: { type: integer, nullable: true }
+                                  d7: { type: integer, nullable: true }
+                                  d30: { type: integer, nullable: true }
+                              enteredAt: { type: string, format: date-time, nullable: true }
+                              trackedSince: { type: string, format: date-time, nullable: true }
+                              whyTop:
+                                type: object
+                                nullable: true
+                                description: FomoScan selection snapshot captured at entry
+                                properties:
+                                  fetchedAt: { type: string, format: date-time }
+                                  period: { type: string }
+                                  ranks:
+                                    type: object
+                                    properties:
+                                      h24: { type: integer, nullable: true }
+                                      d7: { type: integer, nullable: true }
+                                      d30: { type: integer, nullable: true }
+                                  whyTop:
+                                    type: object
+                                    properties:
+                                      primaryWindow: { type: string, nullable: true }
+                                      primary:
+                                        type: object
+                                        nullable: true
+                                        properties:
+                                          netUsd: { type: number, nullable: true }
+                                          trades: { type: integer, nullable: true }
+                                          winRatePct: { type: number, nullable: true }
                         pnl:
                           type: object
                           properties:
@@ -2058,6 +2091,10 @@ components:
           type: array
           description: 'Top-5 in-window swaps by USD (no extra ledger fetch needed)'
           items: { $ref: '#/components/schemas/OnChainTransactionEvent' }
+        source:
+          type: string
+          enum: [fomo, local]
+          description: 'fomo = FomoScan aggregate; local = forward-only FIFO ledger'
     ExecuteCopyDto:
       type: object
       properties:
@@ -2264,6 +2301,13 @@ components:
         wallet: { type: string }
         weightBps: { type: integer }
         isActive: { type: boolean }
+        enteredAt: { type: string, format: date-time, nullable: true }
+        exitedAt: { type: string, format: date-time, nullable: true }
+        entrySnapshot:
+          type: object
+          nullable: true
+          description: FomoScan selection snapshot (why-top metrics) captured at entry
+        exitReason: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
     VaultWithTraders:
       type: object

@@ -49,6 +49,10 @@ export interface VaultTrader {
   weightBps: number;
   isActive: boolean;
   createdAt: string;
+  enteredAt?: string | null;
+  exitedAt?: string | null;
+  entrySnapshot?: unknown;
+  exitReason?: string | null;
 }
 
 export interface VaultPolicy {
@@ -81,6 +85,7 @@ export interface AutoFireTickResult {
   fired: number;
   skippedNoScope: number;
   skippedDedupe: number;
+  skippedBeforeEntry?: number;
   blocked: number;
   errors: number;
   orderIds: number[];

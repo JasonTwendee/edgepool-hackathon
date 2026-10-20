@@ -83,6 +83,10 @@ This file is the durable rule source.
 - 2026-10-20 (user-confirmed): Display surface chỉ 5 ví live pool roster. `GET /api/wallets` và `GET /api/portfolio/pnl/overview` phải scope `findAllLive()` (không trả 100 tracked history); `LEADERBOARD_TOP_N=5`, cap=20. Internal jobs vẫn có thể dùng `findAll()`.
 - 2026-10-20 (user-approved): Raw `transactions`/`realtime_events` của ví ngoài live roster có thể trim để giảm DB (TRUNCATE keep-5 trong transaction, verify orphan FK=0). Raw chain data re-fetchable; money ledger/orders/audit không nằm trong scope. Luôn ghi counts trước/sau.
 - 2026-10-20: Rotation chỉ được activate live pool roster (trừ `LIVE_ROSTER_MODE=top`); không activate top board ngoài roster. Inactive wallet rỗng (không tx/event/open order/active trader) có thể xoá; ví còn open legacy order phải giữ.
+- 2026-10-20: Rotation chỉ được activate live pool roster (trừ `LIVE_ROSTER_MODE=top`); không activate top board ngoài roster. Inactive wallet rỗng (không tx/event/open order/active trader) có thể xoá; ví còn open legacy order phải giữ.
+- 2026-10-20 (user-confirmed forward-only): FomoScan là nguồn **selection + why-top** (snapshot rank/PnL/trades/win-rate + raw hash). Local chỉ track/copy từ `VaultTrader.enteredAt`; **không backfill 120d** cho trader mới và **không copy** BUY lịch sử. Auto-fire phải dùng `blockTime` + `enteredAt` watermark; `createdAt` chỉ là legacy/demo escape.
+- 2026-10-20: Trader rời roster giữ raw tx/events **30 ngày** hoặc đến khi order mở cuối đóng; sau đó archive+audit rồi xoá raw. `copy_orders`, `partner_payouts`, memberships, audit, money ledger không bao giờ bị prune. Natural close là default; fee chia theo active roster tại settle (không phải origin trader).
+- 2026-10-20: Master trader performance hiển thị từ Fomo (`source=fomo`), pool performance từ copy orders/local; không trộn hai nguồn. Nếu Fomo lỗi/không có handle → fallback local và ghi source.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
 ## User Overrides

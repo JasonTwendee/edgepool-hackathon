@@ -100,7 +100,18 @@ function makeFake(opts: { openWallets?: string[]; activeTraders?: string[]; vaul
       },
     },
     vaultTrader: {
-      findMany: async () => (opts.activeTraders ?? []).map((wallet) => ({ wallet })),
+      findMany: async ({ where = {} }: { where?: Row } = {}) => {
+        const ids = ((where.vaultId as Row)?.in as number[]) ?? [];
+        const vaultId = ids[0] ?? opts.vaults?.[0] ?? 1;
+        return (opts.activeTraders ?? []).map((wallet, i) => ({
+          id: 900 + i,
+          vaultId,
+          wallet,
+          weightBps: 2000,
+          isActive: true,
+          enteredAt: new Date(0),
+        }));
+      },
       upsert: async ({ where, create, update }: { where: Row; create: Row; update: Row }) => {
         const key = where.vaultId_wallet as Row;
         const existing = db.trader.find(
@@ -159,6 +170,18 @@ function makeFake(opts: { openWallets?: string[]; activeTraders?: string[]; vaul
 function stub(order: Row[], enrichOk = true) {
   return {
     leaderboard: async () => ({ entries: order }),
+    getPnl: async (handle: string) => ({
+      handle,
+      wallet: '',
+      evmWallet: null,
+      status: 'ready',
+      updatedAt: Math.floor(Date.now() / 1000),
+      windows: {
+        '24h': { netUsd: 10, returnPct: 1, volumeUsd: 100, trades: 5, buys: 3, sells: 2, tokensTraded: 2, winningTokens: 1, rank: 1, status: 'ready', updatedAt: 1 },
+        '7d': { netUsd: 20, returnPct: 2, volumeUsd: 200, trades: 10, buys: 6, sells: 4, tokensTraded: 4, winningTokens: 3, rank: 2, status: 'ready', updatedAt: 1 },
+        '30d': { netUsd: 30, returnPct: 3, volumeUsd: 300, trades: 20, buys: 12, sells: 8, tokensTraded: 8, winningTokens: 5, rank: 3, status: 'ready', updatedAt: 1 },
+      },
+    }),
     lookupWallet: async (address: string) => {
       if (!enrichOk) throw new Error('FomoScan 503');
       return { handle: 'h', profilePicture: `pic:${address}`, bio: null, evmAddress: null };
@@ -210,7 +233,8 @@ function spyTransport(registry: string[] = []): never & {
 function svcWith(prisma: never, fomoscan: never, audit?: never, transport?: never): LeaderboardService {
   const auditStub = (audit ?? { record: async () => ({ id: 1 }) }) as never;
   const t = (transport ?? noopTransport) as never;
-  return new LeaderboardService(prisma, fomoscan, t, t, auditStub);
+  const wallets = { reconcileLiveStream: async () => 0 } as never;
+  return new LeaderboardService(prisma, fomoscan, t, t, auditStub, wallets);
 }
 
 function env(vars: Record<string, string | undefined>): () => void {
@@ -504,6 +528,33 @@ async function main(): Promise<void> {
     }
     assert.equal((db.vault.find((v) => v.id === 14) as Row).maxTraders, 5);
     assert.equal((db.vault.find((v) => v.id === 15) as Row).maxTraders, 5);
+    restore();
+  }
+
+  // 14. Top-mode rotation: new board roster gets a Fomo snapshot and starts a
+  //     new term; both public pools share the same new 5.
+  {
+    const restore = env({
+      LEADERBOARD_TOP_N: '5', LEADERBOARD_CAP: '50', LEADERBOARD_PERIOD: 'daily',
+      LEADERBOARD_SYNC_INTERVAL_MS: '0', LIVE_SCOPE_MODE: 'pool', LIVE_ROSTER_MODE: 'top',
+    });
+    const old = [1, 2, 3, 4, 5].map((n) => walletOf(n));
+    const next = [6, 7, 8, 9, 10].map((n) => walletOf(n));
+    const { prisma, db } = makeFake({ vaults: [14, 15], activeTraders: old });
+    const svc = svcWith(prisma, stub(next.map((w, i) => entry(w, `new${i}`))));
+    await svc.tick();
+    const expected = [...next].sort();
+    for (const id of [14, 15]) {
+      const active = db.trader
+        .filter((t) => t.vaultId === id && t.isActive)
+        .map((t) => t.wallet as string)
+        .sort();
+      assert.deepEqual(active, expected, `vault ${id} rotated to the new board`);
+      assert.ok(
+        db.trader.filter((t) => t.vaultId === id).every((t) => Boolean(t.entrySnapshot)),
+        `vault ${id} persisted why-top snapshots`,
+      );
+    }
     restore();
   }
 

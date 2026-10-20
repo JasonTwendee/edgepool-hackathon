@@ -45,6 +45,11 @@ orders, while a BUY after `enteredAt` is copied exactly once.
 
 Do not start P4/P5 until G1+G2 are confirmed; they touch money behavior.
 
+**Applied defaults (2026-10-20, owner approved implementation):** G1 natural
+close, G2 current roster at settle, G3 30 days, G4 Fomo-only with local
+fallback, G5 keep `pin` until P8 dry-run, G6 capture all Fomo-returned fields.
+No forced-close or per-origin fee attribution is added in this pass.
+
 ## Phase map
 
 | Phase | Goal | Touches money? | Deploy? |

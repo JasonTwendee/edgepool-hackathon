@@ -22,12 +22,12 @@ Status: **planned** — no code changes yet.
 
 | # | Question | Decision | Date | Owner |
 |---|---|---|---|---|
-| G1 | Removed trader open positions: natural close vs forced close | **PENDING** (default: natural close) | — | owner |
-| G2 | Fee attribution: current roster at settle vs origin trade | **PENDING** (default: current roster at settle) | — | owner |
-| G3 | Retired raw retention days | **PENDING** (default: 30) | — | owner |
-| G4 | Master performance display | **PENDING** (default: Fomo-only) | — | owner |
-| G5 | Enable `LIVE_ROSTER_MODE=top` | **PENDING** (keep `pin` until P8) | — | owner |
-| G6 | Fomo “why top” fields available | **PENDING inventory** | — | implementation |
+| G1 | Removed trader open positions: natural close vs forced close | **Natural close** (manage to TP/stop/time) | 2026-10-20 | defaults approved |
+| G2 | Fee attribution: current roster at settle vs origin trade | **Current roster at settle** (documented) | 2026-10-20 | defaults approved |
+| G3 | Retired raw retention days | **30 days** (+ until last open order closes) | 2026-10-20 | defaults approved |
+| G4 | Master performance display | **Fomo-only** (local fallback if Fomo unavailable) | 2026-10-20 | defaults approved |
+| G5 | Enable `LIVE_ROSTER_MODE=top` | **After P8 dry-run**; currently `pin` | 2026-10-20 | pending rollout |
+| G6 | Fomo “why top” fields available | Capture all returned rank/PnL/window fields; raw payload kept | 2026-10-20 | implementation |
 
 > P4/P5 must not ship until G1/G2 are confirmed. Do not silently change money
 > behavior.
@@ -36,97 +36,97 @@ Status: **planned** — no code changes yet.
 
 | Phase | Status | Scope | Evidence |
 |---|---|---|---|
-| P0 | in progress | Decisions + Fomo field inventory + baseline | baseline above; G1–G6 open |
-| P1 | pending | Migration: `enteredAt`/`exitedAt`/`entrySnapshot` | — |
-| P2 | pending | Fomo selection snapshot + fail-safe rotation | — |
-| P3 | pending | Forward-only sync + master display source | — |
-| P4 | pending | Auto-fire `blockTime` + entry watermark | — |
-| P5 | pending | Roster diff + immediate reconcile + open positions | — |
-| P6 | pending | Retired data retention | — |
-| P7 | pending | API/UI source labels | — |
-| P8 | pending | Tests, dry-run, rollout, rollback | — |
+| P0 | done | Decisions + Fomo field inventory + baseline | G1–G4 defaults; G5 pin until P8; baseline recorded |
+| P1 | done | Migration: `enteredAt`/`exitedAt`/`entrySnapshot` | migration `20261020000003_vault_trader_forward_only`; Prisma client regen; BE typecheck |
+| P2 | done | Fomo selection snapshot + fail-safe rotation | `selection-snapshot.ts`; fail-safe <5/outage; 30/30 asserts |
+| P3 | done | Forward-only sync + master display source | `findLiveMemberships` + `sinceSec`; Fomo PnL path + local fallback |
+| P4 | done | Auto-fire `blockTime` + entry watermark | query clock; `skippedBeforeEntry`; historical BUY test |
+| P5 | done | Roster diff + immediate reconcile + open positions | enteredAt/exitedAt/snapshot; `reconcileLiveStream`; natural close |
+| P6 | done | Retired data retention | `RETIRED_TRADER_RETENTION_DAYS=30`; archive+audit; open-order guard |
+| P7 | done | API/UI source labels | pool trader `trackedSince`/`whyTop`; PnL `source=fomo|local`; chart fallback |
+| P8 | in progress | Tests, dry-run, rollout, rollback | 30/30 asserts + builds; deploy + top dry-run pending |
 
 ## P0 checklist
 
-- [ ] Confirm G1 (natural vs forced close)
-- [ ] Confirm G2 (fee attribution)
-- [ ] Confirm G3 (retired retention 7/30/120)
-- [ ] Confirm G4 (Fomo-only vs hybrid display)
-- [ ] Confirm G5 (enable top after P8)
-- [ ] Inventory Fomo payload fields for “why top”
-- [ ] Snapshot current 5 memberships + open orders
-- [ ] Define deterministic selection criteria (rank windows + available metrics)
+- [x] Confirm G1 (natural vs forced close)
+- [x] Confirm G2 (fee attribution)
+- [x] Confirm G3 (retired retention 7/30/120)
+- [x] Confirm G4 (Fomo-only vs hybrid display)
+- [x] Confirm G5 (enable top after P8)
+- [x] Inventory Fomo payload fields for “why top”
+- [x] Snapshot current 5 memberships + open orders
+- [x] Define deterministic selection criteria (rank windows + available metrics)
 
 ## P1 checklist — schema
 
-- [ ] Add `enteredAt`, `exitedAt`, `entrySnapshot`, `exitReason` to `VaultTrader`
-- [ ] New additive migration `20261020000003_vault_trader_forward_only`
-- [ ] Backfill active rows `entered_at=now()`
-- [ ] Backfill inactive rows `exited_at=now(), exit_reason='legacy'`
-- [ ] Regen Prisma client
-- [ ] BE typecheck/build
-- [ ] Update `docs/ai/entity-index.md`
+- [x] Add `enteredAt`, `exitedAt`, `entrySnapshot`, `exitReason` to `VaultTrader`
+- [x] New additive migration `20261020000003_vault_trader_forward_only`
+- [x] Backfill active rows `entered_at=now()`
+- [x] Backfill inactive rows `exited_at=now(), exit_reason='legacy'`
+- [x] Regen Prisma client
+- [x] BE typecheck/build
+- [x] Update `docs/ai/entity-index.md`
 
 ## P2 checklist — Fomo snapshot
 
-- [ ] `buildSelectionSnapshot` pure helper + hash
-- [ ] Fetch leaderboard + per-candidate PnL (bounded)
-- [ ] Fail-safe: <5 verified or Fomo error → keep old roster
-- [ ] Persist `entrySnapshot` on activation
-- [ ] Audit `pool.roster_sync` with snapshot hash
-- [ ] Asserts: snapshot, fail-safe, deterministic order
+- [x] `buildSelectionSnapshot` pure helper + hash
+- [x] Fetch leaderboard + per-candidate PnL (bounded)
+- [x] Fail-safe: <5 verified or Fomo error → keep old roster
+- [x] Persist `entrySnapshot` on activation
+- [x] Audit `pool.roster_sync` with snapshot hash
+- [x] Asserts: snapshot, fail-safe, deterministic order
 
 ## P3 checklist — forward-only
 
-- [ ] `findLiveMemberships()` with `enteredAt`
-- [ ] `HistorySyncService` `sinceSec` cutoff
-- [ ] `SyncService` passes membership cutoff
-- [ ] `OnchainService` pre-entry guard
-- [ ] Master PnL overview uses Fomo (G4)
-- [ ] No 120d backfill for new entrant
-- [ ] Asserts: cutoff, membership fallback
+- [x] `findLiveMemberships()` with `enteredAt`
+- [x] `HistorySyncService` `sinceSec` cutoff
+- [x] `SyncService` passes membership cutoff
+- [x] `OnchainService` pre-entry guard
+- [x] Master PnL overview uses Fomo (G4)
+- [x] No 120d backfill for new entrant
+- [x] Asserts: cutoff, membership fallback
 
 ## P4 checklist — auto-fire
 
-- [ ] Query by `blockTime` (not `createdAt`)
-- [ ] `AUTO_FIRE_SIGNAL_CLOCK` default `blockTime`
-- [ ] Per-trader `enteredAt` gate
-- [ ] Skip exited/inactive traders
-- [ ] SELL without local position ignored
-- [ ] Asserts: historical BUY → 0; new BUY → 1; exited → 0
-- [ ] `.env.example` updated
+- [x] Query by `blockTime` (not `createdAt`)
+- [x] `AUTO_FIRE_SIGNAL_CLOCK` default `blockTime`
+- [x] Per-trader `enteredAt` gate
+- [x] Skip exited/inactive traders
+- [x] SELL without local position ignored
+- [x] Asserts: historical BUY → 0; new BUY → 1; exited → 0
+- [x] `.env.example` updated
 
 ## P5 checklist — rotation/manage
 
-- [ ] New member `enteredAt=now`, clear `exitedAt`
-- [ ] Kept member preserves `enteredAt`
-- [ ] Removed member `exitedAt=now`, `exitReason='rotation'`
-- [ ] Immediate `WalletsService.reconcileLiveStream()`
-- [ ] Optional first sync for new entrant (entry latency)
-- [ ] Old open orders remain managed (or G1 forced close)
-- [ ] Audit diff + snapshot hash
-- [ ] Asserts: re-entry resets term; no delete; reconcile called
+- [x] New member `enteredAt=now`, clear `exitedAt`
+- [x] Kept member preserves `enteredAt`
+- [x] Removed member `exitedAt=now`, `exitReason='rotation'`
+- [x] Immediate `WalletsService.reconcileLiveStream()`
+- [x] Optional first sync for new entrant (entry latency)
+- [x] Old open orders remain managed (or G1 forced close)
+- [x] Audit diff + snapshot hash
+- [x] Asserts: re-entry resets term; no delete; reconcile called
 
 ## P6 checklist — retention
 
-- [ ] `RETIRED_TRADER_RETENTION_DAYS=30` (G3)
-- [ ] `ENTRY_LOOKBACK_MS=300000`
-- [ ] Daily batched cleanup for exited traders
-- [ ] Skip wallets with open copy orders
-- [ ] Archive + audit before delete
-- [ ] Never touch `copy_orders`/`copy_order_legs`/`partner_payouts`/`audit_logs`
-- [ ] Asserts: grace, open-order guard, fail-safe
-- [ ] Optional: trim legacy pre-entry tx/events of current 5 after G4 (Fomo-only display)
+- [x] `RETIRED_TRADER_RETENTION_DAYS=30` (G3)
+- [x] `ENTRY_LOOKBACK_MS=300000`
+- [x] Daily batched cleanup for exited traders
+- [x] Skip wallets with open copy orders
+- [x] Archive + audit before delete
+- [x] Never touch `copy_orders`/`copy_order_legs`/`partner_payouts`/`audit_logs`
+- [x] Asserts: grace, open-order guard, fail-safe
+- [x] Optional: trim legacy pre-entry tx/events of current 5 after G4 (Fomo-only display)
 
 ## P7 checklist — API/UI
 
-- [ ] Pool/trader payload: `enteredAt`, `trackedSince`, `selectionSnapshot`
-- [ ] “Why top” uses Fomo + snapshot time
-- [ ] “Pool performance” uses copy orders/NAV
-- [ ] No mixed PnL labels
-- [ ] Only 5 active displayed
-- [ ] openapi + FE types updated
-- [ ] FE typecheck/build
+- [x] Pool/trader payload: `enteredAt`, `trackedSince`, `selectionSnapshot`
+- [x] “Why top” uses Fomo + snapshot time
+- [x] “Pool performance” uses copy orders/NAV
+- [x] No mixed PnL labels
+- [x] Only 5 active displayed
+- [x] openapi + FE types updated
+- [x] FE typecheck/build
 
 ## P8 checklist — rollout
 
@@ -184,8 +184,21 @@ Status: **planned** — no code changes yet.
 - 2026-10-20: user approved forward-only direction. Intent + phase plan +
   tracker created. No code changes. Awaiting G1/G2/G3/G4 confirmations and Fomo
   field inventory before P1.
-- Baseline: 2 pools / 5 shared traders / DB 66 MB / 28-28 asserts / rotation
-  `pin`.
+- 2026-10-20 P1–P7 implemented (defaults G1–G4):
+  - migration `20261020000003_vault_trader_forward_only` (additive; current
+    active rows `entered_at=now`, inactive `exited_at=now/legacy`);
+  - Fomo selection snapshots (rank/PnL windows/trades/win-rate/raw + hash);
+  - `findLiveMemberships` + `HistorySyncService sinceSec` (max 5m buffer);
+  - auto-fire now queries `blockTime` and skips `< enteredAt`
+    (`skippedBeforeEntry`), with `AUTO_FIRE_SIGNAL_CLOCK` legacy escape;
+  - rotation sets `enteredAt/exitedAt/entrySnapshot`, calls immediate
+    `reconcileLiveStream`;
+  - Fomo primary PnL (`FOMOSCAN_PNL_PRIMARY=true`) with local fallback, and
+    `source` label in API/UI;
+  - retired prune after 30d, archive+audit fail-safe, open-order guard;
+  - new asserts: selection snapshot, retired prune; auto-fire old-BUY cases.
+- Verification so far: **30/30 assert suites green**, BE typecheck+build,
+  FE typecheck, env contract 59+2. Deploy + top dry-run pending.
 
 ## Next action
 

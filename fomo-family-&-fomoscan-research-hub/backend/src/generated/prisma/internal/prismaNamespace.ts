@@ -2211,6 +2211,10 @@ export const VaultTraderScalarFieldEnum = {
   wallet: 'wallet',
   weightBps: 'weightBps',
   isActive: 'isActive',
+  enteredAt: 'enteredAt',
+  exitedAt: 'exitedAt',
+  entrySnapshot: 'entrySnapshot',
+  exitReason: 'exitReason',
   createdAt: 'createdAt'
 } as const
 

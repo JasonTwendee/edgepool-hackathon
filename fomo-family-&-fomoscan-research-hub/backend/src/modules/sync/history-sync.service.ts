@@ -45,10 +45,17 @@ export class HistorySyncService {
 
   async syncWallet(
     wallet: TrackedWallet,
-    opts: { days?: number; maxTx?: number } = {},
+    opts: { days?: number; maxTx?: number; sinceSec?: number } = {},
   ): Promise<{ added: number; healed: number; total: number; events: OnChainTransactionEvent[] }> {    const days = opts.days ?? DEFAULT_DAYS;
     const maxTx = opts.maxTx ?? DEFAULT_MAX_TX;
-    const cutoff = Math.floor(Date.now() / 1000) - days * 86400;
+    const entryLookbackSec = Math.max(
+      0,
+      Math.floor(Number(process.env.ENTRY_LOOKBACK_MS ?? 300000) / 1000),
+    );
+    const cutoff = Math.max(
+      Math.floor(Date.now() / 1000) - days * 86400,
+      opts.sinceSec ? opts.sinceSec - entryLookbackSec : 0,
+    );
 
     const healed = await this.healWallet(wallet.address);
 

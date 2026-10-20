@@ -360,17 +360,25 @@ model AuditLog {
 }
 
 model VaultTrader {
-  id         Int     @id @default(autoincrement())
-  vaultId    Int     @map("vault_id")
-  vault      Vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
-  wallet     String  @db.VarChar(64)
-  weightBps  Int     @map("weight_bps") @default(0)
-  isActive   Boolean @map("is_active") @default(true)
-  createdAt  DateTime @map("created_at") @default(now()) @db.Timestamptz()
+  id            Int       @id @default(autoincrement())
+  vaultId       Int       @map("vault_id")
+  vault         Vault     @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  wallet        String    @db.VarChar(64)
+  weightBps     Int       @map("weight_bps") @default(0)
+  isActive      Boolean   @map("is_active") @default(true)
+  // Forward-only tracking: auto-fire may only copy signals with
+  // blockTime >= enteredAt. Re-entry starts a new term.
+  enteredAt     DateTime? @map("entered_at") @db.Timestamptz()
+  exitedAt      DateTime? @map("exited_at") @db.Timestamptz()
+  // FomoScan selection snapshot (rank/PnL/trades/why-top) captured at entry.
+  entrySnapshot Json?     @map("entry_snapshot") @db.JsonB
+  exitReason    String?   @map("exit_reason") @db.VarChar(32)
+  createdAt     DateTime  @map("created_at") @default(now()) @db.Timestamptz()
 
   @@map("vault_traders")
   @@unique([vaultId, wallet])
   @@index([vaultId, isActive])
+  @@index([vaultId, enteredAt])
 }
 
 model Bot {

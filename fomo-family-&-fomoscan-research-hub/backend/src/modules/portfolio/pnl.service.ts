@@ -31,6 +31,8 @@ export interface WalletPnl {
   series: PnlPoint[];
   /** Top-5 in-window swaps by USD (feeds the profile header without an extra ledger fetch). */
   topTrades: OnChainTransactionEvent[];
+  /** Data provenance: FomoScan aggregate vs local FIFO. */
+  source?: 'fomo' | 'local';
 }
 
 /** Sells below this proceeds are dust disposals, not closes (see methodology). */
@@ -68,6 +70,46 @@ export class PnlService {
   }
 
   async getWalletPnl(walletAddress: string, days = 30): Promise<WalletPnl> {
+    // FomoScan is the primary trader-performance source (G4). If the API is
+    // unavailable, fall back to the local forward-only ledger.
+    if (process.env.FOMOSCAN_PNL_PRIMARY === 'true' && this.fomoscan.enabled()) {
+      try {
+        return await this.getWalletPnlFomo(walletAddress, days);
+      } catch {
+        // fall through to local
+      }
+    }
+    return this.getWalletPnlLocal(walletAddress, days);
+  }
+
+  private async getWalletPnlFomo(walletAddress: string, days: number): Promise<WalletPnl> {
+    const clean = (walletAddress ?? '').trim();
+    const wallet = await this.wallets.findByAddress(clean);
+    const handle = (wallet?.handle ?? '').trim();
+    if (!handle) throw new Error('No FomoScan handle for wallet.');
+    const remote = await this.fomoscan.getPnl(handle);
+    if (remote.status !== 'ready') throw new Error(`FomoScan PnL not ready: ${remote.status}`);
+    const win = this.pickWindow(remote.windows ?? {}, days);
+    const data = win ? remote.windows?.[win] : undefined;
+    if (!win || !data) throw new Error('No FomoScan PnL window.');
+    return {
+      wallet: clean,
+      days,
+      realizedPnlUsd: Math.round(data.netUsd),
+      pairs: data.trades,
+      matchedSells: data.sells,
+      totalSells: data.sells,
+      totalBuys: data.buys,
+      winRate:
+        data.tokensTraded > 0 ? (data.winningTokens / data.tokensTraded) * 100 : null,
+      perSymbol: [],
+      series: [],
+      topTrades: [],
+      source: 'fomo',
+    };
+  }
+
+  private async getWalletPnlLocal(walletAddress: string, days = 30): Promise<WalletPnl> {
     const cutoff = this.cutoffSec(days);
     // Full history rows: pre-window buys seed cost basis (see methodology).
     const rows = await this.tx.getRange(walletAddress, 0);
@@ -154,6 +196,7 @@ export class PnlService {
         )
         .sort((a, b) => (b.amountUsd ?? 0) - (a.amountUsd ?? 0))
         .slice(0, 5),
+      source: 'local',
     };
   }
 
@@ -170,7 +213,7 @@ export class PnlService {
       }
     }
     const wallets = await this.wallets.findAllLive();
-    return Promise.all(wallets.map((w) => this.getWalletPnl(w.address, days)));
+    return Promise.all(wallets.map((w) => this.getWalletPnlLocal(w.address, days)));
   }
 
   private pickWindow(windows: Record<string, unknown>, days: number): string | null {
@@ -193,12 +236,12 @@ export class PnlService {
     const results = await Promise.all(
       wallets.map(async (w) => {
         const handle = (w.handle ?? '').trim();
-        if (!handle) return this.getWalletPnl(w.address, days);
+        if (!handle) return this.getWalletPnlLocal(w.address, days);
         try {
           const entry = await this.fomoscan.getPnl(handle);
           const win = this.pickWindow(entry.windows ?? {}, days);
           const wdata = win ? entry.windows?.[win] : undefined;
-          if (!wdata || entry.status !== 'ready') return this.getWalletPnl(w.address, days);
+          if (!wdata || entry.status !== 'ready') return this.getWalletPnlLocal(w.address, days);
           return {
             wallet: w.address,
             days,
@@ -211,9 +254,10 @@ export class PnlService {
             perSymbol: [],
             series: [],
             topTrades: [],
+            source: 'fomo' as const,
           };
         } catch {
-          return this.getWalletPnl(w.address, days);
+          return this.getWalletPnlLocal(w.address, days);
         }
       }),
     );
@@ -236,7 +280,7 @@ export class PnlService {
     const clean = (walletAddress ?? '').trim();
     const tracked = await this.wallets.findByAddress(clean);
     if (!tracked) throw new Error(`Wallet is not tracked: ${clean}.`);
-    const local = await this.getWalletPnl(clean, days);
+    const local = await this.getWalletPnlLocal(clean, days);
     const handle = (tracked.handle ?? '').trim() || null;
     if (!handle) {
       return { wallet: clean, handle, localRealizedUsd: local.realizedPnlUsd, fomoscanNetUsd: null, fomoscanWindow: '', deltaUsd: null };
@@ -266,7 +310,7 @@ export class PnlService {
     const wallets = scope ? all.filter((w) => scope.has(w.address)) : all;
     let updated = 0;
     for (const w of wallets) {
-      const pnl = await this.getWalletPnl(w.address, days);
+      const pnl = await this.getWalletPnlLocal(w.address, days);
       if (pnl.pairs === 0) continue;
       await this.prisma.trackedWallet.updateMany({
         where: { address: w.address },

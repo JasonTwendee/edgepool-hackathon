@@ -160,7 +160,9 @@ export function FomoLeftSidebar({
               const active = w.address === selectedAddress;
               const shown = displayPnl(w, pnlMap);
               const pnlTitle = shown.live
-                ? `Realized PnL from ${pnlMap[w.address].pairs} paired trades`
+                ? (pnlMap[w.address]?.source === 'fomo'
+                    ? `FomoScan net PnL across ${pnlMap[w.address].pairs} trades`
+                    : `Realized PnL from ${pnlMap[w.address].pairs} paired trades`)
                 : 'FOMO leaderboard (no paired trades yet)';
               return (
                 <li key={w.address}>

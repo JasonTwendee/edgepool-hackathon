@@ -79,21 +79,39 @@ export class WalletsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Wallet set that the live pipeline is allowed to touch. In pool mode this
-   * is exactly the active traders of public/live pools; empty roster falls
-   * back to DB-active wallets (fresh/dev bootstrap).
+   * Live scope + membership start. `enteredAt` is the forward-only lower bound
+   * for sync/copy; legacy/fallback entries have null (use default history).
    */
-  async findAllLive(): Promise<TrackedWallet[]> {
+  async findLiveMemberships(): Promise<Array<{ wallet: TrackedWallet; enteredAt: Date | null }>> {
     const scope = await resolveLiveScope(this.prisma);
     if (scope.mode === 'pool') {
+      const memberships = await this.prisma.vaultTrader.findMany({
+        where: {
+          isActive: true,
+          vault: { listing: 'public', status: 'live' },
+        },
+        select: { wallet: true, enteredAt: true },
+        distinct: ['wallet'],
+      });
+      const byWallet = new Map(memberships.map((m) => [m.wallet, m.enteredAt ?? null]));
       const rows = await this.prisma.trackedWallet.findMany({
-        where: { address: { in: [...scope.addresses] } },
+        where: { address: { in: [...byWallet.keys()] } },
         orderBy: { id: 'asc' },
       });
-      return rows.map(toTrackedWallet);
+      return rows.map((row) => ({
+        wallet: toTrackedWallet(row),
+        enteredAt: byWallet.get(row.address) ?? null,
+      }));
     }
     const all = await this.findAll();
-    return all.filter((w) => w.isActive !== false);
+    return all
+      .filter((w) => w.isActive !== false)
+      .map((wallet) => ({ wallet, enteredAt: null }));
+  }
+
+  /** Wallet set that the live pipeline is allowed to touch. */
+  async findAllLive(): Promise<TrackedWallet[]> {
+    return (await this.findLiveMemberships()).map((m) => m.wallet);
   }
 
   /**

@@ -131,6 +131,7 @@ function makeWorld(cfg: {
   return { engine, copy, orders, audits, creates: () => creates };
 }
 
+const NOW_SEC = Math.floor(Date.now() / 1000);
 const SIG = {
   signature: 'sigTEST11111111111111111111111111111111111111111111111111111111',
   walletAddress: 'MasterWallet11111111111111111111111111111111111',
@@ -138,9 +139,9 @@ const SIG = {
   tokenMint: 'Mint111111111111111111111111111111111111111111',
   amountUsd: dec(10),
   dexVenue: 'Titan Meta-DEX',
-  blockTime: 1,
+  blockTime: BigInt(NOW_SEC),
 };
-const TRADER = { id: 1, vaultId: 1, wallet: SIG.walletAddress, isActive: true };
+const TRADER = { id: 1, vaultId: 1, wallet: SIG.walletAddress, isActive: true, enteredAt: new Date(0) };
 const BOT = { id: 7, name: 'auto-1', mode: 'AUTO', vaultId: 1 };
 const WSOL = 'So11111111111111111111111111111111111111112';
 
@@ -316,6 +317,34 @@ async function main(): Promise<void> {
       /Kill-switch/,
     );
     assert.equal(w.creates(), 0);
+  }
+
+  // 10. Historical/backfilled BUY (blockTime before enteredAt) is never copied.
+  {
+    const w = makeWorld({
+      bots: [BOT],
+      signals: [{ ...SIG, signature: 'sigOLD', blockTime: BigInt(NOW_SEC - 3600) }],
+      traders: [{ ...TRADER, enteredAt: new Date((NOW_SEC - 60) * 1000) }],
+      wallets: [],
+    });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 0);
+    assert.equal(s.skippedBeforeEntry, 1);
+    assert.equal(w.creates(), 0);
+  }
+
+  // 11. A BUY after enteredAt is copied normally.
+  {
+    const w = makeWorld({
+      bots: [BOT],
+      signals: [{ ...SIG, signature: 'sigNEW', blockTime: BigInt(NOW_SEC) }],
+      traders: [{ ...TRADER, enteredAt: new Date((NOW_SEC - 60) * 1000) }],
+      wallets: [],
+    });
+    const s = await w.engine.tick();
+    assert.equal(s.fired, 1);
+    assert.equal(s.skippedBeforeEntry, 0);
+    assert.equal(w.creates(), 1);
   }
 
   console.log('autofire asserts: ALL GREEN');

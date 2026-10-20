@@ -41,6 +41,7 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
   private lastPruneAt = 0;
+  private lastRetiredAt = 0;
   private lastStatsAt = 0;
 
   constructor(
@@ -73,19 +74,26 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       // Live scope = active traders of public/live pools (fallback: DB-active).
-      // Non-pool leaderboard wallets stay frozen; history/orders are kept.
-      const wallets = await this.wallets.findAllLive();
+      // Forward-only: a new membership passes enteredAt so the safety net does
+      // not rebuild 120 days of history for a trader we just started tracking.
+      const memberships = await this.wallets.findLiveMemberships();
+      const wallets = memberships.map((m) => m.wallet);
       let fresh = 0;
-      for (const w of wallets) {
+      for (const membership of memberships) {
+        const w = membership.wallet;
         try {
+          const sinceSec = membership.enteredAt
+            ? Math.floor(membership.enteredAt.getTime() / 1000)
+            : undefined;
           const r = await this.history.syncWallet(w, {
             days: HISTORY_DAYS,
             maxTx: HISTORY_MAX_TX,
+            ...(sinceSec ? { sinceSec } : {}),
           });
           fresh += r.added;
           // eslint-disable-next-line no-console
           console.log(
-            `[SyncScheduler] ${w.label} (${w.address.slice(0, 6)}…): +${r.added} new (healed ${r.healed}), total ${r.total}`,
+            `[SyncScheduler] ${w.label} (${w.address.slice(0, 6)}…): +${r.added} new (healed ${r.healed}), total ${r.total}${sinceSec ? `, since ${new Date(sinceSec * 1000).toISOString()}` : ''}`,
           );
         } catch (err) {
           // eslint-disable-next-line no-console
@@ -97,12 +105,108 @@ export class SyncService implements OnModuleInit, OnModuleDestroy {
           ? await this.syncStatsThrottled(wallets.map((w) => w.address))
           : 0;
       const pruned = await this.pruneOnce();
+      const retiredPruned = await this.pruneRetiredOnce();
       // eslint-disable-next-line no-console
       console.log(
-        `[SyncScheduler] (${reason}) wallets=${wallets.length} newTx=${fresh} statsUpdated=${statsUpdated} pruned=${pruned}`,
+        `[SyncScheduler] (${reason}) wallets=${wallets.length} newTx=${fresh} statsUpdated=${statsUpdated} pruned=${pruned} retired=${retiredPruned}`,
       );
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Retired-trader raw-data cleanup (forward-only). A trader who left the
+   * roster keeps raw tx/events for a grace window (default 30d) so re-entry
+   * and support can inspect recent history. After the window, archive + delete
+   * ONLY transactions/realtime_events; orders, payouts, memberships, audit and
+   * the money ledger are never touched. Wallets with open copy orders are kept.
+   */
+  async pruneRetiredOnce(): Promise<number> {
+    if (Date.now() - this.lastRetiredAt < 86400000) return 0;
+    const daysRaw = Number(process.env.RETIRED_TRADER_RETENTION_DAYS ?? 30);
+    const days = Number.isFinite(daysRaw) && daysRaw >= 0 ? Math.floor(daysRaw) : 30;
+    const cutoff = new Date(Date.now() - days * 86400000);
+    try {
+      const retired = await this.prisma.vaultTrader.findMany({
+        where: { isActive: false, exitedAt: { lt: cutoff } },
+        select: { wallet: true },
+      });
+      const addresses = [...new Set(retired.map((r) => r.wallet))];
+      if (addresses.length === 0) {
+        this.lastRetiredAt = Date.now();
+        return 0;
+      }
+      const [stillActive, openOrders] = await Promise.all([
+        this.prisma.vaultTrader.findMany({
+          where: { wallet: { in: addresses }, isActive: true },
+          select: { wallet: true },
+        }),
+        this.prisma.copyOrder.findMany({
+          where: { masterWallet: { in: addresses }, closedAt: null },
+          select: { masterWallet: true },
+        }),
+      ]);
+      const activeSet = new Set(stillActive.map((r) => r.wallet));
+      const openSet = new Set(openOrders.map((r) => r.masterWallet ?? ''));
+      const candidates = addresses.filter((w) => !activeSet.has(w) && !openSet.has(w));
+      let total = 0;
+      const day = cutoff.toISOString().slice(0, 10);
+      for (const wallet of candidates) {
+        try {
+          const txRows = await this.prisma.transaction.findMany({
+            where: { walletAddress: wallet },
+            orderBy: { blockTime: 'asc' },
+          });
+          const evRows = await this.prisma.realtimeEvent.findMany({
+            where: { walletAddress: wallet },
+            orderBy: { broadcastedAt: 'asc' },
+          });
+          if (txRows.length === 0 && evRows.length === 0) continue;
+          const txFile = txRows.length
+            ? await writeArchiveFile(this.archiveDir, `retired-${day}-${wallet}-tx.jsonl`, txRows)
+            : null;
+          const evFile = evRows.length
+            ? await writeArchiveFile(this.archiveDir, `retired-${day}-${wallet}-events.jsonl`, evRows)
+            : null;
+          await this.audit.record({
+            actor: 'system:sync',
+            action: 'sync.retired_prune',
+            target: `${txFile?.file ?? '-'},${evFile?.file ?? '-'}`.slice(0, 200),
+            reason: `retired ${days}d: ${txRows.length} tx + ${evRows.length} events (${wallet.slice(0, 8)}…)`,
+            metaJson: {
+              wallet,
+              exitedBefore: cutoff.toISOString(),
+              retentionDays: days,
+              txCount: txRows.length,
+              eventCount: evRows.length,
+              txSha256: txFile?.sha256 ?? null,
+              eventSha256: evFile?.sha256 ?? null,
+            },
+          });
+          // Archive/audit succeeded → delete events first, then tx (FK cascade
+          // also removes any remaining events for this wallet).
+          const [ev, tx] = await Promise.all([
+            this.prisma.realtimeEvent.deleteMany({ where: { walletAddress: wallet } }),
+            this.prisma.transaction.deleteMany({ where: { walletAddress: wallet } }),
+          ]);
+          total += ev.count + tx.count;
+        } catch (err) {
+          console.error(
+            `[SyncScheduler] retired prune ${wallet.slice(0, 8)}… failed (no delete):`,
+            (err as Error).message,
+          );
+        }
+      }
+      this.lastRetiredAt = Date.now();
+      if (total > 0) {
+        console.log(`[SyncScheduler] retired prune removed ${total} raw rows (${days}d grace)`);
+      }
+      return total;
+    } catch (err) {
+      this.lastRetiredAt = Date.now();
+      console.error('[SyncScheduler] retired prune failed:', (err as Error).message);
+      return 0;
     }
   }
 

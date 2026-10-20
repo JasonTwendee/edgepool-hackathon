@@ -150,7 +150,7 @@ export default function HomePage() {
   // Chart fallback dataset (flow mode only): full range for the wallet.
   // Disabled whenever realized pairs exist — the chart then uses pnl.series
   // directly (zero extra fetch, full-range exact).
-  const needFlow = !pnl || pnl.pairs === 0;
+  const needFlow = !pnl || pnl.pairs === 0 || pnl.series.length === 0;
   const chartLedger = usePortfolio({
     walletAddress: selectedAddress ?? 'ALL',
     page: 1,

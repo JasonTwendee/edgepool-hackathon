@@ -254,6 +254,14 @@ export function TraderProfile({
               <span><b className="text-[#E9E9ED] font-bold">{tokensCount}</b> <span className="text-[#9397AB]">Tokens</span></span>
               <span className="text-[#595D6C]">•</span>
               <span><b className="text-[#E9E9ED] font-bold">{winRate !== undefined && winRate !== null ? `${winRate.toFixed(1)}%` : '—'}</b> <span className="text-[#9397AB]">Win</span></span>
+              {realized?.source && (
+                <>
+                  <span className="text-[#595D6C]">•</span>
+                  <span className="text-[10px] font-mono text-[#75798C]" title="Source of the trader performance metric">
+                    {realized.source === 'fomo' ? 'FomoScan' : 'Local ledger'}
+                  </span>
+                </>
+              )}
               <span className={`flex items-center gap-1.5 text-[11px] ${liveConnected || lastSyncSec !== null ? 'text-[#49E6D7]' : 'text-[#75798C]'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${liveConnected ? 'bg-[#49E6D7] animate-pulse' : lastSyncSec !== null ? 'bg-[#49E6D7]' : 'bg-[#595D6C]'}`} />
                 {liveConnected ? 'Live' : lastSyncSec !== null ? `Synced ${timeAgo(lastSyncSec)} ago` : 'Offline'}
