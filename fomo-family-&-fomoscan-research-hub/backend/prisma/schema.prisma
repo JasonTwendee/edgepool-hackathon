@@ -86,6 +86,10 @@ model RealtimeEvent {
 
   @@map("realtime_events")
   @@index([walletAddress, broadcastedAt(sort: Desc)])
+  // Dedupe in recordRealtimeEvent/history-sync looks up by txSignature — the
+  // missing index made every incoming event a 4.8M-row seq scan (VPS meltdown
+  // 20/10: PG 300-600% CPU, load 15-20). Migration 20261020000000 adds it.
+  @@index([txSignature])
 }
 
 // Paper copy-trade orders (devnet, 1-click). Lifecycle:
