@@ -188,7 +188,7 @@ export function TraderProfile({
     }
   }
 
-  const realized = pnl && pnl.pairs > 0 ? pnl : null;
+  const realized = pnl && (pnl.pairs > 0 || pnl.source === 'fomo') ? pnl : null;
   // While switching wallets the seed fallback looks like mock data —
   // show skeleton placeholders until the real PnL arrives.
   const showSkeleton = pnlLoading && !pnl;

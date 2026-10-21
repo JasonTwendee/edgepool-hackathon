@@ -228,7 +228,7 @@ export interface PoolSummary {
   totalShares: number;
   slots: { used: number; max: number };
   maxTraders: number;
-  traders: { wallet: string; handle: string; rank: number | null; weightBps: number; enteredAt?: string | null; trackedSince?: string | null; whyTop?: { whyTop?: { primaryWindow?: string | null; primary?: { netUsd?: number | null; trades?: number | null; winRatePct?: number | null } | null } } | null; ranks: { h24: number | null; d7: number | null; d30: number | null } }[];
+  traders: { wallet: string; handle: string; rank: number | null; weightBps: number; enteredAt?: string | null; trackedSince?: string | null; whyTop?: { whyTop?: { pnlUsd?: number | null; primaryWindow?: string | null; primary?: { netUsd?: number | null; trades?: number | null; winRatePct?: number | null } | null } } | null; ranks: { h24: number | null; d7: number | null; d30: number | null } }[];
   spark: number[];
   pnl: Record<'day' | 'week' | 'month' | 'all', { sol: number; pct: number }>;
   myHolding?: { shares: number; valueSol: number; returnsSol: number } | null;

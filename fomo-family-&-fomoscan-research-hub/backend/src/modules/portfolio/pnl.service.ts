@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service.js';
 import type { OnChainTransactionEvent } from '../onchain/entities/onchain-event.entity.js';
 import { TransactionsService } from '../transactions/transactions.service.js';
 import { WalletsService } from '../wallets/wallets.service.js';
+import type { TrackedWallet } from '../wallets/entities/tracked-wallet.entity.js';
 import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
 
 export interface SymbolPnl {
@@ -85,23 +86,58 @@ export class PnlService {
   private async getWalletPnlFomo(walletAddress: string, days: number): Promise<WalletPnl> {
     const clean = (walletAddress ?? '').trim();
     const wallet = await this.wallets.findByAddress(clean);
-    const handle = (wallet?.handle ?? '').trim();
-    if (!handle) throw new Error('No FomoScan handle for wallet.');
-    const remote = await this.fomoscan.getPnl(handle);
-    if (remote.status !== 'ready') throw new Error(`FomoScan PnL not ready: ${remote.status}`);
-    const win = this.pickWindow(remote.windows ?? {}, days);
-    const data = win ? remote.windows?.[win] : undefined;
-    if (!win || !data) throw new Error('No FomoScan PnL window.');
+    if (!wallet) throw new Error('Wallet not tracked.');
+    const handle = (wallet.handle ?? '').trim();
+    if (handle) {
+      try {
+        const remote = await this.fomoscan.getPnl(handle);
+        if (remote.status === 'ready') {
+          const win = this.pickWindow(remote.windows ?? {}, days);
+          const data = win ? remote.windows?.[win] : undefined;
+          if (win && data) {
+            return {
+              wallet: clean,
+              days,
+              realizedPnlUsd: Math.round(data.netUsd),
+              pairs: data.trades,
+              matchedSells: data.sells,
+              totalSells: data.sells,
+              totalBuys: data.buys,
+              winRate:
+                data.tokensTraded > 0 ? (data.winningTokens / data.tokensTraded) * 100 : null,
+              perSymbol: [],
+              series: [],
+              topTrades: [],
+              source: 'fomo',
+            };
+          }
+        }
+      } catch {
+        // fall through to the board snapshot
+      }
+    }
+    const board = this.boardPnlSnapshot(wallet, days);
+    if (board) return board;
+    throw new Error('No FomoScan PnL snapshot for wallet.');
+  }
+
+  /**
+   * Fomo leaderboard PnL is always present for a selected trader even when the
+   * detailed /pnl endpoint is unavailable/not-ready (sponsor plan varies by
+   * handle). Use it as the display source; pool PnL still comes from orders.
+   */
+  private boardPnlSnapshot(wallet: TrackedWallet, days: number): WalletPnl | null {
+    const pnl = wallet.fomoPnlUsd;
+    if (pnl === null || pnl === undefined || !Number.isFinite(pnl)) return null;
     return {
-      wallet: clean,
+      wallet: wallet.address,
       days,
-      realizedPnlUsd: Math.round(data.netUsd),
-      pairs: data.trades,
-      matchedSells: data.sells,
-      totalSells: data.sells,
-      totalBuys: data.buys,
-      winRate:
-        data.tokensTraded > 0 ? (data.winningTokens / data.tokensTraded) * 100 : null,
+      realizedPnlUsd: Math.round(pnl),
+      pairs: 0,
+      matchedSells: 0,
+      totalSells: 0,
+      totalBuys: 0,
+      winRate: wallet.winRate ?? null,
       perSymbol: [],
       series: [],
       topTrades: [],
@@ -236,29 +272,37 @@ export class PnlService {
     const results = await Promise.all(
       wallets.map(async (w) => {
         const handle = (w.handle ?? '').trim();
-        if (!handle) return this.getWalletPnlLocal(w.address, days);
-        try {
-          const entry = await this.fomoscan.getPnl(handle);
-          const win = this.pickWindow(entry.windows ?? {}, days);
-          const wdata = win ? entry.windows?.[win] : undefined;
-          if (!wdata || entry.status !== 'ready') return this.getWalletPnlLocal(w.address, days);
-          return {
-            wallet: w.address,
-            days,
-            realizedPnlUsd: Math.round(wdata.netUsd),
-            pairs: wdata.trades,
-            matchedSells: wdata.sells,
-            totalSells: wdata.sells,
-            totalBuys: wdata.buys,
-            winRate: wdata.tokensTraded > 0 ? (wdata.winningTokens / wdata.tokensTraded) * 100 : null,
-            perSymbol: [],
-            series: [],
-            topTrades: [],
-            source: 'fomo' as const,
-          };
-        } catch {
-          return this.getWalletPnlLocal(w.address, days);
+        if (handle) {
+          try {
+            const entry = await this.fomoscan.getPnl(handle);
+            if (entry.status === 'ready') {
+              const win = this.pickWindow(entry.windows ?? {}, days);
+              const wdata = win ? entry.windows?.[win] : undefined;
+              if (win && wdata) {
+                return {
+                  wallet: w.address,
+                  days,
+                  realizedPnlUsd: Math.round(wdata.netUsd),
+                  pairs: wdata.trades,
+                  matchedSells: wdata.sells,
+                  totalSells: wdata.sells,
+                  totalBuys: wdata.buys,
+                  winRate:
+                    wdata.tokensTraded > 0
+                      ? (wdata.winningTokens / wdata.tokensTraded) * 100
+                      : null,
+                  perSymbol: [],
+                  series: [],
+                  topTrades: [],
+                  source: 'fomo' as const,
+                };
+              }
+            }
+          } catch {
+            // fall through to the board snapshot
+          }
         }
+        return this.boardPnlSnapshot(w, days) ?? this.getWalletPnlLocal(w.address, days);
       }),
     );
     return results;
