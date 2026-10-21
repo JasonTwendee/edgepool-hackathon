@@ -8,6 +8,7 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 - [x] P1 program core + tests + **deploy devnet ✅** + **e2e devnet PASS ✅** (26/26 tests, slot 510563107)
 - [x] P2 BE chain module: migration, indexer, keeper, faucet, reconcile + asserts
 - [x] P3 FE chain client + user-signed deposit/withdraw + demo e2e wiring (live browser signing = demo-time)
+- [x] Demo E2E browser (2026-10-21): pool 39 `demo-chain-mvhudre1` · deposit 0.5 SOL before enabling chain → 0.5 shares · enable `CHAIN_ENABLED=true` (only pool 39 bound) → keeper ticks observed · browser withdraw 0.1 SOL → 0.4 shares / 0.102 SOL · treasury 0.51 → 0.408 · no page errors
 - [ ] P4 Jupiter `execute_swap` + mock-CPI + dry-run + runbook (flag OFF)
 - [ ] P5 fuzz + threat model + cost report + multisig/audit checklist
 
@@ -35,6 +36,7 @@ Topic: solana-vault-program | Branch: **`feat/program-vault`** (không merge mai
 - 2026-10-13 P1c bài học vận hành: (1) **bn.js của anchor: `.eqn(number)` HỎNG với number > 2^26** (1e9 lamports!) — dùng `.eq(number)`/`.eq(new BN(x))` trong mọi client BE/FE; (2) run e2e đầu tiên generate user keypair rồi vứt → mất 0.7 devnet SOL (script đã sửa: dùng ví demo từ `backend/.env`, fallback lưu keypair vào `/tmp/opencode/e2e-user.json`); (3) `@coral-xyz/anchor` là CJS — trong Node ESM phải `createRequire`.
 - 2026-10-13 P1 review (rust-code-reviewer checklist, findings-only self-review): **APPROVE** — xem §Review verdict.
 - 2026-10-21 Integration: `feat/program-vault` merged into an integration branch on top of current `main`. Program **26/26**, BE **31/31 asserts** (including `assert-chain`), BE/FE typecheck+build green. Added `20261021000000_chain_events_vault_fk` (chain_events → vaults cascade) and tested both chain migrations on a restored temp DB. Fixed runtime IDL packaging (`npm run build` copies `src/chain/idl` → `dist/chain/idl`) and `program-build.sh` (`anchor idl build -o ...` + remove stale empty file). First merge deploy exposed a FE runtime bug (invalid SPL Token/ATA program IDs in `frontend/lib/chain.ts` → pool pages 500); fixed both IDs, redeployed `4cdedf4`. Current server: chain **OFF**, no pool bound, 2 pools / 5 active traders / 69 MB DB; P4/P5 and mainnet remain pending.
+- 2026-10-21 Admin/demo flow + browser E2E: added ADMIN `POST /api/chain/demo-pool` and `/api/chain/pools/:id/initialize` (only unlisted `demo-chain-*`; refuses public pools). Created **pool 39 `demo-chain-mvhudre1`** and on-chain vault on devnet while `CHAIN_ENABLED=false`. Browser E2E with injected software wallet: deposit 0.5 SOL (0.5 shares, treasury 0.51) **before enabling chain**. Then enabled `CHAIN_ENABLED=true` for the demo binding only; keeper ticks observed. Browser withdraw 0.1 SOL → 0.4 shares / 0.102 SOL; treasury 0.408; no page/console errors. Added indexer pure-on-chain ledger mirror + per-vault backfill/retry; devnet public RPC still rate-limits `getTransaction` (429), so the demo ledger was mirrored operationally for display. P4/P5/audit/mainnet remain pending.
 
 ## Review verdict
 

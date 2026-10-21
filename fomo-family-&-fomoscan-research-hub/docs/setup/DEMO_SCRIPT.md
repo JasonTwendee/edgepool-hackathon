@@ -46,18 +46,31 @@
 - Đừng `docker compose down -v` (mất volume DB). Đổi `.env` phải `up -d <service>`
   (restart không đọc lại env_file).
 
-## P3 — Demo on-chain devnet (pool đã bind chain)
+## P3 — Demo on-chain devnet (unlisted demo pool)
 
 Chuẩn bị (ADMIN + devnet, làm trước giờ demo):
-1. Bind pool demo: `UPDATE vaults SET chain_program_id='<PROGRAM_ID>',
-   chain_vault='<VAULT_PDA>', chain_env='devnet' WHERE id=<id>;`
-2. Bật BE: `CHAIN_ENABLED=true`, `CHAIN_KEEPER_KEY=<base58 keeper>` (backend/.env local),
-   restart backend. Keeper tick 45s tự đẩy marks + settle; indexer mirror sự kiện.
-3. FE: mở `/pools/<id>` — badge `ON-CHAIN DEVNET` + link explorer hiện khi bind đúng.
+1. Đặt `CHAIN_KEEPER_KEY=<base58 keeper>` (backend/.env local). Keypair phải có devnet SOL
+   (init buffer + tx fees). Không dùng keypair này cho mainnet.
+2. Vào `/terminal` → tab **Demo** → **Create devnet demo pool** (hoặc ADMIN
+   `POST /api/chain/demo-pool`). Flow tạo một pool `demo-chain-*` **unlisted** và
+   initialize vault on-chain devnet; **từ chối** pool public 14/15.
+   - Có thể bind pool demo có sẵn bằng `POST /api/chain/pools/:id/initialize`
+     (chỉ chấp nhận `unlisted` + tên `demo-chain-*`).
+3. Chạy E2E browser trước khi bật keeper/indexer:
+   - mở `/pools/<demo-id>` → badge `ON-CHAIN DEVNET`;
+   - deposit ≥ 0.5 SOL → ký ví → share mint vào ATA;
+   - kiểm tra explorer/treasury/shares on-chain.
+4. Sau E2E, bật toàn bộ chain loop cho demo:
+   - `CHAIN_ENABLED=true` (chỉ pool demo đã bind; pool 14/15 vẫn không có `chainVault`);
+   - restart backend; keeper tick 45s tự đẩy marks + settle; indexer mirror sự kiện.
+5. FE withdraw → min_payout mặc định (= estimate − 0.5%) → SOL về ví ngay.
 
-Chạy demo (ví Phantom devnet):
-1. Nút `Get devnet SOL` nếu ví dưới 0.5 (faucet: auth + 1 lần/24h/người).
-2. Deposit ≥ 0.5 SOL → ký ví → share mint thẳng vào ATA, msg kèm link tx explorer.
-3. Chờ keeper tick (marks) → NAV/giá on-chain đổi → pool detail hiện block `chain`.
-4. Withdraw trong modal → min_payout mặc định (= estimate − 0.5%) → SOL về ví ngay.
-5. min_payout set cao hơn estimate → lệnh revert `PayoutBelowMin` ngay trong modal.
+Lưu ý vận hành:
+- Public devnet RPC (`api.devnet.solana.com`) rate-limit rất mạnh `getTransaction` (429).
+  Indexer mirror có thể chậm/không chạy với RPC public; dùng **dedicated devnet RPC**
+  trước khi demo cho khách. Deposit/withdraw trực tiếp trên browser không phụ thuộc indexer.
+- Không bind pool 14/15; không bật `MAINNET_SWAP_ENABLED`; không dùng keypair mainnet.
+- Nếu `CHAIN_ENABLED=false`, admin initialize/bind vẫn chạy được (setup path), nhưng
+  faucet/keeper/indexer không chạy.
+- Kiểm tra nhanh DB: `vaults.chain_vault`, `chain_events`, `vault_deposits.chain_sig`,
+  `vault_withdrawals.chain_sig`.

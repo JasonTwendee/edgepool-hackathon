@@ -473,9 +473,26 @@
     "no pool chain block",
     "DB 69MB / active 5"
    ]
+  },
+  {
+   "at": "2026-10-21T09:10:00Z",
+   "topic": "solana-vault-program",
+   "phase": "P3-demo-e2e",
+   "status": "done",
+   "detail": "ADMIN demo-pool flow created pool 39 devnet vault while chain OFF; browser E2E deposit 0.5 SOL before enable; chain enabled only for bound demo pool; browser withdraw 0.1 SOL after keeper start; on-chain shares/treasury verified",
+   "verification": [
+    "ADMIN POST /api/chain/demo-pool created pool 39",
+    "chain OFF deposit browser: 0.5 shares / treasury 0.51",
+    "CHAIN_ENABLED=true only pool 39 bound",
+    "keeper ticks observed on devnet",
+    "browser withdraw: 0.4 shares / 0.102 SOL / treasury 0.408",
+    "no page/console errors",
+    "public pools 14/15 have no chainVault",
+    "public devnet getTransaction 429 -> dedicated RPC needed for indexer mirror"
+   ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-21T08:05:00Z",
+ "updatedAt": "2026-10-21T09:10:00Z",
  "version": 2
 }

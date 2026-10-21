@@ -87,6 +87,7 @@ This file is the durable rule source.
 - 2026-10-20: Trader rời roster giữ raw tx/events **30 ngày** hoặc đến khi order mở cuối đóng; sau đó archive+audit rồi xoá raw. `copy_orders`, `partner_payouts`, memberships, audit, money ledger không bao giờ bị prune. Natural close là default; fee chia theo active roster tại settle (không phải origin trader).
 - 2026-10-20: Master trader performance hiển thị từ Fomo (`source=fomo`), pool performance từ copy orders/local; không trộn hai nguồn. Nếu Fomo lỗi/không có handle → fallback local và ghi source.
 - 2026-10-21 (user-approved): Merge `feat/program-vault` vào `main` và deploy lên server hiện tại với `CHAIN_ENABLED=false` trước. Không bind pool 14/15; chỉ bind pool demo riêng khi devnet E2E xong. P4/P5 + mainnet vẫn gated, chưa audit.
+- 2026-10-21: Chain demo binding chỉ cho `unlisted` + tên `demo-chain-*`; endpoint initialize/bind từ chối public pools. Deposit browser E2E có thể chạy khi chain loop OFF; keeper/indexer/faucet chỉ chạy khi `CHAIN_ENABLED=true`. Trước demo khách phải dùng dedicated devnet RPC (public RPC rate-limit `getTransaction` 429) và không bật mainnet.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 
