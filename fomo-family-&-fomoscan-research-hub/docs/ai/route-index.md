@@ -1,6 +1,6 @@
 # Route Index
 
-Canonical contract: `docs/api/openapi.yaml` (71 paths).
+Canonical contract: `docs/api/openapi.yaml` (73 paths).
 
 ## REST — markets / wallets / rotation
 
@@ -90,6 +90,8 @@ Canonical contract: `docs/api/openapi.yaml` (71 paths).
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
 | POST | `/api/chain/faucet` | `faucet.controller.ts` (Auth) | — | devnet SOL 0.1–2, genesis-gated, 1 grant/24h/user |
+| POST | `/api/chain/demo-pool` | `chain-admin.controller.ts` (ADMIN+Audit) | — | create unlisted `demo-chain-*` + initialize devnet vault |
+| POST | `/api/chain/pools/:id/initialize` | `chain-admin.controller.ts` (ADMIN+Audit) | — | bind only unlisted `demo-chain-*`; refuses public pools |
 
 ## REST — partner (trader portal)
 

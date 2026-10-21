@@ -427,6 +427,25 @@ export function chainFaucet(token: string, input: { address: string; amountSol?:
   return fetchJsonAuth('/api/chain/faucet', token, { method: 'POST', body: JSON.stringify(input) });
 }
 
+export interface ChainDemoPoolResult {
+  poolId: number;
+  name: string;
+  signature: string;
+  chain: {
+    programId: string;
+    vault: string;
+    treasury: string;
+    shares: string;
+    authority: string;
+    env: 'devnet';
+  };
+}
+
+/** ADMIN: create unlisted demo-chain-* pool + initialize devnet vault. */
+export function chainCreateDemoPool(token: string): Promise<{ success: boolean; data: ChainDemoPoolResult }> {
+  return fetchJsonAuth('/api/chain/demo-pool', token, { method: 'POST' });
+}
+
 export function depositChallenge(
   input: { vaultId?: number; amountSol: number; wallet: string },
   token: string,

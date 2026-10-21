@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ShieldCheck } from '@phosphor-icons/react';
 import {
   assignVaultTrader,
+  chainCreateDemoPool,
   createBot,
   createVault,
   listAudit,
@@ -76,6 +77,7 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
   const [tickLimit, setTickLimit] = useState('10');
   const [tickResult, setTickResult] = useState<AutoFireTickResult | null>(null);
   const [demoResult, setDemoResult] = useState<DemoScenarioResult | null>(null);
+  const [chainDemo, setChainDemo] = useState<{ poolId: number; name: string; signature: string } | null>(null);
 
   // Signal journeys: per-order Detect → Qualify → Enter → Manage → Exit rail.
   const [journeyVault, setJourneyVault] = useState('');
@@ -622,9 +624,34 @@ export function AdminPanel({ session }: { session: FundSession | null }) {
                 >
                   Reset demo
                 </button>
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      () => chainCreateDemoPool(token),
+                      (r) => {
+                        setChainDemo(r.data);
+                        refreshVaults();
+                      },
+                      'Devnet demo pool created',
+                    )
+                  }
+                  className={btnGhost}
+                >
+                  Create devnet demo pool
+                </button>
               </>
             )}
           </div>
+          {chainDemo && (
+            <div className="text-[11px] font-mono bg-[#161826] border border-[#49E6D7]/40 rounded-lg px-2.5 py-1.5 text-[#A7AABF]">
+              ON-CHAIN DEVNET · pool{' '}
+              <a href={`/pools/${chainDemo.poolId}`} className="text-[#49E6D7] underline">
+                #{chainDemo.poolId} {chainDemo.name}
+              </a>{' '}
+              · tx {chainDemo.signature.slice(0, 8)}…
+            </div>
+          )}
           {demoResult && (
             <div className="space-y-1.5">
               <div className="text-[11px] font-mono text-[#75798C]">
