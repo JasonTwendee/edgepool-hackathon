@@ -44,7 +44,7 @@ Status: **planned** — no code changes yet.
 | P5 | done | Roster diff + immediate reconcile + open positions | enteredAt/exitedAt/snapshot; `reconcileLiveStream`; natural close |
 | P6 | done | Retired data retention | `RETIRED_TRADER_RETENTION_DAYS=30`; archive+audit; open-order guard |
 | P7 | done | API/UI source labels | pool trader `trackedSince`/`whyTop`; PnL `source=fomo|local`; chart fallback |
-| P8 | in progress | Tests, dry-run, rollout, rollback | 30/30 asserts + builds; top dry-run at 06:11 UTC: 4 new + Aurelius retained, 5 snapshots, 0 copy orders; active-set fix deploy pending |
+| P8 | done | Tests, dry-run, rollout, rollback | 30/30 asserts + builds; top rotation live daily (`06:11`/`06:22` UTC): 5 shared roster rows, all with `entrySnapshot`; `tracked_wallets` 15/5; **0 copy orders**; Fomo PnL source=fomo |
 
 ## P0 checklist
 
@@ -200,14 +200,15 @@ Status: **planned** — no code changes yet.
 - Verification so far: **30/30 assert suites green**, BE typecheck+build,
   FE typecheck, env contract 59+2. Deploy `ca84fd4` (pin) applied the additive
   migration; **Fomo PnL source** and board fallback live in `9642244`.
-- 2026-10-21 top dry-run: set `LIVE_ROSTER_MODE=top` + `LEADERBOARD_PERIOD=daily`,
-  restart. Boot rotation at 06:11 UTC → new shared roster
-  `[Aurelius, marcell, soby0x, J777Crypto, Crypto_Keys]`; old 4 exited with
-  `exitedAt`; all 5 new/kept rows have `entrySnapshot`; `enteredAt` new for the
-  4 entrants. `/api/wallets` = 5. `copy_orders` since restart = **0**
-  (no historical copy). Old open orders (`throatycrab1008` 3) remain managed.
-  Hot-fixed transient `tracked_wallets.active=9` by deactivating non-picks in
-  SQL + code (`syncPublicPoolRosters`); final deploy pending.
+- 2026-10-21 top rollout: set `LIVE_ROSTER_MODE=top` + `LEADERBOARD_PERIOD=daily`,
+  restart. Boot rotation at 06:11 UTC → new shared roster; a later tick
+  swapped `Crypto_Keys` → `counter17`, final live roster
+  `[Aurelius, marcell, soby0x, J777Crypto, counter17]`. All 5 active rows have
+  `entrySnapshot`; new entrants have `enteredAt` at rotation. `/api/wallets` = 5;
+  `tracked_wallets` = 15 total / **5 active**; `copy_orders` since restart =
+  **0** (no historical copy). Old open orders (`throatycrab1008` 3) remain
+  managed. Fomo PnL board fallback gives `source=fomo` for overview/single
+  wallet. Final deploy `4b0c219`.
 
 ## Next action
 

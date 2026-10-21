@@ -410,22 +410,24 @@
   {
    "at": "2026-10-21T06:20:00Z",
    "topic": "forward-only-trader-tracking",
-   "phase": "P8-top-dry-run",
-   "status": "in_progress",
-   "detail": "Top daily rotation enabled at 06:11 UTC; new shared roster [Aurelius,marcell,soby0x,J777Crypto,Crypto_Keys]; enteredAt/exitedAt/snapshots; zero copy orders from history; final active-set fix deploy pending",
+   "phase": "P8-rollout",
+   "status": "done",
+   "detail": "Forward-only tracking live: daily Fomo top5 rotation, enteredAt/exitedAt/snapshots, blockTime copy gate, Fomo board PnL source; final roster Aurelius/marcell/soby0x/J777Crypto/counter17; 0 historical copy orders",
    "verification": [
     "30/30 asserts GREEN",
     "BE/FE typecheck + builds GREEN",
-    "migration applied (ca84fd4)",
-    "Fomo PnL board fallback live (9642244)",
-    "top dry-run: 5 roster rows, 5 snapshots",
-    "copy_orders since restart = 0",
+    "env contract GREEN",
+    "migration applied",
+    "live top rotation: 5 shared roster, 5 snapshots",
+    "tracked_wallets 15/5",
+    "copy_orders since rotation = 0",
+    "overview/single PnL source=fomo",
     "old open orders kept (throatycrab1008=3)",
-    "tracked_wallets hotfix 14/5 after SQL; code fix pending"
+    "no prior-history backfill for new entrants (total 0)"
    ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-21T06:20:00Z",
+ "updatedAt": "2026-10-21T06:30:00Z",
  "version": 2
 }
