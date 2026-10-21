@@ -13,8 +13,8 @@ import idl from './idl/edgepool_vault.json';
 import { getInjectedProvider, type InjectedSolanaProvider } from './solana';
 
 export const CHAIN_DEVNET_RPC = 'https://api.devnet.solana.com';
-const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQwZ5cS6E4sN7GVsixgx5Z3XjLKzQ9EPmdNfT');
-const ATA_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8ow');
+const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const ATA_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
 const MIN_DEPOSIT_LAMPORTS = 500_000_000;
 
 export interface ChainPdas {
