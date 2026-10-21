@@ -5,6 +5,7 @@
  * chain_sig on the latest epoch lacking one. No-op unless CHAIN_ENABLED.
  */
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { PublicKey } from '@solana/web3.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { matchDepositByAmount, parseChainEvents } from './events.js';
 import { ChainProgramClient } from './program.client.js';
@@ -184,24 +185,52 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   private async start(): Promise<void> {
     const connection = this.program.connection();
     if (!connection) return;
-    const pid = this.program.programId();
-    await this.backfill();
-    this.subId = await connection.onLogs(pid, (info, ctx) => {
+    // Subscribe first: a rate-limited backfill must not prevent live events.
+    this.subId = await connection.onLogs(this.program.programId(), (info, ctx) => {
       if (info.err) return;
       void this.ingest(info.signature, ctx.slot, info.logs).catch(() => undefined);
     });
+    await this.backfill().catch((e) => {
+      console.warn('[chain-indexer] backfill delayed:', (e as Error).message);
+    });
   }
 
+  /**
+   * Public devnet RPC rate-limits getSignaturesForAddress(programId) hard.
+   * Bound vault accounts have very few transactions and include every
+   * deposit/withdraw/init tx that touches them, so scan per vault instead.
+   */
   private async backfill(): Promise<void> {
     const connection = this.program.connection();
     if (!connection) return;
-    const sigs = await connection.getSignaturesForAddress(this.program.programId(), { limit: BACKFILL_LIMIT });
-    for (const s of sigs.reverse()) {
-      if (s.blockTime === null || s.slot <= this.lastSlot) continue;
-      const tx = await connection.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
-      const logs = tx?.meta?.logMessages ?? null;
-      if (!logs) continue;
-      await this.ingest(s.signature, s.slot, logs);
+    const vaults = await this.prisma.vault.findMany({
+      where: { chainVault: { not: null } },
+      select: { chainVault: true },
+    });
+    const seen = new Set<string>();
+    for (const vault of vaults) {
+      if (!vault.chainVault) continue;
+      let sigs;
+      try {
+        sigs = await connection.getSignaturesForAddress(new PublicKey(vault.chainVault), {
+          limit: BACKFILL_LIMIT,
+        });
+      } catch (e) {
+        console.warn('[chain-indexer] vault signatures failed:', (e as Error).message);
+        continue;
+      }
+      for (const s of sigs.reverse()) {
+        if (s.blockTime === null || s.slot <= this.lastSlot || seen.has(s.signature)) continue;
+        seen.add(s.signature);
+        try {
+          const tx = await connection.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+          const logs = tx?.meta?.logMessages ?? null;
+          if (!logs) continue;
+          await this.ingest(s.signature, s.slot, logs);
+        } catch (e) {
+          console.warn('[chain-indexer] tx read failed:', (e as Error).message);
+        }
+      }
     }
   }
 
