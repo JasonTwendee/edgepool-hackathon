@@ -458,20 +458,24 @@
    "at": "2026-10-21T07:40:00Z",
    "topic": "solana-vault-program",
    "phase": "integration-chain-off",
-   "status": "in_progress",
-   "detail": "Merged feature branch with main; resolved generated Prisma/pool-page/docs conflicts; added chain FK migration; fixed runtime IDL packaging and program-build IDL output; QA 31/31; deploy chain OFF pending",
+   "status": "done",
+   "detail": "Program-vault merged to main and deployed with CHAIN_ENABLED=false; migrations chain+FK applied; IDL packaged; FE Token/ATA IDs fixed after pool 500; P4/P5 pending",
    "verification": [
     "program cargo test 26/26",
     "BE 31/31 asserts",
     "BE/FE typecheck+build",
-    "temp DB migration apply (chain + FK)",
-    "OpenAPI 71 paths",
+    "CI green 4cdedf4",
+    "live migrations 30 applied",
+    "chain_events table + FK",
+    "FE 6 routes 200",
+    "BE health/pools 200",
     "CHAIN_ENABLED=false / MAINNET_SWAP_ENABLED=false",
-    "no pool bound"
+    "no pool chain block",
+    "DB 69MB / active 5"
    ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-21T07:40:00Z",
+ "updatedAt": "2026-10-21T08:05:00Z",
  "version": 2
 }
