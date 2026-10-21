@@ -185,11 +185,15 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   private async start(): Promise<void> {
     const connection = this.program.connection();
     if (!connection) return;
-    // Subscribe first: a rate-limited backfill must not prevent live events.
-    this.subId = await connection.onLogs(this.program.programId(), (info, ctx) => {
-      if (info.err) return;
-      void this.ingest(info.signature, ctx.slot, info.logs).catch(() => undefined);
-    });
+    // Subscribe first; WS may be unavailable when an HTTP RPC proxy is used.
+    try {
+      this.subId = await connection.onLogs(this.program.programId(), (info, ctx) => {
+        if (info.err) return;
+        void this.ingest(info.signature, ctx.slot, info.logs).catch(() => undefined);
+      });
+    } catch (e) {
+      console.warn('[chain-indexer] live subscription unavailable:', (e as Error).message);
+    }
     await this.backfill().catch((e) => {
       console.warn('[chain-indexer] backfill delayed:', (e as Error).message);
     });
