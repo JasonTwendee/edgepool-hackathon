@@ -94,26 +94,52 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     const db = this.prisma as unknown as Record<string, {
       findMany(a: unknown): Promise<unknown[]>;
+      findFirst(a: unknown): Promise<{ id: number } | null>;
       updateMany(a: unknown): Promise<unknown>;
       update(a: unknown): Promise<unknown>;
-      findFirst(a: unknown): Promise<{ id: number } | null>;
+      create(a: unknown): Promise<unknown>;
     }>;
     if (kind === 'DepositEvent') {
       const user = String(payload.user ?? '');
-      const amount = Number(payload.amount_lamports ?? 0);
+      const amountLamports = Number(payload.amount_lamports ?? 0);
+      const amount = amountLamports / 1_000_000_000;
+      const shares = Number(payload.minted_raw ?? 0) / 1_000_000_000;
+      const price = Number(payload.price_scaled ?? 0) / 1_000_000_000;
       const queued = (await db.deposit.findMany({
         where: { vaultId, status: 'QUEUED', depositor: user },
         orderBy: { id: 'asc' },
       })) as { id: number; amountSol: unknown }[];
-      const row = matchDepositByAmount(queued, amount);
+      const row = matchDepositByAmount(queued, amountLamports);
       if (row) {
         await db.deposit.update({
           where: { id: row.id },
           data: { status: 'SETTLED', chainSig: signature, chainSlot: BigInt(slot), settledAt: new Date() },
         });
+      } else {
+        // Pure on-chain deposit (P3 user-signed path) has no queued off-chain
+        // row. Mirror it so the investor UI can show shares/withdraw.
+        const exists = await db.deposit.findFirst({ where: { vaultId, chainSig: signature } });
+        if (!exists && user) {
+          await db.deposit.create({
+            data: {
+              vaultId,
+              depositor: user,
+              amountSol: amount,
+              status: 'SETTLED',
+              sharesMinted: shares,
+              sharePrice: price > 0 ? price : 1,
+              chainSig: signature,
+              chainSlot: BigInt(slot),
+              settledAt: new Date(),
+            },
+          });
+        }
       }
     } else if (kind === 'WithdrawEvent') {
       const user = String(payload.user ?? '');
+      const shares = Number(payload.shares_raw ?? 0) / 1_000_000_000;
+      const paid = Number(payload.paid_lamports ?? 0) / 1_000_000_000;
+      const price = Number(payload.price_scaled ?? 0) / 1_000_000_000;
       const row = await db.withdrawal.findFirst({
         where: { vaultId, status: 'QUEUED', depositor: user },
         orderBy: { id: 'asc' },
@@ -123,6 +149,24 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
           where: { id: row.id },
           data: { status: 'SETTLED', chainSig: signature, chainSlot: BigInt(slot), settledAt: new Date() },
         });
+      } else {
+        const exists = await db.withdrawal.findFirst({ where: { vaultId, chainSig: signature } });
+        if (!exists && user) {
+          await db.withdrawal.create({
+            data: {
+              vaultId,
+              depositor: user,
+              sharesRequested: shares,
+              sharesBurned: shares,
+              status: 'SETTLED',
+              payoutSol: paid,
+              sharePrice: price > 0 ? price : 1,
+              chainSig: signature,
+              chainSlot: BigInt(slot),
+              settledAt: new Date(),
+            },
+          });
+        }
       }
     } else if (kind === 'PausedEvent') {
       await db.vault.update({ where: { id: vaultId }, data: { chainPaused: Boolean(payload.flag) } });
