@@ -83,6 +83,13 @@ export function buildSelectionSnapshot(
   const primaryKey =
     period === 'daily' ? '24h' : period === 'monthly' ? '30d' : '7d';
   const primary = pickWindow(primaryKey) ?? null;
+  const hasPrimary =
+    primary !== null &&
+    primary.status !== 'pending' &&
+    primary.status !== 'unavailable' &&
+    [primary.netUsd, primary.trades, primary.volumeUsd, primary.tokensTraded].some(
+      (value) => value !== null,
+    );
 
   return {
     source: 'fomoscan',
@@ -97,8 +104,8 @@ export function buildSelectionSnapshot(
       pnlPercent: numOrNull(entry.pnlPercent),
       realizedPnlUsd: numOrNull(entry.realizedPnlUsd),
       unrealizedPnlUsd: numOrNull(entry.unrealizedPnlUsd),
-      primaryWindow: primary ? primaryKey : null,
-      primary,
+      primaryWindow: hasPrimary ? primaryKey : null,
+      primary: hasPrimary ? primary : null,
     },
     windows,
     raw: { entry, pnl },

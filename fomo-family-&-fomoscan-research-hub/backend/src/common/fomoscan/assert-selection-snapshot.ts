@@ -84,10 +84,26 @@ assert.notEqual(
   hash,
 );
 
-// Missing PnL still yields a board-only snapshot (fail-open for rotation).
+// Missing/partial PnL still yields a board-only snapshot (fail-open for rotation).
 const partial = buildSelectionSnapshot(entry, null, 'weekly', at);
 assert.equal(partial.raw.pnl, null);
 assert.equal(partial.whyTop.primary, null);
 assert.equal(partial.ranks.d7, 3);
+
+const pending = buildSelectionSnapshot(
+  entry,
+  {
+    ...pnl,
+    status: 'pending',
+    windows: {
+      '24h': { ...pnl.windows['24h'], netUsd: 0, trades: 0, buys: 0, sells: 0, tokensTraded: 0, winningTokens: 0, status: 'pending' },
+    },
+  },
+  'daily',
+  at,
+);
+assert.equal(pending.whyTop.primary, null);
+assert.equal(pending.whyTop.primaryWindow, null);
+assert.equal(pending.whyTop.pnlUsd, 1000);
 
 console.log('selection-snapshot asserts: ALL GREEN');
