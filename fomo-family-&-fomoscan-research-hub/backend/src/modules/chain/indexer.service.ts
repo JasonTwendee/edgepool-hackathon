@@ -223,10 +223,12 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
         if (s.blockTime === null || s.slot <= this.lastSlot || seen.has(s.signature)) continue;
         seen.add(s.signature);
         try {
-          const tx = await connection.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+          const tx = await this.getTransactionWithRetry(connection, s.signature);
           const logs = tx?.meta?.logMessages ?? null;
           if (!logs) continue;
           await this.ingest(s.signature, s.slot, logs);
+          // Public devnet limits getTransaction; pace historical backfill.
+          await new Promise((r) => setTimeout(r, 250));
         } catch (e) {
           console.warn('[chain-indexer] tx read failed:', (e as Error).message);
         }
@@ -236,5 +238,27 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
 
   private async heal(): Promise<void> {
     await this.backfill().catch(() => undefined);
+  }
+
+  private async getTransactionWithRetry(
+    connection: ReturnType<typeof this.program.connection> & object,
+    signature: string,
+  ): Promise<{ meta?: { logMessages?: string[] | null } | null } | null> {
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        return (await (connection as unknown as {
+          getTransaction(sig: string, opts: { maxSupportedTransactionVersion: number }): Promise<{
+            meta?: { logMessages?: string[] | null } | null;
+          } | null>;
+        }).getTransaction(signature, { maxSupportedTransactionVersion: 0 })) as {
+          meta?: { logMessages?: string[] | null } | null;
+        } | null;
+      } catch (err) {
+        lastErr = err;
+        await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error('getTransaction failed');
   }
 }
