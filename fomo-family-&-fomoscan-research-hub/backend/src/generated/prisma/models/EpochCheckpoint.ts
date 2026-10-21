@@ -51,6 +51,7 @@ export type EpochCheckpointMinAggregateOutputType = {
   sharePrice: runtime.Decimal | null
   sharesOutstanding: runtime.Decimal | null
   feeSol: runtime.Decimal | null
+  chainSig: string | null
   createdAt: Date | null
 }
 
@@ -61,6 +62,7 @@ export type EpochCheckpointMaxAggregateOutputType = {
   sharePrice: runtime.Decimal | null
   sharesOutstanding: runtime.Decimal | null
   feeSol: runtime.Decimal | null
+  chainSig: string | null
   createdAt: Date | null
 }
 
@@ -71,6 +73,7 @@ export type EpochCheckpointCountAggregateOutputType = {
   sharePrice: number
   sharesOutstanding: number
   feeSol: number
+  chainSig: number
   createdAt: number
   _all: number
 }
@@ -101,6 +104,7 @@ export type EpochCheckpointMinAggregateInputType = {
   sharePrice?: true
   sharesOutstanding?: true
   feeSol?: true
+  chainSig?: true
   createdAt?: true
 }
 
@@ -111,6 +115,7 @@ export type EpochCheckpointMaxAggregateInputType = {
   sharePrice?: true
   sharesOutstanding?: true
   feeSol?: true
+  chainSig?: true
   createdAt?: true
 }
 
@@ -121,6 +126,7 @@ export type EpochCheckpointCountAggregateInputType = {
   sharePrice?: true
   sharesOutstanding?: true
   feeSol?: true
+  chainSig?: true
   createdAt?: true
   _all?: true
 }
@@ -218,6 +224,7 @@ export type EpochCheckpointGroupByOutputType = {
   sharePrice: runtime.Decimal
   sharesOutstanding: runtime.Decimal
   feeSol: runtime.Decimal
+  chainSig: string | null
   createdAt: Date
   _count: EpochCheckpointCountAggregateOutputType | null
   _avg: EpochCheckpointAvgAggregateOutputType | null
@@ -251,6 +258,7 @@ export type EpochCheckpointWhereInput = {
   sharePrice?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.StringNullableFilter<"EpochCheckpoint"> | string | null
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
   payouts?: Prisma.PartnerPayoutListRelationFilter
@@ -263,6 +271,7 @@ export type EpochCheckpointOrderByWithRelationInput = {
   sharePrice?: Prisma.SortOrder
   sharesOutstanding?: Prisma.SortOrder
   feeSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   vault?: Prisma.VaultOrderByWithRelationInput
   payouts?: Prisma.PartnerPayoutOrderByRelationAggregateInput
@@ -278,6 +287,7 @@ export type EpochCheckpointWhereUniqueInput = Prisma.AtLeast<{
   sharePrice?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.StringNullableFilter<"EpochCheckpoint"> | string | null
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
   payouts?: Prisma.PartnerPayoutListRelationFilter
@@ -290,6 +300,7 @@ export type EpochCheckpointOrderByWithAggregationInput = {
   sharePrice?: Prisma.SortOrder
   sharesOutstanding?: Prisma.SortOrder
   feeSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.EpochCheckpointCountOrderByAggregateInput
   _avg?: Prisma.EpochCheckpointAvgOrderByAggregateInput
@@ -308,6 +319,7 @@ export type EpochCheckpointScalarWhereWithAggregatesInput = {
   sharePrice?: Prisma.DecimalWithAggregatesFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalWithAggregatesFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalWithAggregatesFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.StringNullableWithAggregatesFilter<"EpochCheckpoint"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"EpochCheckpoint"> | Date | string
 }
 
@@ -316,6 +328,7 @@ export type EpochCheckpointCreateInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
   vault: Prisma.VaultCreateNestedOneWithoutEpochsInput
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutEpochInput
@@ -328,6 +341,7 @@ export type EpochCheckpointUncheckedCreateInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutEpochInput
 }
@@ -337,6 +351,7 @@ export type EpochCheckpointUpdateInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   vault?: Prisma.VaultUpdateOneRequiredWithoutEpochsNestedInput
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutEpochNestedInput
@@ -349,6 +364,7 @@ export type EpochCheckpointUncheckedUpdateInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutEpochNestedInput
 }
@@ -360,6 +376,7 @@ export type EpochCheckpointCreateManyInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
 }
 
@@ -368,6 +385,7 @@ export type EpochCheckpointUpdateManyMutationInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -378,6 +396,7 @@ export type EpochCheckpointUncheckedUpdateManyInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -398,6 +417,7 @@ export type EpochCheckpointCountOrderByAggregateInput = {
   sharePrice?: Prisma.SortOrder
   sharesOutstanding?: Prisma.SortOrder
   feeSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -417,6 +437,7 @@ export type EpochCheckpointMaxOrderByAggregateInput = {
   sharePrice?: Prisma.SortOrder
   sharesOutstanding?: Prisma.SortOrder
   feeSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -427,6 +448,7 @@ export type EpochCheckpointMinOrderByAggregateInput = {
   sharePrice?: Prisma.SortOrder
   sharesOutstanding?: Prisma.SortOrder
   feeSol?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -507,6 +529,7 @@ export type EpochCheckpointCreateWithoutVaultInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
   payouts?: Prisma.PartnerPayoutCreateNestedManyWithoutEpochInput
 }
@@ -517,6 +540,7 @@ export type EpochCheckpointUncheckedCreateWithoutVaultInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
   payouts?: Prisma.PartnerPayoutUncheckedCreateNestedManyWithoutEpochInput
 }
@@ -557,6 +581,7 @@ export type EpochCheckpointScalarWhereInput = {
   sharePrice?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFilter<"EpochCheckpoint"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.StringNullableFilter<"EpochCheckpoint"> | string | null
   createdAt?: Prisma.DateTimeFilter<"EpochCheckpoint"> | Date | string
 }
 
@@ -565,6 +590,7 @@ export type EpochCheckpointCreateWithoutPayoutsInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
   vault: Prisma.VaultCreateNestedOneWithoutEpochsInput
 }
@@ -576,6 +602,7 @@ export type EpochCheckpointUncheckedCreateWithoutPayoutsInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
 }
 
@@ -600,6 +627,7 @@ export type EpochCheckpointUpdateWithoutPayoutsInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   vault?: Prisma.VaultUpdateOneRequiredWithoutEpochsNestedInput
 }
@@ -611,6 +639,7 @@ export type EpochCheckpointUncheckedUpdateWithoutPayoutsInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -620,6 +649,7 @@ export type EpochCheckpointCreateManyVaultInput = {
   sharePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding: runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: string | null
   createdAt?: Date | string
 }
 
@@ -628,6 +658,7 @@ export type EpochCheckpointUpdateWithoutVaultInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payouts?: Prisma.PartnerPayoutUpdateManyWithoutEpochNestedInput
 }
@@ -638,6 +669,7 @@ export type EpochCheckpointUncheckedUpdateWithoutVaultInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payouts?: Prisma.PartnerPayoutUncheckedUpdateManyWithoutEpochNestedInput
 }
@@ -648,6 +680,7 @@ export type EpochCheckpointUncheckedUpdateManyWithoutVaultInput = {
   sharePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   sharesOutstanding?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   feeSol?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -689,6 +722,7 @@ export type EpochCheckpointSelect<ExtArgs extends runtime.Types.Extensions.Inter
   sharePrice?: boolean
   sharesOutstanding?: boolean
   feeSol?: boolean
+  chainSig?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
   payouts?: boolean | Prisma.EpochCheckpoint$payoutsArgs<ExtArgs>
@@ -702,6 +736,7 @@ export type EpochCheckpointSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   sharePrice?: boolean
   sharesOutstanding?: boolean
   feeSol?: boolean
+  chainSig?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["epochCheckpoint"]>
@@ -713,6 +748,7 @@ export type EpochCheckpointSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   sharePrice?: boolean
   sharesOutstanding?: boolean
   feeSol?: boolean
+  chainSig?: boolean
   createdAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["epochCheckpoint"]>
@@ -724,10 +760,11 @@ export type EpochCheckpointSelectScalar = {
   sharePrice?: boolean
   sharesOutstanding?: boolean
   feeSol?: boolean
+  chainSig?: boolean
   createdAt?: boolean
 }
 
-export type EpochCheckpointOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "navSol" | "sharePrice" | "sharesOutstanding" | "feeSol" | "createdAt", ExtArgs["result"]["epochCheckpoint"]>
+export type EpochCheckpointOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "navSol" | "sharePrice" | "sharesOutstanding" | "feeSol" | "chainSig" | "createdAt", ExtArgs["result"]["epochCheckpoint"]>
 export type EpochCheckpointInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
   payouts?: boolean | Prisma.EpochCheckpoint$payoutsArgs<ExtArgs>
@@ -753,6 +790,7 @@ export type $EpochCheckpointPayload<ExtArgs extends runtime.Types.Extensions.Int
     sharePrice: runtime.Decimal
     sharesOutstanding: runtime.Decimal
     feeSol: runtime.Decimal
+    chainSig: string | null
     createdAt: Date
   }, ExtArgs["result"]["epochCheckpoint"]>
   composites: {}
@@ -1185,6 +1223,7 @@ export interface EpochCheckpointFieldRefs {
   readonly sharePrice: Prisma.FieldRef<"EpochCheckpoint", 'Decimal'>
   readonly sharesOutstanding: Prisma.FieldRef<"EpochCheckpoint", 'Decimal'>
   readonly feeSol: Prisma.FieldRef<"EpochCheckpoint", 'Decimal'>
+  readonly chainSig: Prisma.FieldRef<"EpochCheckpoint", 'String'>
   readonly createdAt: Prisma.FieldRef<"EpochCheckpoint", 'DateTime'>
 }
     

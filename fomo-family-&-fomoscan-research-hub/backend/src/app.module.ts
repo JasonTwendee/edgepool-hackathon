@@ -14,6 +14,7 @@ import { DemoModule } from './modules/demo/demo.module.js';
 import { SignedIntentModule } from './modules/signed-intent/signed-intent.module.js';
 import { MarketModule } from './modules/market/market.module.js';
 import { VaultsModule } from './modules/vaults/vaults.module.js';
+import { ChainModule } from './modules/chain/chain.module.js';
 import { PartnerModule } from './modules/partner/partner.module.js';
 import { SolanaModule } from './server/solana.module.js';
 import { SyncModule } from './modules/sync/sync.module.js';
@@ -37,6 +38,7 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module.js';
     SignedIntentModule,
     MarketModule,
     VaultsModule,
+    ChainModule,
     PartnerModule,
     SyncModule,
     LeaderboardModule,

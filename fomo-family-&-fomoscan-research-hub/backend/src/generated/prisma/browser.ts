@@ -63,6 +63,11 @@ export type Withdrawal = Prisma.WithdrawalModel
  */
 export type EpochCheckpoint = Prisma.EpochCheckpointModel
 /**
+ * Model ChainEvent
+ * 
+ */
+export type ChainEvent = Prisma.ChainEventModel
+/**
  * Model User
  * 
  */

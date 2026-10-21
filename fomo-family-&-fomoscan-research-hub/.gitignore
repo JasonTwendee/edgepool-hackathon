@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Anchor / Rust workspace
+target
+.anchor/
+test-ledger/

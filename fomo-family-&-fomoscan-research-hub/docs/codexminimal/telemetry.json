@@ -425,9 +425,53 @@
     "old open orders kept (throatycrab1008=3)",
     "no prior-history backfill for new entrants (total 0)"
    ]
+  },
+  {
+   "at": "2026-10-13T00:00:00Z",
+   "topic": "solana-vault-program",
+   "phase": "P0-setup",
+   "status": "done",
+   "detail": "Toolchain: Agave CLI 4.3.0 + cargo-build-sbf 4.4.0 (platform-tools v1.57) + rustup stable 1.99.0. Anchor workspace scaffold (Anchor.toml + Cargo workspace + programs/edgepool-vault skeleton, program id 5zkeKsj...s3CQ). anchor build PASS (.so 151KB, IDL + types), cargo test PASS (skeleton). IDL committed at idls/. Disk relocation: platform-tools cache + cargo registry + project target symlinked to /media/jason/Acer (root 1.9G -> 7.3G; reversible).",
+   "verification": [
+    "solana-cli 4.3.0 + cargo-build-sbf 4.4.0",
+    "anchor build PASS (.so 151080 bytes)",
+    "target/idl/edgepool_vault.json + target/types generated",
+    "cargo test PASS (0 tests skeleton)",
+    "idls/edgepool_vault.json committed",
+    "root fs 1.9G -> 7.3G via symlinked caches"
+   ]
+  },
+  {
+   "at": "2026-10-13T00:00:00Z",
+   "topic": "solana-vault-program",
+   "phase": "P1-complete",
+   "status": "done",
+   "detail": "Program core 9 instructions + events + u128 math; 26/26 tests GREEN (12 unit + 14 LiteSVM: lifecycle 6 + gates 8). Deploy devnet 5zkeKsj...s3CQ (slot 510563107). E2E devnet th\u1eadt PASS 7 b\u01b0\u1edbc (init/deposit/marks/settle/withdraw+min_payout/sim_trade/collect_fees) \u2014 withdraw kh\u1edbp ch\u00ednh x\u00e1c t\u00ednh tay 0.3440 SOL. Review APPROVE (rust checklist; 3 known limitations v1). Build arch v2 qua scripts/program-build.sh. B\u00e0i h\u1ecdc: bn.js eqn>2^26 h\u1ecfng; anchor CJS trong ESM c\u1ea7n createRequire.",
+   "verification": [
+    "cargo test -p edgepool-vault: 26/26 GREEN",
+    "anchor deploy devnet PASS (313,688 bytes, sig 3UBmNJ5H...)",
+    "npx tsx backend/scripts/chain/devnet-e2e.ts: E2E PASS (vault F7gv8wot...unGd)",
+    "review verdict APPROVE (rust-code-reviewer checklist)"
+   ]
+  },
+  {
+   "at": "2026-10-21T07:40:00Z",
+   "topic": "solana-vault-program",
+   "phase": "integration-chain-off",
+   "status": "in_progress",
+   "detail": "Merged feature branch with main; resolved generated Prisma/pool-page/docs conflicts; added chain FK migration; fixed runtime IDL packaging and program-build IDL output; QA 31/31; deploy chain OFF pending",
+   "verification": [
+    "program cargo test 26/26",
+    "BE 31/31 asserts",
+    "BE/FE typecheck+build",
+    "temp DB migration apply (chain + FK)",
+    "OpenAPI 71 paths",
+    "CHAIN_ENABLED=false / MAINNET_SWAP_ENABLED=false",
+    "no pool bound"
+   ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-21T06:30:00Z",
+ "updatedAt": "2026-10-21T07:40:00Z",
  "version": 2
 }

@@ -9,10 +9,11 @@
 | `RealtimeEvent` | `realtime_events` | `eventType`, `walletAddress` FK, `txSignature` FK, `payload` | Pruned >120d (archived first) |
 | `CopyOrder` | `copy_orders` | `masterWallet/Handle/txHash`, `symbol/action/tokenMint/amountUsd/venue`, `mode`, `status`, `devnetSignature`, `entry/peak/exitPrice`, `tp1Pct/stopPct/trailPct/tp2MultPct`, `closeReason/closedAt/realizedPnlUsd`, `vaultId` | Paper lifecycle; legs in `CopyOrderLeg` |
 | `CopyOrderLeg` | `copy_order_legs` | `orderId` FK, `leg` TP1\|TP2\|STOP\|TRAIL\|TIME, `fraction`, `exitPriceUsd/realizedPnlUsd` | unique(`orderId,leg`) |
-| `Vault` | `vaults` | `name`, `kind` FLAGSHIP\|PARTNER, `status`, `feeBps`, `hwmSharePrice/totalShares`, `maxSlots/maxTraders`, settle `settlePeriodHours/settleLengthMin`, `lockHours`, `treasurySol`, `ownerUserId`, `rulesJson` | 1 pool = 1 vault + 1 bot + 3–5 traders |
-| `Deposit` | `deposits` | `vaultId`, `depositor`, `userId`, `amountSol`, `status` QUEUED→SETTLED, `sharesMinted/sharePrice` | min 0.5 SOL |
-| `Withdrawal` | `withdrawals` | `vaultId`, `depositor`, `userId`, `sharesRequested`, `status`, `payoutSol` | QUEUED cancellable; flat pool = instant |
-| `EpochCheckpoint` | `epoch_checkpoints` | `vaultId`, `navSol/sharePrice/sharesOutstanding/feeSol` | NAV series source |
+| `Vault` | `vaults` | `name`, `kind` FLAGSHIP\|PARTNER, `status`, `feeBps`, `hwmSharePrice/totalShares`, `maxSlots/maxTraders`, settle `settlePeriodHours/settleLengthMin`, `lockHours`, `treasurySol`, `ownerUserId`, `rulesJson`, chain `chainProgramId/chainVault/chainEnv/chainPaused` | 1 pool = 1 vault + 1 bot + 3–5 traders; chain columns only for devnet-bound demo |
+| `Deposit` | `deposits` | `vaultId`, `depositor`, `userId`, `amountSol`, `status` QUEUED→SETTLED, `sharesMinted/sharePrice`, chain `chainSig/chainSlot` | min 0.5 SOL |
+| `Withdrawal` | `withdrawals` | `vaultId`, `depositor`, `userId`, `sharesRequested`, `status`, `payoutSol`, chain `chainSig/chainSlot` | QUEUED cancellable; flat pool = instant |
+| `EpochCheckpoint` | `epoch_checkpoints` | `vaultId`, `navSol/sharePrice/sharesOutstanding/feeSol`, chain `chainSig` | NAV series source |
+| `ChainEvent` | `chain_events` | `vaultId` FK cascade, `signature/ixIndex/eventIndex` unique, `kind`, `slot`, `payload` | append-only on-chain event mirror; idempotent upsert |
 | `VaultTrader` | `vault_traders` | `vaultId`, `wallet`, `weightBps`, `isActive`, `enteredAt`, `exitedAt`, `entrySnapshot`, `exitReason` | basket assignment + forward-only term/why-top |
 | `Bot` | `bots` | `name` unique, `mode` AUTO\|PAUSED, `vaultId`, `status` | per-pool engine |
 | `User` | `users` | `wallet`/`username` unique, `passwordHash` scrypt, `role` USER\|KOL\|ADMIN, `payoutWallet` + `payoutWalletVerifiedAt` | seeded admin/user/kol |

@@ -7,6 +7,7 @@ import { ArrowLeft, LockSimple, PauseCircle, UsersThree, X, XLogo } from '@phosp
 import {
   getAuthMe,
   getPoolDetail,
+  chainFaucet,
   cloneDemo,
   listBots,
   partialCloseDemo,
@@ -22,6 +23,7 @@ import {
   type PoolDetail,
   type VaultOrderJourney,
 } from '../../../lib/api';
+import { chainDeposit, chainWithdraw, getWalletSol, mapChainError, txUrl } from '../../../lib/chain';
 import { getStoredToken } from '../../../lib/api';
 import { JourneyRail } from '../../../components/JourneyRail';
 import { LoginModal } from '../../../components/LoginModal';
@@ -184,6 +186,9 @@ export default function PoolDetailPage() {
   // Login gate ngay trên trang pool: user chưa login bấm CTA deposit phải
   // thấy modal login, không phải tự mò nút wallet trên header.
   const [loginOpen, setLoginOpen] = useState(false);
+  // On-chain flow (P3): explorer link of the last chain tx + wallet SOL for faucet hint.
+  const [chainTx, setChainTx] = useState<string | null>(null);
+  const [walletSol, setWalletSol] = useState<number | null>(null);
   // Admin demo console (ADMIN role only; never rendered for the public).
   const [isAdmin, setIsAdmin] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
@@ -234,6 +239,29 @@ export default function PoolDetailPage() {
       setMsg('Minimum deposit is 0.5 SOL.');
       return;
     }
+    // On-chain flow (P3): wallet signs a real devnet deposit into the program vault.
+    if (pool.chain?.vault && pool.chain.programId) {
+      const { vault, programId } = pool.chain;
+      setBusy(true);
+      setMsg(null);
+      setChainTx(null);
+      try {
+        const wallet = await connectBrowserWallet();
+        setMsg('Waiting for wallet signature…');
+        const r = await chainDeposit(programId, vault, wallet, amt);
+        setChainTx(r.signature);
+        const ok = `Deposit ${amt.toFixed(2)} SOL → ${r.estimatedShares} shares (on-chain, devnet).`;
+        setMsg(ok);
+        toast(ok);
+        setAmount('');
+        await refresh();
+      } catch (e) {
+        setMsg(mapChainError(e));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     setBusy(true);
     setMsg(null);
     try {
@@ -280,6 +308,22 @@ export default function PoolDetailPage() {
   async function submitWithdraw(shares: number) {
     const token = getStoredToken();
     if (!token || !pool) throw new Error('Sign in first (login wall).');
+    // On-chain flow (P3): burn shares + payout SOL directly from the program vault.
+    if (pool.chain?.vault && pool.chain.programId) {
+      const { vault, programId } = pool.chain;
+      const wallet = await connectBrowserWallet();
+      try {
+        const r = await chainWithdraw(programId, vault, wallet, shares);
+        setChainTx(r.signature);
+        const okMsg = `Withdrew ${shares.toFixed(4)} shares → ${r.estimatedPayout} SOL (on-chain, devnet).`;
+        setMsg(okMsg);
+        toast(okMsg);
+      } catch (e) {
+        throw new Error(mapChainError(e));
+      }
+      await refresh();
+      return;
+    }
     let message: string | undefined;
     let signature: string | undefined;
     try {
@@ -303,6 +347,37 @@ export default function PoolDetailPage() {
     }
     await refresh();
   }
+
+  /** Devnet faucet (P3): tops up the connected wallet when balance is low. */
+  async function faucet() {
+    const token = getStoredToken();
+    if (!token) {
+      setMsg('Sign in first (login wall).');
+      return;
+    }
+    setBusy(true);
+    try {
+      const wallet = await connectBrowserWallet();
+      const r = await chainFaucet(token, { address: wallet, amountSol: 1 });
+      const ok = `Faucet: 1 SOL → ${wallet.slice(0, 4)}…${wallet.slice(-4)} (devnet, tx ${r.data.signature.slice(0, 8)}…).`;
+      setMsg(ok);
+      toast(ok);
+      setWalletSol(await getWalletSol(wallet));
+    } catch (e) {
+      setMsg(mapChainError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    const vault = pool?.chain?.vault;
+    if (!vault) return;
+    connectBrowserWallet()
+      .then((w) => getWalletSol(w).then(setWalletSol).catch(() => setWalletSol(null)))
+      .catch(() => setWalletSol(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pool?.chain?.vault]);
 
   async function loadJourneys(vaultId: number) {    const token = getStoredToken();
     if (!token) return;
@@ -578,8 +653,13 @@ export default function PoolDetailPage() {
       <div className="mt-3 flex flex-col gap-3">
         <span className="flex items-center gap-2 font-mono" style={{ fontSize: 12, letterSpacing: '0.12em', color: 'var(--ep-aqua, #49E6D7)' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ep-aqua, #49E6D7)', boxShadow: '0 0 8px var(--ep-aqua, #49E6D7)' }} />
-          {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {isDemo ? 'DEMO' : pool.kind === 'basket' ? 'FLAGSHIP' : 'PARTNER'}
+          {pool.status === 'live' ? 'LIVE' : 'PAUSED'} · {isDemo ? 'DEMO' : pool.kind === 'basket' ? 'FLAGSHIP' : 'PARTNER'}{pool.chain ? ' · ON-CHAIN DEVNET' : ''}
         </span>
+        {pool.chain && (
+          <a href={pool.chain.explorerUrl} target="_blank" rel="noreferrer" className="font-mono" style={{ fontSize: 12, color: 'var(--ep-aqua, #49E6D7)' }}>
+            Vault {pool.chain.vault.slice(0, 4)}…{pool.chain.vault.slice(-4)} ↗
+          </a>
+        )}
         <h1 className="font-display font-medium" style={{ fontSize: 'clamp(30px,4vw,42px)', letterSpacing: '-0.03em', lineHeight: 1.05 }}>{pool.name}</h1>
         <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: '#B2B6CA', maxWidth: 620 }}>
           {isDemo
@@ -986,7 +1066,21 @@ export default function PoolDetailPage() {
             >
               {full && !isHolder ? 'Pool full' : hasWallet ? 'Deposit SOL' : 'Connect wallet to deposit'}
             </button>
-            {msg && <p className="text-xs" style={{ color: msg.startsWith('Deposit #') ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>{msg}</p>}
+            {msg && <p className="text-xs" style={{ color: msg.startsWith('Deposit') || msg.startsWith('Withdrew') || msg.startsWith('Faucet') ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>{msg}</p>}
+            {chainTx && (
+              <a href={txUrl(chainTx)} target="_blank" rel="noreferrer" className="font-mono text-xs" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
+                View transaction {chainTx.slice(0, 8)}… ↗
+              </a>
+            )}
+            {pool.chain && (
+              <div className="flex items-center justify-between gap-2 text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                <span>Wallet devnet balance{walletSol !== null ? `: ${walletSol.toFixed(2)} SOL` : ''}</span>
+                <button onClick={() => void faucet()} disabled={busy} className="font-medium disabled:opacity-50"
+                  style={{ height: 30, padding: '0 12px', borderRadius: 8, border: '1px solid #3F424D', color: '#CFD3E5' }}>
+                  Get devnet SOL
+                </button>
+              </div>
+            )}
             <span className="text-xs" style={{ lineHeight: 1.45, color: 'var(--ep-muted, #9397AB)' }}>
               {isHolder ? (pool.openCount === 0 ? 'Withdraw instantly while the pool is flat.' : 'Withdrawals settle at the next checkpoint while positions are open.') : 'Minimum 0.5 SOL. Your deposit unlocks live signals.'}
             </span>

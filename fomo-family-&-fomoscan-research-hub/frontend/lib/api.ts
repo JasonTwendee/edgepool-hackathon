@@ -240,6 +240,8 @@ export function listPools(): Promise<{ success: boolean; total: number; data: Po
 
 export interface PoolDetail extends PoolSummary {
   navSeries: { t: number; v: number }[];
+  /** On-chain vault info (P3) — present only when the pool is chain-bound. */
+  chain?: import('../types/fund').ChainVaultInfo;
   /** Live MTM marks (present on fresh backends; absent on cached/stale reads). */
   liveNavSol?: number;
   liveSharePrice?: number;
@@ -415,6 +417,14 @@ export function requestVaultWithdraw(input: {
   const p = fetchJsonAuth<{ success: boolean; data: { id: number; status: string; signedWallet?: string | null; payoutSol?: number; sharePrice?: number; epochId?: number } }>('/api/vaults/withdraw', token, init);
   void p.then(() => bumpApiCache());
   return p;
+}
+
+/** Devnet SOL faucet for chain testing (P3) — auth required, 1 grant/24h/user. */
+export function chainFaucet(token: string, input: { address: string; amountSol?: number }): Promise<{
+  success: boolean;
+  data: { signature: string; address: string; amountSol: number };
+}> {
+  return fetchJsonAuth('/api/chain/faucet', token, { method: 'POST', body: JSON.stringify(input) });
 }
 
 export function depositChallenge(

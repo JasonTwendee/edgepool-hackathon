@@ -76,7 +76,8 @@
     "events": "realtime_events via OnchainService; GET /api/onchain/events; forward-only from enteredAt; retired grace",
     "vaults": "vaults/deposits/withdrawals/epoch_checkpoints/partner_payouts via VaultService (NAV engine mark-to-market, HWM ratchet)",
     "copyOrders": "copy_orders + copy_order_legs via CopyTrade/Manage services (TP1/TP2/STOP/TRAIL/TIME legs)",
-    "prune": "rolling FULL_HISTORY_DAYS=120 window; prune archives to PRUNE_ARCHIVE_DIR before delete; audit/orders/vaults never pruned"
+    "prune": "rolling FULL_HISTORY_DAYS=120 window; prune archives to PRUNE_ARCHIVE_DIR before delete; audit/orders/vaults never pruned",
+    "chainEvents": "chain_events append-only mirror of edgepool-vault events; chain columns on vault/deposit/withdrawal/epoch"
   },
   "detectedStack": [
     "@nestjs/12",
@@ -150,7 +151,10 @@
     "rotation": "leaderboard.service tick: topN=5 Fomo selection snapshot; new term enteredAt; immediate live reconcile; fail-safe on Fomo outage",
     "prune": "rolling 120d prune transactions/realtime_events with JSONL archive",
     "liveScopeReconcile": "wallets.service LIVE_SCOPE_RECONCILE_MS (60s): listener registry + WS subs + DB active pin",
-    "retiredPrune": "sync.service daily: retired VaultTrader raw tx/events after 30d, archive+audit, open-order guard"
+    "retiredPrune": "sync.service daily: retired VaultTrader raw tx/events after 30d, archive+audit, open-order guard",
+    "chainIndexer": "chain/indexer.service.ts onLogs + 60s heal; no-op unless CHAIN_ENABLED",
+    "chainKeeper": "chain/keeper.service.ts 45s marks/settle/kill-alert/sim; devnet only",
+    "chainReconcile": "chain/reconcile.service.ts 5m 5-check reconciliation"
   },
   "language": "typescript",
   "modules": {
@@ -172,7 +176,8 @@
     "market": "backend/src/modules/market/market.module.ts",
     "helius": "backend/src/modules/helius/helius.module.ts (no controller; enrich + history services)",
     "sync": "backend/src/modules/sync (no controller; sync + history-sync services)",
-    "transactions": "backend/src/modules/transactions (no controller; ledger service)"
+    "transactions": "backend/src/modules/transactions (no controller; ledger service)",
+    "chain": "backend/src/modules/chain/chain.module.ts"
   },
   "project": {
     "activeProfileReason": "user-confirmed 2026-09-29 dual-stack: FE Next.js App Router spec, BE NestJS modular spec",
@@ -341,7 +346,8 @@
     "assert-live-scope": "backend/src/common/assert-live-scope.ts (pool/all/fallback scope + debouncer + SSE buffer)",
     "assert-rpc-parse": "backend/src/modules/sync/assert-rpc-parse.ts (RPC parser fallback in WS sync)",
     "assert-selection-snapshot": "backend/src/common/fomoscan/assert-selection-snapshot.ts (Fomo why-top snapshot/hash)",
-    "assert-retired-prune": "backend/src/modules/sync/assert-retired-prune.ts (30d retired raw cleanup)"
+    "assert-retired-prune": "backend/src/modules/sync/assert-retired-prune.ts (30d retired raw cleanup)",
+    "assert-chain": "backend/src/modules/chain/assert-chain.ts (events/mirror/reconcile/faucet/marks)"
   },
   "verification": {
     "commands": [

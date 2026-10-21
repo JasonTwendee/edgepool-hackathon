@@ -6,12 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/main.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && mkdir -p dist/chain/idl && cp src/chain/idl/*.json dist/chain/idl/",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "@nestjs/platform-express": "^12.0.0",

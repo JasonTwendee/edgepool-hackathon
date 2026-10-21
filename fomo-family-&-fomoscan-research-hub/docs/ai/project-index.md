@@ -11,7 +11,7 @@ High-level AI-readable map of this repository.
 - Detected stack: `@nestjs/*`, `next@16`, `react@19`, `@solana/web3.js@1`, `tailwindcss@4`
 - Active profile: generic + dual-stack override (see `stack-profile.md`)
 - Main app entry: `backend/src/main.ts` (BE :3000) + `frontend/app/page.tsx` (FE :3001)
-- Test command: `for f in $(find src -name 'assert-*.ts'); do npx tsx "$f"; done` from `backend/` (30 suites, mocked; CI runs all) — see `docs/ai/test-index.md`
+- Test command: `for f in $(find src -name 'assert-*.ts'); do npx tsx "$f"; done` from `backend/` (31 suites, mocked; CI runs all) — see `docs/ai/test-index.md`
 - Lint command: `npm run typecheck` (root = BE + FE `tsc --noEmit -p`)
 - Build command: `npm run build` (BE `tsc -p tsconfig.build.json` + FE `next build`)
 - Typecheck command: `npm run typecheck`
@@ -29,7 +29,8 @@ High-level AI-readable map of this repository.
 | FE config | `frontend/next.config.ts`, `postcss.config.mjs`, `.env.example` | `/api` rewrites → BE, Tailwind v4, env |
 | BE bootstrap | `backend/src/main.ts`, `backend/src/app.module.ts` | `NestFactory` + global ValidationPipe + CORS |
 | BE config | `backend/src/config/` | Env + Solana/RPC configuration |
-| BE domain | `backend/src/modules/*` | 17 modules: `health`, `wallets`, `leaderboard` (rotation), `portfolio` (pnl/holdings), `onchain` (+webhooks), `copy-trade` (auto-fire/manage/alloc/paper), `market`, `helius`, `sync`, `transactions`, `vaults` (pools/NAV), `partner`, `auth`, `users`, `audit`, `bots`, `demo` |
+| BE domain | `backend/src/modules/*` | 18 modules: `health`, `wallets`, `leaderboard` (rotation), `portfolio` (pnl/holdings), `onchain` (+webhooks), `copy-trade` (auto-fire/manage/alloc/paper), `market`, `helius`, `sync`, `transactions`, `vaults` (pools/NAV), `chain` (devnet program indexer/keeper), `partner`, `auth`, `users`, `audit`, `bots`, `demo` |
+| On-chain program | `programs/edgepool-vault/` + `Anchor.toml` | Anchor Rust vault program (devnet); P4 mainnet swap still gated |
 | BE shared | `backend/src/common/` | auth guards, fomoscan client (≥1.1s throttle), market, rugcheck, validation, live-scope/debounce/event-buffer guards |
 | BE chain client | `backend/src/server/solana.service.ts` + `solana.module.ts` (@Global singleton) | RPC listener, poll loop, SSE fan-out |
 | API contract | `docs/api/openapi.yaml` | REST + SSE source of truth |

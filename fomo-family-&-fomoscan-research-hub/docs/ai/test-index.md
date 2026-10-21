@@ -2,7 +2,7 @@
 
 ## Current state (2026-10-20)
 
-- No `jest`/`vitest` runner. Verification = **30 `assert-*.ts` suites** run with `tsx`
+- No `jest`/`vitest` runner. Verification = **31 `assert-*.ts` suites** run with `tsx`
   (mocked Prisma — no network/secrets), plus typecheck + FE build + live smoke.
 - CI (`ci.yml`) runs every suite: `for f in $(find src -name 'assert-*.ts' -not -path '*generated*'); do npx tsx "$f" || exit 1; done`
 - Run one suite: `cd backend && npx tsx src/modules/vaults/assert-pools.ts` → `… asserts: ALL GREEN`
@@ -17,6 +17,7 @@
 | `common/market/assert-datastream.ts` | DataStream prices/candles |
 | `common/rugcheck/assert-rugcheck.ts` | Qualify rug/mcap gate |
 | `modules/audit/assert-audit.ts` | append-only log, `auth.login_failed` |
+| `modules/chain/assert-chain.ts` | chain event parse/mirror/idempotency, reconcile, faucet gate, marks |
 | `modules/auth/assert-auth.ts` | scrypt login, setRole, purge, session expiry |
 | `modules/copy-trade/assert-autofire.ts` | auto-fire qualify→size→enter |
 | `modules/copy-trade/assert-alloc.ts` | allocation/rebalance math |

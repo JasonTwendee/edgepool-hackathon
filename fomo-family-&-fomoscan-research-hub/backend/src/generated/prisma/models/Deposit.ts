@@ -33,6 +33,7 @@ export type DepositAvgAggregateOutputType = {
   amountSol: runtime.Decimal | null
   sharesMinted: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
+  chainSlot: number | null
 }
 
 export type DepositSumAggregateOutputType = {
@@ -42,6 +43,7 @@ export type DepositSumAggregateOutputType = {
   amountSol: runtime.Decimal | null
   sharesMinted: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
+  chainSlot: bigint | null
 }
 
 export type DepositMinAggregateOutputType = {
@@ -53,6 +55,8 @@ export type DepositMinAggregateOutputType = {
   status: string | null
   sharesMinted: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date | null
   settledAt: Date | null
 }
@@ -66,6 +70,8 @@ export type DepositMaxAggregateOutputType = {
   status: string | null
   sharesMinted: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date | null
   settledAt: Date | null
 }
@@ -79,6 +85,8 @@ export type DepositCountAggregateOutputType = {
   status: number
   sharesMinted: number
   sharePrice: number
+  chainSig: number
+  chainSlot: number
   createdAt: number
   settledAt: number
   _all: number
@@ -92,6 +100,7 @@ export type DepositAvgAggregateInputType = {
   amountSol?: true
   sharesMinted?: true
   sharePrice?: true
+  chainSlot?: true
 }
 
 export type DepositSumAggregateInputType = {
@@ -101,6 +110,7 @@ export type DepositSumAggregateInputType = {
   amountSol?: true
   sharesMinted?: true
   sharePrice?: true
+  chainSlot?: true
 }
 
 export type DepositMinAggregateInputType = {
@@ -112,6 +122,8 @@ export type DepositMinAggregateInputType = {
   status?: true
   sharesMinted?: true
   sharePrice?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
 }
@@ -125,6 +137,8 @@ export type DepositMaxAggregateInputType = {
   status?: true
   sharesMinted?: true
   sharePrice?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
 }
@@ -138,6 +152,8 @@ export type DepositCountAggregateInputType = {
   status?: true
   sharesMinted?: true
   sharePrice?: true
+  chainSig?: true
+  chainSlot?: true
   createdAt?: true
   settledAt?: true
   _all?: true
@@ -238,6 +254,8 @@ export type DepositGroupByOutputType = {
   status: string
   sharesMinted: runtime.Decimal | null
   sharePrice: runtime.Decimal | null
+  chainSig: string | null
+  chainSlot: bigint | null
   createdAt: Date
   settledAt: Date | null
   _count: DepositCountAggregateOutputType | null
@@ -274,6 +292,8 @@ export type DepositWhereInput = {
   status?: Prisma.StringFilter<"Deposit"> | string
   sharesMinted?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Deposit"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Deposit"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Deposit"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Deposit"> | Date | string | null
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
@@ -289,6 +309,8 @@ export type DepositOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrderInput | Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSlot?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   vault?: Prisma.VaultOrderByWithRelationInput
@@ -307,6 +329,8 @@ export type DepositWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"Deposit"> | string
   sharesMinted?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Deposit"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Deposit"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Deposit"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Deposit"> | Date | string | null
   vault?: Prisma.XOR<Prisma.VaultScalarRelationFilter, Prisma.VaultWhereInput>
@@ -322,6 +346,8 @@ export type DepositOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrderInput | Prisma.SortOrder
   sharePrice?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSig?: Prisma.SortOrderInput | Prisma.SortOrder
+  chainSlot?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.DepositCountOrderByAggregateInput
@@ -343,6 +369,8 @@ export type DepositScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"Deposit"> | string
   sharesMinted?: Prisma.DecimalNullableWithAggregatesFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.DecimalNullableWithAggregatesFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableWithAggregatesFilter<"Deposit"> | string | null
+  chainSlot?: Prisma.BigIntNullableWithAggregatesFilter<"Deposit"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Deposit"> | Date | string
   settledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Deposit"> | Date | string | null
 }
@@ -353,6 +381,8 @@ export type DepositCreateInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   vault: Prisma.VaultCreateNestedOneWithoutDepositsInput
@@ -368,6 +398,8 @@ export type DepositUncheckedCreateInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -378,6 +410,8 @@ export type DepositUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   vault?: Prisma.VaultUpdateOneRequiredWithoutDepositsNestedInput
@@ -393,6 +427,8 @@ export type DepositUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -406,6 +442,8 @@ export type DepositCreateManyInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -416,6 +454,8 @@ export type DepositUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -429,6 +469,8 @@ export type DepositUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -452,6 +494,8 @@ export type DepositCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -463,6 +507,7 @@ export type DepositAvgOrderByAggregateInput = {
   amountSol?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
 }
 
 export type DepositMaxOrderByAggregateInput = {
@@ -474,6 +519,8 @@ export type DepositMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -487,6 +534,8 @@ export type DepositMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
+  chainSig?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   settledAt?: Prisma.SortOrder
 }
@@ -498,6 +547,7 @@ export type DepositSumOrderByAggregateInput = {
   amountSol?: Prisma.SortOrder
   sharesMinted?: Prisma.SortOrder
   sharePrice?: Prisma.SortOrder
+  chainSlot?: Prisma.SortOrder
 }
 
 export type DepositCreateNestedManyWithoutVaultInput = {
@@ -590,6 +640,8 @@ export type DepositCreateWithoutVaultInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   user?: Prisma.UserCreateNestedOneWithoutDepositsInput
@@ -603,6 +655,8 @@ export type DepositUncheckedCreateWithoutVaultInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -645,6 +699,8 @@ export type DepositScalarWhereInput = {
   status?: Prisma.StringFilter<"Deposit"> | string
   sharesMinted?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.DecimalNullableFilter<"Deposit"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.StringNullableFilter<"Deposit"> | string | null
+  chainSlot?: Prisma.BigIntNullableFilter<"Deposit"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"Deposit"> | Date | string
   settledAt?: Prisma.DateTimeNullableFilter<"Deposit"> | Date | string | null
 }
@@ -655,6 +711,8 @@ export type DepositCreateWithoutUserInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
   vault: Prisma.VaultCreateNestedOneWithoutDepositsInput
@@ -668,6 +726,8 @@ export type DepositUncheckedCreateWithoutUserInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -706,6 +766,8 @@ export type DepositCreateManyVaultInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -716,6 +778,8 @@ export type DepositUpdateWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneWithoutDepositsNestedInput
@@ -729,6 +793,8 @@ export type DepositUncheckedUpdateWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -741,6 +807,8 @@ export type DepositUncheckedUpdateManyWithoutVaultInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -753,6 +821,8 @@ export type DepositCreateManyUserInput = {
   status?: string
   sharesMinted?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: string | null
+  chainSlot?: bigint | number | null
   createdAt?: Date | string
   settledAt?: Date | string | null
 }
@@ -763,6 +833,8 @@ export type DepositUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   vault?: Prisma.VaultUpdateOneRequiredWithoutDepositsNestedInput
@@ -776,6 +848,8 @@ export type DepositUncheckedUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -788,6 +862,8 @@ export type DepositUncheckedUpdateManyWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   sharesMinted?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   sharePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  chainSig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  chainSlot?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   settledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -803,6 +879,8 @@ export type DepositSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   status?: boolean
   sharesMinted?: boolean
   sharePrice?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -818,6 +896,8 @@ export type DepositSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   status?: boolean
   sharesMinted?: boolean
   sharePrice?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -833,6 +913,8 @@ export type DepositSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   status?: boolean
   sharesMinted?: boolean
   sharePrice?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
@@ -848,11 +930,13 @@ export type DepositSelectScalar = {
   status?: boolean
   sharesMinted?: boolean
   sharePrice?: boolean
+  chainSig?: boolean
+  chainSlot?: boolean
   createdAt?: boolean
   settledAt?: boolean
 }
 
-export type DepositOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "amountSol" | "status" | "sharesMinted" | "sharePrice" | "createdAt" | "settledAt", ExtArgs["result"]["deposit"]>
+export type DepositOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "vaultId" | "depositor" | "userId" | "amountSol" | "status" | "sharesMinted" | "sharePrice" | "chainSig" | "chainSlot" | "createdAt" | "settledAt", ExtArgs["result"]["deposit"]>
 export type DepositInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   vault?: boolean | Prisma.VaultDefaultArgs<ExtArgs>
   user?: boolean | Prisma.Deposit$userArgs<ExtArgs>
@@ -881,6 +965,8 @@ export type $DepositPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     status: string
     sharesMinted: runtime.Decimal | null
     sharePrice: runtime.Decimal | null
+    chainSig: string | null
+    chainSlot: bigint | null
     createdAt: Date
     settledAt: Date | null
   }, ExtArgs["result"]["deposit"]>
@@ -1316,6 +1402,8 @@ export interface DepositFieldRefs {
   readonly status: Prisma.FieldRef<"Deposit", 'String'>
   readonly sharesMinted: Prisma.FieldRef<"Deposit", 'Decimal'>
   readonly sharePrice: Prisma.FieldRef<"Deposit", 'Decimal'>
+  readonly chainSig: Prisma.FieldRef<"Deposit", 'String'>
+  readonly chainSlot: Prisma.FieldRef<"Deposit", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"Deposit", 'DateTime'>
   readonly settledAt: Prisma.FieldRef<"Deposit", 'DateTime'>
 }

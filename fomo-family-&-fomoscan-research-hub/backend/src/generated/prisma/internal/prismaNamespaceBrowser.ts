@@ -60,6 +60,7 @@ export const ModelName = {
   Deposit: 'Deposit',
   Withdrawal: 'Withdrawal',
   EpochCheckpoint: 'EpochCheckpoint',
+  ChainEvent: 'ChainEvent',
   User: 'User',
   PayoutWalletChallenge: 'PayoutWalletChallenge',
   AuthNonce: 'AuthNonce',
@@ -222,6 +223,10 @@ export const VaultScalarFieldEnum = {
   ownerUserId: 'ownerUserId',
   rulesJson: 'rulesJson',
   environment: 'environment',
+  chainProgramId: 'chainProgramId',
+  chainVault: 'chainVault',
+  chainEnv: 'chainEnv',
+  chainPaused: 'chainPaused',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -238,6 +243,8 @@ export const DepositScalarFieldEnum = {
   status: 'status',
   sharesMinted: 'sharesMinted',
   sharePrice: 'sharePrice',
+  chainSig: 'chainSig',
+  chainSlot: 'chainSlot',
   createdAt: 'createdAt',
   settledAt: 'settledAt'
 } as const
@@ -255,6 +262,8 @@ export const WithdrawalScalarFieldEnum = {
   status: 'status',
   sharePrice: 'sharePrice',
   payoutSol: 'payoutSol',
+  chainSig: 'chainSig',
+  chainSlot: 'chainSlot',
   createdAt: 'createdAt',
   settledAt: 'settledAt'
 } as const
@@ -269,10 +278,26 @@ export const EpochCheckpointScalarFieldEnum = {
   sharePrice: 'sharePrice',
   sharesOutstanding: 'sharesOutstanding',
   feeSol: 'feeSol',
+  chainSig: 'chainSig',
   createdAt: 'createdAt'
 } as const
 
 export type EpochCheckpointScalarFieldEnum = (typeof EpochCheckpointScalarFieldEnum)[keyof typeof EpochCheckpointScalarFieldEnum]
+
+
+export const ChainEventScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  signature: 'signature',
+  ixIndex: 'ixIndex',
+  eventIndex: 'eventIndex',
+  kind: 'kind',
+  slot: 'slot',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type ChainEventScalarFieldEnum = (typeof ChainEventScalarFieldEnum)[keyof typeof ChainEventScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {

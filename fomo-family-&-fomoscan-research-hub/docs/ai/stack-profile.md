@@ -20,6 +20,8 @@ Source of truth for stack-specific assumptions used by CodexMinimal.
 - `frontend/package.json`: `next@16`, `react/react-dom@19`, `lucide-react`, `tailwindcss@4` + `@tailwindcss/postcss` — Next.js App Router runtime thật (`next dev -p 3001`, `next build` xanh).
 - Root `fomo-monorepo` (private): orchestrator scripts (`dev:backend`, `dev:frontend`, `typecheck`, `build`), không còn deps Vite/Express/React.
 - `tsconfig.json` (root) + `backend/tsconfig.json` (+`tsconfig.build.json`) + `frontend/tsconfig.json` — monorepo typecheck split.
+- `Anchor.toml`, `programs/edgepool-vault/Cargo.toml`, `Cargo.lock`, `scripts/program-build.sh`, `idls/edgepool_vault.json` — Anchor/Agave Solana program workspace (Rust, devnet); P4 Jupiter path + P5 audit remain gated.
+- `backend/src/modules/chain/` — optional NestJS chain bridge (indexer/keeper/reconcile/faucet), no-op unless `CHAIN_ENABLED=true`; `backend/src/chain/idl` is copied into `dist/chain/idl` by the build script.
 
 ## Detected But Generic
 

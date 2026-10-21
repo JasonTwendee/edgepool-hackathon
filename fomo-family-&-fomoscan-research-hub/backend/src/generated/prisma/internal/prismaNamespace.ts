@@ -406,6 +406,7 @@ export const ModelName = {
   Deposit: 'Deposit',
   Withdrawal: 'Withdrawal',
   EpochCheckpoint: 'EpochCheckpoint',
+  ChainEvent: 'ChainEvent',
   User: 'User',
   PayoutWalletChallenge: 'PayoutWalletChallenge',
   AuthNonce: 'AuthNonce',
@@ -432,7 +433,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest" | "signedIntent"
+    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "deposit" | "withdrawal" | "epochCheckpoint" | "chainEvent" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest" | "signedIntent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1099,6 +1100,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.EpochCheckpointCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.EpochCheckpointCountAggregateOutputType> | number
+        }
+      }
+    }
+    ChainEvent: {
+      payload: Prisma.$ChainEventPayload<ExtArgs>
+      fields: Prisma.ChainEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ChainEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ChainEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        findFirst: {
+          args: Prisma.ChainEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ChainEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        findMany: {
+          args: Prisma.ChainEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>[]
+        }
+        create: {
+          args: Prisma.ChainEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        createMany: {
+          args: Prisma.ChainEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ChainEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>[]
+        }
+        delete: {
+          args: Prisma.ChainEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        update: {
+          args: Prisma.ChainEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.ChainEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ChainEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ChainEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.ChainEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ChainEventPayload>
+        }
+        aggregate: {
+          args: Prisma.ChainEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateChainEvent>
+        }
+        groupBy: {
+          args: Prisma.ChainEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ChainEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ChainEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ChainEventCountAggregateOutputType> | number
         }
       }
     }
@@ -2088,6 +2163,10 @@ export const VaultScalarFieldEnum = {
   ownerUserId: 'ownerUserId',
   rulesJson: 'rulesJson',
   environment: 'environment',
+  chainProgramId: 'chainProgramId',
+  chainVault: 'chainVault',
+  chainEnv: 'chainEnv',
+  chainPaused: 'chainPaused',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2104,6 +2183,8 @@ export const DepositScalarFieldEnum = {
   status: 'status',
   sharesMinted: 'sharesMinted',
   sharePrice: 'sharePrice',
+  chainSig: 'chainSig',
+  chainSlot: 'chainSlot',
   createdAt: 'createdAt',
   settledAt: 'settledAt'
 } as const
@@ -2121,6 +2202,8 @@ export const WithdrawalScalarFieldEnum = {
   status: 'status',
   sharePrice: 'sharePrice',
   payoutSol: 'payoutSol',
+  chainSig: 'chainSig',
+  chainSlot: 'chainSlot',
   createdAt: 'createdAt',
   settledAt: 'settledAt'
 } as const
@@ -2135,10 +2218,26 @@ export const EpochCheckpointScalarFieldEnum = {
   sharePrice: 'sharePrice',
   sharesOutstanding: 'sharesOutstanding',
   feeSol: 'feeSol',
+  chainSig: 'chainSig',
   createdAt: 'createdAt'
 } as const
 
 export type EpochCheckpointScalarFieldEnum = (typeof EpochCheckpointScalarFieldEnum)[keyof typeof EpochCheckpointScalarFieldEnum]
+
+
+export const ChainEventScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  signature: 'signature',
+  ixIndex: 'ixIndex',
+  eventIndex: 'eventIndex',
+  kind: 'kind',
+  slot: 'slot',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type ChainEventScalarFieldEnum = (typeof ChainEventScalarFieldEnum)[keyof typeof ChainEventScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {
@@ -2601,6 +2700,7 @@ export type GlobalOmitConfig = {
   deposit?: Prisma.DepositOmit
   withdrawal?: Prisma.WithdrawalOmit
   epochCheckpoint?: Prisma.EpochCheckpointOmit
+  chainEvent?: Prisma.ChainEventOmit
   user?: Prisma.UserOmit
   payoutWalletChallenge?: Prisma.PayoutWalletChallengeOmit
   authNonce?: Prisma.AuthNonceOmit

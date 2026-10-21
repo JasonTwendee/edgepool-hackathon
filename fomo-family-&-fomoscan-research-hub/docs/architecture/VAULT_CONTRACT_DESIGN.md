@@ -1,4 +1,8 @@
-# Vault Contract — thiết kế (chưa implement)
+# Vault Contract — thiết kế (chưa implement) — ⚠️ SUPERSEDED
+
+> **Bản này đã được thay thế bởi `docs/architecture/SOLANA_PROGRAM_DESIGN.md` (2026-10-13)**
+> — thiết kế đầy đủ theo chuẩn Solana program (account model byte-optimized, instruction
+> spec, CPI boundaries, integration dual-mode, testing, phases). Giữ file này làm lịch sử.
 
 Mục tiêu: đưa kế toán MoneyFi (Phase C off-chain, đã live) lên on-chain Solana
 khi team sẵn sàng. Tài liệu thiết kế, KHÔNG phải code.

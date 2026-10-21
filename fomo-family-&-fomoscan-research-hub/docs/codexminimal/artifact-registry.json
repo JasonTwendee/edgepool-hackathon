@@ -1,5 +1,5 @@
 {
- "activeTopic": "forward-only-trader-tracking",
+ "activeTopic": "solana-vault-program",
  "artifacts": [
   {
    "path": "docs/architecture/ARCHITECTURE.md",
@@ -265,6 +265,26 @@
    "path": "docs/codexminimal/trackers/2026-10-20-forward-only-trader-tracking-tracker.md",
    "role": "tracker",
    "topic": "forward-only-trader-tracking"
+  },
+  {
+   "path": "docs/architecture/SOLANA_PROGRAM_DESIGN.md",
+   "role": "spec",
+   "topic": "solana-vault-program"
+  },
+  {
+   "path": "docs/codexminimal/idsd/2026-10-13-solana-vault-program-intent.md",
+   "role": "intent",
+   "topic": "solana-vault-program"
+  },
+  {
+   "path": "docs/codexminimal/plans/2026-10-13-solana-vault-program-phase-plan.md",
+   "role": "phase-plan",
+   "topic": "solana-vault-program"
+  },
+  {
+   "path": "docs/codexminimal/trackers/2026-10-13-solana-vault-program-tracker.md",
+   "role": "tracker",
+   "topic": "solana-vault-program"
   }
  ],
  "updatedAt": "2026-10-06T00:00:00Z",
