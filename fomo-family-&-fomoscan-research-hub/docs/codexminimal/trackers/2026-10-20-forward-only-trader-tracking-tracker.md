@@ -26,7 +26,7 @@ Status: **planned** — no code changes yet.
 | G2 | Fee attribution: current roster at settle vs origin trade | **Current roster at settle** (documented) | 2026-10-20 | defaults approved |
 | G3 | Retired raw retention days | **30 days** (+ until last open order closes) | 2026-10-20 | defaults approved |
 | G4 | Master performance display | **Fomo-only** (local fallback if Fomo unavailable) | 2026-10-20 | defaults approved |
-| G5 | Enable `LIVE_ROSTER_MODE=top` | **After P8 dry-run**; currently `pin` | 2026-10-20 | pending rollout |
+| G5 | Enable `LIVE_ROSTER_MODE=top` | **Enabled 2026-10-21 06:11 UTC**; final active-set fix deploy pending | 2026-10-21 | rollout |
 | G6 | Fomo “why top” fields available | Capture all returned rank/PnL/window fields; raw payload kept | 2026-10-20 | implementation |
 
 > P4/P5 must not ship until G1/G2 are confirmed. Do not silently change money
@@ -44,7 +44,7 @@ Status: **planned** — no code changes yet.
 | P5 | done | Roster diff + immediate reconcile + open positions | enteredAt/exitedAt/snapshot; `reconcileLiveStream`; natural close |
 | P6 | done | Retired data retention | `RETIRED_TRADER_RETENTION_DAYS=30`; archive+audit; open-order guard |
 | P7 | done | API/UI source labels | pool trader `trackedSince`/`whyTop`; PnL `source=fomo|local`; chart fallback |
-| P8 | in progress | Tests, dry-run, rollout, rollback | 30/30 asserts + builds; deploy + top dry-run pending |
+| P8 | in progress | Tests, dry-run, rollout, rollback | 30/30 asserts + builds; top dry-run at 06:11 UTC: 4 new + Aurelius retained, 5 snapshots, 0 copy orders; active-set fix deploy pending |
 
 ## P0 checklist
 
@@ -198,7 +198,16 @@ Status: **planned** — no code changes yet.
   - retired prune after 30d, archive+audit fail-safe, open-order guard;
   - new asserts: selection snapshot, retired prune; auto-fire old-BUY cases.
 - Verification so far: **30/30 assert suites green**, BE typecheck+build,
-  FE typecheck, env contract 59+2. Deploy + top dry-run pending.
+  FE typecheck, env contract 59+2. Deploy `ca84fd4` (pin) applied the additive
+  migration; **Fomo PnL source** and board fallback live in `9642244`.
+- 2026-10-21 top dry-run: set `LIVE_ROSTER_MODE=top` + `LEADERBOARD_PERIOD=daily`,
+  restart. Boot rotation at 06:11 UTC → new shared roster
+  `[Aurelius, marcell, soby0x, J777Crypto, Crypto_Keys]`; old 4 exited with
+  `exitedAt`; all 5 new/kept rows have `entrySnapshot`; `enteredAt` new for the
+  4 entrants. `/api/wallets` = 5. `copy_orders` since restart = **0**
+  (no historical copy). Old open orders (`throatycrab1008` 3) remain managed.
+  Hot-fixed transient `tracked_wallets.active=9` by deactivating non-picks in
+  SQL + code (`syncPublicPoolRosters`); final deploy pending.
 
 ## Next action
 

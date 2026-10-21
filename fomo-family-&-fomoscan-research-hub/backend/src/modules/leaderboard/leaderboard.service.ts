@@ -630,6 +630,12 @@ export class LeaderboardService implements OnModuleInit {
       where: { address: { in: picks }, isActive: false },
       data: { isActive: true },
     });
+    // Pool mode owns the live display set: old members must not stay active
+    // for a whole day after a top-5 rotation (their history/orders are kept).
+    await this.prisma.trackedWallet.updateMany({
+      where: { address: { notIn: picks }, isActive: true },
+      data: { isActive: false },
+    });
     await this.prisma.vault.updateMany({
       where: { id: { in: ids } },
       data: { maxTraders: picks.length },

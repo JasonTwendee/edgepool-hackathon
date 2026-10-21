@@ -406,9 +406,26 @@
     "no code changes yet",
     "decision gates G1-G6 documented"
    ]
+  },
+  {
+   "at": "2026-10-21T06:20:00Z",
+   "topic": "forward-only-trader-tracking",
+   "phase": "P8-top-dry-run",
+   "status": "in_progress",
+   "detail": "Top daily rotation enabled at 06:11 UTC; new shared roster [Aurelius,marcell,soby0x,J777Crypto,Crypto_Keys]; enteredAt/exitedAt/snapshots; zero copy orders from history; final active-set fix deploy pending",
+   "verification": [
+    "30/30 asserts GREEN",
+    "BE/FE typecheck + builds GREEN",
+    "migration applied (ca84fd4)",
+    "Fomo PnL board fallback live (9642244)",
+    "top dry-run: 5 roster rows, 5 snapshots",
+    "copy_orders since restart = 0",
+    "old open orders kept (throatycrab1008=3)",
+    "tracked_wallets hotfix 14/5 after SQL; code fix pending"
+   ]
   }
  ],
  "sessions": [],
- "updatedAt": "2026-10-20T10:05:00Z",
+ "updatedAt": "2026-10-21T06:20:00Z",
  "version": 2
 }
