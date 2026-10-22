@@ -239,7 +239,8 @@ export class ChainProgramClient {
     if (!program) return [];
     const out: { kind: string; payload: Record<string, unknown> }[] = [];
     try {
-      const parser = new anchor.EventParser(this.programId(), program.coder.events);
+      // EventParser expects the full coder object (it reads coder.events).
+      const parser = new anchor.EventParser(this.programId(), program.coder);
       for (const ev of parser.parseLogs(logs)) {
         out.push({ kind: ev.name, payload: jsonSafe(ev.data) as Record<string, unknown> });
       }
