@@ -367,8 +367,8 @@ export default function PoolDetailPage() {
     setBusy(true);
     try {
       const wallet = await connectBrowserWallet();
-      const r = await chainFaucet(token, { address: wallet, amountSol: 1 });
-      const ok = `Faucet: 1 SOL → ${wallet.slice(0, 4)}…${wallet.slice(-4)} (devnet, tx ${r.data.signature.slice(0, 8)}…).`;
+      const r = await chainFaucet(token, { address: wallet, amountSol: 0.55 });
+      const ok = `Faucet: 0.55 SOL → ${wallet.slice(0, 4)}…${wallet.slice(-4)} (devnet, tx ${r.data.signature.slice(0, 8)}…).`;
       setMsg(ok);
       toast(ok);
       setWalletSol(await getWalletSol(wallet));
