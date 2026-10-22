@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
 
@@ -10,6 +11,7 @@ export interface ChainOperationDto {
   vaultId: number;
   kind: ChainOperationKind;
   wallet: string;
+  onchainOperationId: string;
   amountSol: number | null;
   shares: number | null;
   status: ChainOperationStatus;
@@ -41,6 +43,7 @@ export class ChainOperationService {
     vaultId: number;
     kind: string;
     wallet: string;
+    onchainOperationId: bigint;
     amountSol: unknown;
     shares: unknown;
     status: string;
@@ -55,6 +58,7 @@ export class ChainOperationService {
       vaultId: row.vaultId,
       kind: row.kind as ChainOperationKind,
       wallet: row.wallet,
+      onchainOperationId: row.onchainOperationId.toString(),
       amountSol: row.amountSol === null ? null : Number(row.amountSol),
       shares: row.shares === null ? null : Number(row.shares),
       status: row.status as ChainOperationStatus,
@@ -64,6 +68,14 @@ export class ChainOperationService {
       submittedAt: row.submittedAt?.toISOString() ?? null,
       indexedAt: row.indexedAt?.toISOString() ?? null,
     };
+  }
+
+  /** Positive 63-bit random id; fits Postgres BIGINT and Solana u64. */
+  private randomOperationId(): bigint {
+    for (;;) {
+      const id = randomBytes(8).readBigUInt64LE(0) & 0x7fffffffffffffffn;
+      if (id > 0n) return id;
+    }
   }
 
   private validateKey(key: string): string {
@@ -117,29 +129,35 @@ export class ChainOperationService {
       return { operation: this.dto(existing), reused: true };
     }
 
-    try {
-      const created = await this.prisma.chainOperation.create({
-        data: {
-          userId: user.id,
-          vaultId,
-          idempotencyKey: key,
-          kind,
-          wallet: user.wallet,
-          amountSol,
-          shares,
-        },
-      });
-      return { operation: this.dto(created), reused: false };
-    } catch (e) {
-      // Two concurrent retries can race on the unique key; return the winner.
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        const winner = await this.prisma.chainOperation.findUnique({
-          where: { userId_idempotencyKey: { userId: user.id, idempotencyKey: key } },
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const created = await this.prisma.chainOperation.create({
+          data: {
+            userId: user.id,
+            vaultId,
+            idempotencyKey: key,
+            onchainOperationId: this.randomOperationId(),
+            kind,
+            wallet: user.wallet,
+            amountSol,
+            shares,
+          },
         });
-        if (winner) return { operation: this.dto(winner), reused: true };
+        return { operation: this.dto(created), reused: false };
+      } catch (e) {
+        // Two concurrent retries can race on the idempotency key; return the
+        // winner. A rare random-id collision retries the create.
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+          const winner = await this.prisma.chainOperation.findUnique({
+            where: { userId_idempotencyKey: { userId: user.id, idempotencyKey: key } },
+          });
+          if (winner) return { operation: this.dto(winner), reused: true };
+          continue;
+        }
+        throw e;
       }
-      throw e;
     }
+    throw new Error('Could not allocate a unique on-chain operation id.');
   }
 
   async submit(

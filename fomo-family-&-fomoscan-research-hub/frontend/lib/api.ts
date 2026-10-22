@@ -440,6 +440,7 @@ export type ChainOperationStatus = 'PENDING' | 'SUBMITTED' | 'INDEXED' | 'FAILED
 export interface ChainOperation {
   id: number;
   vaultId: number;
+  onchainOperationId: string;
   kind: ChainOperationKind;
   wallet: string;
   amountSol: number | null;

@@ -2254,6 +2254,7 @@ export const ChainOperationScalarFieldEnum = {
   userId: 'userId',
   vaultId: 'vaultId',
   idempotencyKey: 'idempotencyKey',
+  onchainOperationId: 'onchainOperationId',
   kind: 'kind',
   wallet: 'wallet',
   amountSol: 'amountSol',

@@ -97,3 +97,5 @@ This file is the durable rule source.
 ## User Overrides
 
 - 2026-09-29: FE canonical = `frontend/` (Next.js App Router); BE canonical = `backend/` (NestJS modular runtime); legacy đã xóa (pass 2).
+
+- 2026-10-22: On-chain operation id là **random 63-bit** (`onchain_operation_id`, unique BigInt), không dùng DB serial; legacy rows backfill bằng `id` để giữ receipt cũ. FE dùng `operation.onchainOperationId`; DB unique + operation receipt ngăn replay.

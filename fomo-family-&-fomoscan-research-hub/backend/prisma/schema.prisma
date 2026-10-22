@@ -225,6 +225,9 @@ model ChainOperation {
   userId         Int       @map("user_id")
   vaultId        Int       @map("vault_id")
   idempotencyKey String    @map("idempotency_key") @db.VarChar(128)
+  // Random 63-bit id passed to the on-chain OperationReceipt PDA.
+  // Legacy rows backfilled from id; new rows are random to survive DB resets.
+  onchainOperationId BigInt @unique @map("onchain_operation_id") @db.BigInt
   kind           String    @db.VarChar(16)
   wallet         String    @db.VarChar(64)
   amountSol      Decimal?  @map("amount_sol") @db.Decimal(24, 12)

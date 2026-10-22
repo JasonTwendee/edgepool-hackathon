@@ -30,6 +30,7 @@ export type ChainOperationAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   vaultId: number | null
+  onchainOperationId: number | null
   amountSol: runtime.Decimal | null
   shares: runtime.Decimal | null
   attempts: number | null
@@ -39,6 +40,7 @@ export type ChainOperationSumAggregateOutputType = {
   id: number | null
   userId: number | null
   vaultId: number | null
+  onchainOperationId: bigint | null
   amountSol: runtime.Decimal | null
   shares: runtime.Decimal | null
   attempts: number | null
@@ -49,6 +51,7 @@ export type ChainOperationMinAggregateOutputType = {
   userId: number | null
   vaultId: number | null
   idempotencyKey: string | null
+  onchainOperationId: bigint | null
   kind: string | null
   wallet: string | null
   amountSol: runtime.Decimal | null
@@ -68,6 +71,7 @@ export type ChainOperationMaxAggregateOutputType = {
   userId: number | null
   vaultId: number | null
   idempotencyKey: string | null
+  onchainOperationId: bigint | null
   kind: string | null
   wallet: string | null
   amountSol: runtime.Decimal | null
@@ -87,6 +91,7 @@ export type ChainOperationCountAggregateOutputType = {
   userId: number
   vaultId: number
   idempotencyKey: number
+  onchainOperationId: number
   kind: number
   wallet: number
   amountSol: number
@@ -107,6 +112,7 @@ export type ChainOperationAvgAggregateInputType = {
   id?: true
   userId?: true
   vaultId?: true
+  onchainOperationId?: true
   amountSol?: true
   shares?: true
   attempts?: true
@@ -116,6 +122,7 @@ export type ChainOperationSumAggregateInputType = {
   id?: true
   userId?: true
   vaultId?: true
+  onchainOperationId?: true
   amountSol?: true
   shares?: true
   attempts?: true
@@ -126,6 +133,7 @@ export type ChainOperationMinAggregateInputType = {
   userId?: true
   vaultId?: true
   idempotencyKey?: true
+  onchainOperationId?: true
   kind?: true
   wallet?: true
   amountSol?: true
@@ -145,6 +153,7 @@ export type ChainOperationMaxAggregateInputType = {
   userId?: true
   vaultId?: true
   idempotencyKey?: true
+  onchainOperationId?: true
   kind?: true
   wallet?: true
   amountSol?: true
@@ -164,6 +173,7 @@ export type ChainOperationCountAggregateInputType = {
   userId?: true
   vaultId?: true
   idempotencyKey?: true
+  onchainOperationId?: true
   kind?: true
   wallet?: true
   amountSol?: true
@@ -270,6 +280,7 @@ export type ChainOperationGroupByOutputType = {
   userId: number
   vaultId: number
   idempotencyKey: string
+  onchainOperationId: bigint
   kind: string
   wallet: string
   amountSol: runtime.Decimal | null
@@ -312,6 +323,7 @@ export type ChainOperationWhereInput = {
   userId?: Prisma.IntFilter<"ChainOperation"> | number
   vaultId?: Prisma.IntFilter<"ChainOperation"> | number
   idempotencyKey?: Prisma.StringFilter<"ChainOperation"> | string
+  onchainOperationId?: Prisma.BigIntFilter<"ChainOperation"> | bigint | number
   kind?: Prisma.StringFilter<"ChainOperation"> | string
   wallet?: Prisma.StringFilter<"ChainOperation"> | string
   amountSol?: Prisma.DecimalNullableFilter<"ChainOperation"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -331,6 +343,7 @@ export type ChainOperationOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   wallet?: Prisma.SortOrder
   amountSol?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -347,6 +360,7 @@ export type ChainOperationOrderByWithRelationInput = {
 
 export type ChainOperationWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  onchainOperationId?: bigint | number
   txSignature?: string
   userId_idempotencyKey?: Prisma.ChainOperationUserIdIdempotencyKeyCompoundUniqueInput
   AND?: Prisma.ChainOperationWhereInput | Prisma.ChainOperationWhereInput[]
@@ -366,13 +380,14 @@ export type ChainOperationWhereUniqueInput = Prisma.AtLeast<{
   indexedAt?: Prisma.DateTimeNullableFilter<"ChainOperation"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ChainOperation"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"ChainOperation"> | Date | string
-}, "id" | "txSignature" | "userId_idempotencyKey">
+}, "id" | "onchainOperationId" | "txSignature" | "userId_idempotencyKey">
 
 export type ChainOperationOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   wallet?: Prisma.SortOrder
   amountSol?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -400,6 +415,7 @@ export type ChainOperationScalarWhereWithAggregatesInput = {
   userId?: Prisma.IntWithAggregatesFilter<"ChainOperation"> | number
   vaultId?: Prisma.IntWithAggregatesFilter<"ChainOperation"> | number
   idempotencyKey?: Prisma.StringWithAggregatesFilter<"ChainOperation"> | string
+  onchainOperationId?: Prisma.BigIntWithAggregatesFilter<"ChainOperation"> | bigint | number
   kind?: Prisma.StringWithAggregatesFilter<"ChainOperation"> | string
   wallet?: Prisma.StringWithAggregatesFilter<"ChainOperation"> | string
   amountSol?: Prisma.DecimalNullableWithAggregatesFilter<"ChainOperation"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -418,6 +434,7 @@ export type ChainOperationCreateInput = {
   userId: number
   vaultId: number
   idempotencyKey: string
+  onchainOperationId: bigint | number
   kind: string
   wallet: string
   amountSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -437,6 +454,7 @@ export type ChainOperationUncheckedCreateInput = {
   userId: number
   vaultId: number
   idempotencyKey: string
+  onchainOperationId: bigint | number
   kind: string
   wallet: string
   amountSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -455,6 +473,7 @@ export type ChainOperationUpdateInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
+  onchainOperationId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   amountSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -474,6 +493,7 @@ export type ChainOperationUncheckedUpdateInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
+  onchainOperationId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   amountSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -493,6 +513,7 @@ export type ChainOperationCreateManyInput = {
   userId: number
   vaultId: number
   idempotencyKey: string
+  onchainOperationId: bigint | number
   kind: string
   wallet: string
   amountSol?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -511,6 +532,7 @@ export type ChainOperationUpdateManyMutationInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
+  onchainOperationId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   amountSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -530,6 +552,7 @@ export type ChainOperationUncheckedUpdateManyInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   vaultId?: Prisma.IntFieldUpdateOperationsInput | number
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
+  onchainOperationId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   kind?: Prisma.StringFieldUpdateOperationsInput | string
   wallet?: Prisma.StringFieldUpdateOperationsInput | string
   amountSol?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
@@ -554,6 +577,7 @@ export type ChainOperationCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   wallet?: Prisma.SortOrder
   amountSol?: Prisma.SortOrder
@@ -572,6 +596,7 @@ export type ChainOperationAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   amountSol?: Prisma.SortOrder
   shares?: Prisma.SortOrder
   attempts?: Prisma.SortOrder
@@ -582,6 +607,7 @@ export type ChainOperationMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   wallet?: Prisma.SortOrder
   amountSol?: Prisma.SortOrder
@@ -601,6 +627,7 @@ export type ChainOperationMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   wallet?: Prisma.SortOrder
   amountSol?: Prisma.SortOrder
@@ -619,6 +646,7 @@ export type ChainOperationSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   vaultId?: Prisma.SortOrder
+  onchainOperationId?: Prisma.SortOrder
   amountSol?: Prisma.SortOrder
   shares?: Prisma.SortOrder
   attempts?: Prisma.SortOrder
@@ -631,6 +659,7 @@ export type ChainOperationSelect<ExtArgs extends runtime.Types.Extensions.Intern
   userId?: boolean
   vaultId?: boolean
   idempotencyKey?: boolean
+  onchainOperationId?: boolean
   kind?: boolean
   wallet?: boolean
   amountSol?: boolean
@@ -650,6 +679,7 @@ export type ChainOperationSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   vaultId?: boolean
   idempotencyKey?: boolean
+  onchainOperationId?: boolean
   kind?: boolean
   wallet?: boolean
   amountSol?: boolean
@@ -669,6 +699,7 @@ export type ChainOperationSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   vaultId?: boolean
   idempotencyKey?: boolean
+  onchainOperationId?: boolean
   kind?: boolean
   wallet?: boolean
   amountSol?: boolean
@@ -688,6 +719,7 @@ export type ChainOperationSelectScalar = {
   userId?: boolean
   vaultId?: boolean
   idempotencyKey?: boolean
+  onchainOperationId?: boolean
   kind?: boolean
   wallet?: boolean
   amountSol?: boolean
@@ -702,7 +734,7 @@ export type ChainOperationSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ChainOperationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "vaultId" | "idempotencyKey" | "kind" | "wallet" | "amountSol" | "shares" | "status" | "txSignature" | "error" | "attempts" | "submittedAt" | "indexedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["chainOperation"]>
+export type ChainOperationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "vaultId" | "idempotencyKey" | "onchainOperationId" | "kind" | "wallet" | "amountSol" | "shares" | "status" | "txSignature" | "error" | "attempts" | "submittedAt" | "indexedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["chainOperation"]>
 
 export type $ChainOperationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ChainOperation"
@@ -712,6 +744,7 @@ export type $ChainOperationPayload<ExtArgs extends runtime.Types.Extensions.Inte
     userId: number
     vaultId: number
     idempotencyKey: string
+    onchainOperationId: bigint
     kind: string
     wallet: string
     amountSol: runtime.Decimal | null
@@ -1151,6 +1184,7 @@ export interface ChainOperationFieldRefs {
   readonly userId: Prisma.FieldRef<"ChainOperation", 'Int'>
   readonly vaultId: Prisma.FieldRef<"ChainOperation", 'Int'>
   readonly idempotencyKey: Prisma.FieldRef<"ChainOperation", 'String'>
+  readonly onchainOperationId: Prisma.FieldRef<"ChainOperation", 'BigInt'>
   readonly kind: Prisma.FieldRef<"ChainOperation", 'String'>
   readonly wallet: Prisma.FieldRef<"ChainOperation", 'String'>
   readonly amountSol: Prisma.FieldRef<"ChainOperation", 'Decimal'>

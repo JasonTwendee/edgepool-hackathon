@@ -99,7 +99,7 @@ export function operationPda(
   vaultAddr: string,
   walletAddress: string,
   kind: 0 | 1,
-  operationId: number,
+  operationId: number | bigint | string,
 ): PublicKey {
   const pid = new PublicKey(programId);
   const vault = new PublicKey(vaultAddr);
@@ -213,7 +213,7 @@ export async function chainDeposit(
   vaultAddr: string,
   walletAddress: string,
   amountSol: number,
-  operationId: number,
+  operationId: number | bigint | string,
   opts: { confirm?: boolean } = {},
 ): Promise<{ signature: string; estimatedShares: string }> {
   if (!(amountSol >= 0.5)) throw new Error('Nạp tối thiểu 0.5 SOL.');
@@ -230,7 +230,7 @@ export async function chainDeposit(
   const userAta = ataFor(new PublicKey(walletAddress), pdas.shares);
   const operation = operationPda(programId, vaultAddr, walletAddress, 0, operationId);
   const tx: Transaction = await program.methods
-    .deposit(new BN(amount.toString()), new BN(operationId))
+    .deposit(new BN(amount.toString()), new BN(operationId.toString()))
     .accounts({
       vault: pdas.vault,
       treasury: pdas.treasury,
@@ -254,7 +254,7 @@ export async function chainWithdraw(
   walletAddress: string,
   shares: number,
   minPayoutSol: number | undefined,
-  operationId: number,
+  operationId: number | bigint | string,
   opts: { confirm?: boolean } = {},
 ): Promise<{ signature: string; estimatedPayout: string }> {
   if (!(shares > 0)) throw new Error('Số share phải lớn hơn 0.');
@@ -276,7 +276,7 @@ export async function chainWithdraw(
   const userAta = ataFor(new PublicKey(walletAddress), pdas.shares);
   const operation = operationPda(programId, vaultAddr, walletAddress, 1, operationId);
   const tx: Transaction = await program.methods
-    .withdraw(new BN(raw.toString()), new BN(minPayout.toString()), new BN(operationId))
+    .withdraw(new BN(raw.toString()), new BN(minPayout.toString()), new BN(operationId.toString()))
     .accounts({
       vault: pdas.vault,
       treasury: pdas.treasury,
