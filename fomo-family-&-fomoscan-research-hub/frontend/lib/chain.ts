@@ -104,10 +104,10 @@ export function operationPda(
   const pid = new PublicKey(programId);
   const vault = new PublicKey(vaultAddr);
   const user = new PublicKey(walletAddress);
-  const id = Buffer.alloc(8);
-  id.writeBigUInt64LE(BigInt(operationId));
+  const id = new Uint8Array(8);
+  new DataView(id.buffer).setBigUint64(0, BigInt(operationId), true);
   const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('operation'), Buffer.from([kind]), vault.toBuffer(), user.toBuffer(), id],
+    [Buffer.from('operation'), Uint8Array.from([kind]), vault.toBuffer(), user.toBuffer(), id],
     pid,
   );
   return pda;
