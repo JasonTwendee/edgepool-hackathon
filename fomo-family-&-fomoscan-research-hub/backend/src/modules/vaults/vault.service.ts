@@ -829,18 +829,29 @@ export class VaultService {
     const addr = (vault as unknown as { chainVault?: unknown } | null)?.chainVault;
     if (typeof addr !== 'string' || !addr) return null;
     const pid = (vault as unknown as { chainProgramId?: unknown })?.chainProgramId;
-    const last = await this.prisma.chainEvent.findFirst({
-      where: { vaultId, kind: { in: ['EpochSettled', 'MarkEvent'] } },
-      orderBy: { id: 'desc' },
-    });
-    const payload = (last?.payload ?? {}) as Record<string, unknown>;
+    // Price and marks are separate event streams: keeper MarkEvents arrive
+    // between epoch settlements, so taking one "latest" row loses the price.
+    const [lastEpoch, lastMark] = await Promise.all([
+      this.prisma.chainEvent.findFirst({
+        where: { vaultId, kind: 'EpochSettled' },
+        orderBy: { id: 'desc' },
+      }),
+      this.prisma.chainEvent.findFirst({
+        where: { vaultId, kind: 'MarkEvent' },
+        orderBy: { id: 'desc' },
+      }),
+    ]);
+    const num = (payload: Record<string, unknown>, camel: string, snake: string): number =>
+      Number(payload[camel] ?? payload[snake] ?? 0);
+    const epochPayload = (lastEpoch?.payload ?? {}) as Record<string, unknown>;
+    const markPayload = (lastMark?.payload ?? {}) as Record<string, unknown>;
     const cluster = String((vault as unknown as { chainEnv?: unknown })?.chainEnv ?? 'devnet');
     const explorer = `https://explorer.solana.com/address/${addr}${cluster === 'devnet' ? '?cluster=devnet' : ''}`;
     return {
       programId: typeof pid === 'string' ? pid : null,
       vault: addr,
-      price: last?.kind === 'EpochSettled' ? Number(payload.price_scaled ?? 0) / 1_000_000_000 : null,
-      marks: Number(payload.marks_lamports ?? 0) / 1_000_000_000,
+      price: lastEpoch ? num(epochPayload, 'priceScaled', 'price_scaled') / 1_000_000_000 : null,
+      marks: (lastMark ? num(markPayload, 'marksLamports', 'marks_lamports') : 0) / 1_000_000_000,
       paused: (vault as unknown as { chainPaused?: unknown })?.chainPaused ?? null,
       env: cluster,
       explorerUrl: explorer,
