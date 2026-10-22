@@ -24,8 +24,24 @@ export interface ParsedChainEvent {
   payload: Record<string, unknown>;
 }
 
+/** Anchor event coder returns camelCase (`markEvent`); domain uses PascalCase. */
+export function normalizeEventKind(kind: string): string {
+  if (!kind) return kind;
+  return kind.charAt(0).toUpperCase() + kind.slice(1);
+}
+
 export function isKnownKind(kind: string): boolean {
-  return (CHAIN_EVENT_KINDS as readonly string[]).includes(kind);
+  return (CHAIN_EVENT_KINDS as readonly string[]).includes(normalizeEventKind(kind));
+}
+
+/** Read a numeric event field from Anchor camelCase or legacy snake_case. */
+export function eventNumber(
+  payload: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+): number {
+  const value = payload[camelKey] ?? payload[snakeKey] ?? 0;
+  return Number(value);
 }
 
 /** Idempotency key — mirrors @@unique([signature, ixIndex, eventIndex]). */
@@ -70,8 +86,10 @@ export function parseChainEvents(
     } catch {
       decoded = null;
     }
-    if (!decoded || !isKnownKind(decoded.kind)) continue;
-    out.push({ signature, ixIndex: ix, eventIndex: ev, kind: decoded.kind, slot, payload: decoded.payload });
+    if (!decoded) continue;
+    const kind = normalizeEventKind(decoded.kind);
+    if (!isKnownKind(kind)) continue;
+    out.push({ signature, ixIndex: ix, eventIndex: ev, kind, slot, payload: decoded.payload });
     ev += 1;
   }
   return out;

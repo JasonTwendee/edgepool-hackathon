@@ -8,7 +8,7 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { PublicKey } from '@solana/web3.js';
 import { getConfig } from '../../config/configuration.js';
 import { PrismaService } from '../../database/prisma.service.js';
-import { matchDepositByAmount, parseChainEvents } from './events.js';
+import { eventNumber, matchDepositByAmount, parseChainEvents } from './events.js';
 import { ChainProgramClient } from './program.client.js';
 
 const BACKFILL_LIMIT = 50;
@@ -104,10 +104,10 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
     }>;
     if (kind === 'DepositEvent') {
       const user = String(payload.user ?? '');
-      const amountLamports = Number(payload.amount_lamports ?? 0);
+      const amountLamports = eventNumber(payload, 'amountLamports', 'amount_lamports');
       const amount = amountLamports / 1_000_000_000;
-      const shares = Number(payload.minted_raw ?? 0) / 1_000_000_000;
-      const price = Number(payload.price_scaled ?? 0) / 1_000_000_000;
+      const shares = eventNumber(payload, 'mintedRaw', 'minted_raw') / 1_000_000_000;
+      const price = eventNumber(payload, 'priceScaled', 'price_scaled') / 1_000_000_000;
       const queued = (await db.deposit.findMany({
         where: { vaultId, status: 'QUEUED', depositor: user },
         orderBy: { id: 'asc' },
@@ -140,9 +140,9 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
       }
     } else if (kind === 'WithdrawEvent') {
       const user = String(payload.user ?? '');
-      const shares = Number(payload.shares_raw ?? 0) / 1_000_000_000;
-      const paid = Number(payload.paid_lamports ?? 0) / 1_000_000_000;
-      const price = Number(payload.price_scaled ?? 0) / 1_000_000_000;
+      const shares = eventNumber(payload, 'sharesRaw', 'shares_raw') / 1_000_000_000;
+      const paid = eventNumber(payload, 'paidLamports', 'paid_lamports') / 1_000_000_000;
+      const price = eventNumber(payload, 'priceScaled', 'price_scaled') / 1_000_000_000;
       const row = await db.withdrawal.findFirst({
         where: { vaultId, status: 'QUEUED', depositor: user },
         orderBy: { id: 'asc' },

@@ -6,9 +6,11 @@ import assert from 'node:assert/strict';
 import {
   computeMarksLamports,
   eventKey,
+  eventNumber,
   isFaucetAllowed,
   isKnownKind,
   matchDepositByAmount,
+  normalizeEventKind,
   parseChainEvents,
 } from './events.js';
 import { checkReconcile } from './reconcile.js';
@@ -21,6 +23,7 @@ function stubDecode(b64: string): { kind: string; payload: Record<string, unknow
   if (b64 === 'UNKNOWN_KIND') return { kind: 'Nope', payload: {} };
   if (b64 === 'DEPOSIT') return { kind: 'DepositEvent', payload: { user: 'u1', amount_lamports: 1_000_000_000 } };
   if (b64 === 'EPOCH') return { kind: 'EpochSettled', payload: { price_scaled: 1_010_000_000 } };
+  if (b64 === 'CAMEL') return { kind: 'markEvent', payload: { marksLamports: 42 } };
   return null;
 }
 
@@ -44,7 +47,22 @@ function stubDecode(b64: string): { kind: string; payload: Record<string, unknow
   assert.equal(evs[1].kind, 'EpochSettled');
   assert.equal(evs[1].eventIndex, 1);
   assert.ok(isKnownKind('PausedEvent'));
+  assert.ok(isKnownKind('markEvent'));
   assert.ok(!isKnownKind('Nope'));
+}
+
+// 1b. Anchor camelCase → PascalCase; numeric fields support both casings.
+{
+  assert.equal(normalizeEventKind('markEvent'), 'MarkEvent');
+  assert.equal(normalizeEventKind('DepositEvent'), 'DepositEvent');
+  assert.equal(eventNumber({ marksLamports: 42 }, 'marksLamports', 'marks_lamports'), 42);
+  assert.equal(eventNumber({ price_scaled: 7 }, 'priceScaled', 'price_scaled'), 7);
+  assert.equal(eventNumber({}, 'amountLamports', 'amount_lamports'), 0);
+  const logs = [`Program ${PID} invoke [1]`, 'Program data: CAMEL'];
+  const evs = parseChainEvents(SIG, 101, logs, PID, stubDecode);
+  assert.equal(evs.length, 1);
+  assert.equal(evs[0].kind, 'MarkEvent');
+  assert.equal(evs[0].payload.marksLamports, 42);
 }
 
 // 2. Idempotency: same event twice → same key (upsert collapses to 1 row).
