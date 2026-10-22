@@ -6,18 +6,20 @@
  */
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PublicKey } from '@solana/web3.js';
+import { getConfig } from '../../config/configuration.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { matchDepositByAmount, parseChainEvents } from './events.js';
 import { ChainProgramClient } from './program.client.js';
 
 const BACKFILL_LIMIT = 50;
-const HEAL_INTERVAL_MS = 60_000;
 
 @Injectable()
 export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   private subId: number | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastSlot = 0;
+  /** HTTP polling fallback runs even when WS is down/rate-limited. */
+  private readonly pollMs = getConfig().chain.pollMs;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -29,7 +31,7 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
     void this.start().catch((e) => console.warn('[chain-indexer] start failed:', (e as Error).message));
     this.timer = setInterval(() => {
       void this.heal().catch((e) => console.warn('[chain-indexer] heal failed:', (e as Error).message));
-    }, HEAL_INTERVAL_MS);
+    }, this.pollMs);
   }
 
   onModuleDestroy(): void {

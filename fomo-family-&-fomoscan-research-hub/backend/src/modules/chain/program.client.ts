@@ -58,6 +58,19 @@ export class ChainProgramClient {
     return this.cluster() === 'mainnet' ? getConfig().solanaRpcUrl : getConfig().devnetRpcUrl || DEVNET_RPC;
   }
 
+  /**
+   * WS endpoint for Anchor confirmations/live logs. FluxRPC does not serve
+   * Solana devnet, so devnet defaults to the public WS (HTTP reads can still
+   * go through a dedicated/proxied RPC). Mainnet must set SOLANA_WS_URL or
+   * CHAIN_WS_URL when the HTTP provider's WS host differs (e.g. FluxRPC).
+   */
+  wsUrl(): string | undefined {
+    const cfg = getConfig();
+    if (cfg.chain.wsUrl) return cfg.chain.wsUrl;
+    if (cfg.solanaWsUrl) return cfg.solanaWsUrl;
+    return this.cluster() === 'devnet' ? 'wss://api.devnet.solana.com' : undefined;
+  }
+
   connection(): Connection | null {
     if (!this.enabled()) return null;
     return this.connectionForSetup();
@@ -66,7 +79,12 @@ export class ChainProgramClient {
   /** Connection for setup/initialize even while the global chain loop is OFF. */
   connectionForSetup(): Connection {
     if (!this.connectionCache) {
-      this.connectionCache = new Connection(this.rpcUrl(), 'confirmed');
+      this.connectionCache = new Connection(this.rpcUrl(), {
+        commitment: 'confirmed',
+        wsEndpoint: this.wsUrl(),
+        // Let our indexer/keeper own backoff instead of web3 resubscribing hot.
+        disableRetryOnRateLimit: true,
+      });
     }
     return this.connectionCache;
   }

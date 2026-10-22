@@ -69,6 +69,10 @@ Lưu ý vận hành:
 - Public devnet RPC (`api.devnet.solana.com`) rate-limit rất mạnh `getTransaction` (429).
   Indexer mirror có thể chậm/không chạy với RPC public; dùng **dedicated devnet RPC**
   trước khi demo cho khách. Deposit/withdraw trực tiếp trên browser không phụ thuộc indexer.
+- Indexer chạy **WS live + polling HTTP fallback** (`CHAIN_POLL_MS`, mặc định 60s).
+  Devnet dùng `CHAIN_WS_URL=wss://api.devnet.solana.com` (hoặc public default); mainnet
+  FluxRPC dùng `SOLANA_WS_URL`/`CHAIN_WS_URL=wss://ws.eu.fluxrpc.com?key=...`.
+  FluxRPC chỉ có Solana mainnet + Fogo testnet, **không có devnet**.
 - Không bind pool 14/15; không bật `MAINNET_SWAP_ENABLED`; không dùng keypair mainnet.
 - Nếu `CHAIN_ENABLED=false`, admin initialize/bind vẫn chạy được (setup path), nhưng
   faucet/keeper/indexer không chạy.

@@ -22,6 +22,10 @@ export interface ChainConfig {
   keeperKey?: string;
   /** Marks cũ hơn số slot này bị coi là stale. */
   maxStaleSlots: number;
+  /** Optional chain WS endpoint (FluxRPC: wss://ws.eu.fluxrpc.com?key=...). */
+  wsUrl?: string;
+  /** Polling fallback cadence for the indexer (ms). */
+  pollMs: number;
   /** Jupiter swap API (dự phòng P4, chưa dùng). */
   jupiterSwapApiUrl: string;
   /** Luôn false cho tới khi có quyết định vốn thật + audit. */
@@ -31,6 +35,8 @@ export interface ChainConfig {
 export interface BackendConfig {
   port: number;
   solanaRpcUrl: string;
+  /** Optional WS override for the main Solana connection (FluxRPC/Helius). */
+  solanaWsUrl?: string;
   /** Lantern local cache (read-path only; WS stays on solanaRpcUrl). */
   lanternUrl?: string;
   heliusApiKey?: string;
@@ -51,6 +57,7 @@ export function getConfig(): BackendConfig {
   return {
     port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
     solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+    solanaWsUrl: process.env.SOLANA_WS_URL || undefined,
     lanternUrl: process.env.LANTERN_URL || undefined,
     heliusApiKey: process.env.HELIUS_API_KEY || undefined,
     jitoBlockEngineUrl:
@@ -72,6 +79,8 @@ export function getConfig(): BackendConfig {
       maxStaleSlots: process.env.CHAIN_MAX_STALE_SLOTS
         ? parseInt(process.env.CHAIN_MAX_STALE_SLOTS, 10)
         : 750,
+      wsUrl: process.env.CHAIN_WS_URL || undefined,
+      pollMs: process.env.CHAIN_POLL_MS ? Math.max(5000, parseInt(process.env.CHAIN_POLL_MS, 10)) : 60_000,
       jupiterSwapApiUrl: process.env.JUPITER_SWAP_API_URL || '',
       mainnetSwapEnabled: process.env.MAINNET_SWAP_ENABLED === 'true',
     },
