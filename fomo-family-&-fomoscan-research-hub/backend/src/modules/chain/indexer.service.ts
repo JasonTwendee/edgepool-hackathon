@@ -352,6 +352,10 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
         seen.add(s.signature);
         try {
           const tx = await this.getTransactionWithRetry(connection, s.signature);
+          if (tx?.meta?.err) {
+            await this.operations.markFailed(s.signature, JSON.stringify(tx.meta.err));
+            continue;
+          }
           const logs = tx?.meta?.logMessages ?? null;
           if (!logs) continue;
           await this.ingest(s.signature, s.slot, logs);
@@ -371,13 +375,13 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   private async getTransactionWithRetry(
     connection: ReturnType<typeof this.program.connection> & object,
     signature: string,
-  ): Promise<{ meta?: { logMessages?: string[] | null } | null } | null> {
+  ): Promise<{ meta?: { logMessages?: string[] | null; err?: unknown } | null } | null> {
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         return (await (connection as unknown as {
           getTransaction(sig: string, opts: { maxSupportedTransactionVersion: number }): Promise<{
-            meta?: { logMessages?: string[] | null } | null;
+            meta?: { logMessages?: string[] | null; err?: unknown } | null;
           } | null>;
         }).getTransaction(signature, { maxSupportedTransactionVersion: 0 })) as {
           meta?: { logMessages?: string[] | null } | null;
