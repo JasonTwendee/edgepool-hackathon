@@ -83,6 +83,9 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
       await this.mirror(vaultId, e.kind, e.payload, signature, slot).catch(() => undefined);
+      if (e.kind === 'DepositEvent' || e.kind === 'WithdrawEvent' || e.kind === 'EpochSettled') {
+        await this.syncVaultEpoch(vaultId, signature).catch(() => undefined);
+      }
     }
     if (slot > this.lastSlot) this.lastSlot = slot;
   }
@@ -182,6 +185,50 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
         await db.epochCheckpoint.update({ where: { id: latest.id }, data: { chainSig: signature } });
       }
     }
+  }
+
+  /** Refresh off-chain NAV/price/supply from the vault PDA after money events. */
+  private async syncVaultEpoch(vaultId: number, signature: string): Promise<void> {
+    const program = this.program.program();
+    const connection = this.program.connection();
+    if (!program || !connection) return;
+    const vault = await this.prisma.vault.findUnique({
+      where: { id: vaultId },
+      select: { chainVault: true, hwmSharePrice: true },
+    });
+    if (!vault?.chainVault) return;
+    const exists = await this.prisma.epochCheckpoint.findFirst({
+      where: { vaultId, chainSig: signature },
+      select: { id: true },
+    });
+    if (exists) return;
+    const vaultPk = new PublicKey(vault.chainVault);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onchain: any = await program.account.vault.fetch(vaultPk);
+    const cashSol = (await connection.getBalance(this.program.treasuryOf(vaultPk))) / 1_000_000_000;
+    const shares = Number(String(onchain.totalShares ?? 0)) / 1_000_000_000;
+    const marks = Number(String(onchain.marksLamports ?? 0)) / 1_000_000_000;
+    const fee = Number(String(onchain.feeCredit ?? 0)) / 1_000_000_000;
+    const nav = cashSol + marks - fee;
+    const price = shares > 0 && nav > 0 ? nav / shares : 1;
+    await this.prisma.epochCheckpoint.create({
+      data: {
+        vaultId,
+        navSol: nav,
+        sharePrice: price,
+        sharesOutstanding: shares,
+        feeSol: 0,
+        chainSig: signature,
+      },
+    });
+    await this.prisma.vault.update({
+      where: { id: vaultId },
+      data: {
+        totalShares: shares,
+        treasurySol: cashSol,
+        hwmSharePrice: Number(String(onchain.hwmPrice ?? 1_000_000_000)) / 1_000_000_000,
+      },
+    });
   }
 
   private async start(): Promise<void> {
