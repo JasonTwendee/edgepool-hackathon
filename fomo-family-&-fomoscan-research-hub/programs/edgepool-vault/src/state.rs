@@ -73,3 +73,9 @@ impl Vault {
         self.flags & FLAG_PAUSED != 0
     }
 }
+
+/// Empty per-operation PDA. Its existence is the on-chain idempotency
+/// receipt: `deposit`/`withdraw` use `init`, so replaying the same operation
+/// id for the same vault/user/kind fails with AccountAlreadyInUse.
+#[account]
+pub struct OperationReceipt {}

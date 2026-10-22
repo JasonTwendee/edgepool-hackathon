@@ -33,11 +33,17 @@ fn deposit_bootstrap_then_price_at_nav() {
     let v = vault_state(&env);
     assert_eq!(v.total_shares, 1_000_000_000);
     assert_eq!(mint_supply(&env.svm, &env.share_mint), 1_000_000_000);
-    assert_eq!(token_amount(&env.svm, &env.ata_of(&env.user)), 1_000_000_000);
+    assert_eq!(
+        token_amount(&env.svm, &env.ata_of(&env.user)),
+        1_000_000_000
+    );
     assert_eq!(balance(&env.svm, &env.treasury), 1_010_000_000);
     assert_eq!(
         user_bal0 - balance(&env.svm, &env.user.pubkey()),
-        LAMPORTS_PER_SOL + 5000 + env.svm.minimum_balance_for_rent_exemption(165) // nạp + tx fee + rent ATA
+        LAMPORTS_PER_SOL
+            + 5000
+            + env.svm.minimum_balance_for_rent_exemption(165)
+            + env.svm.minimum_balance_for_rent_exemption(8) // deposit + fee + ATA + operation receipt
     );
 
     // 2) Keeper đẩy marks +0.1 SOL → NAV 1.11 → giá 1.11.
@@ -63,10 +69,16 @@ fn withdraw_pays_at_current_price_with_min_payout_guard() {
     let bal0 = balance(&env.svm, &env.user.pubkey());
     let ix = ix_withdraw(&env, &env.user, 400_000_000, 404_000_000); // min_payout = exact
     assert_ok(send_tx(&mut env.svm, &env.user, &[&env.user], &[ix]));
-    assert_eq!(balance(&env.svm, &env.user.pubkey()), bal0 + 404_000_000 - 5000);
+    assert_eq!(
+        balance(&env.svm, &env.user.pubkey()),
+        bal0 + 404_000_000 - 5000 - env.svm.minimum_balance_for_rent_exemption(8)
+    );
     assert_eq!(token_amount(&env.svm, &env.ata_of(&env.user)), 600_000_000);
     assert_eq!(vault_state(&env).total_shares, 600_000_000);
-    assert_eq!(balance(&env.svm, &env.treasury), 1_010_000_000 - 404_000_000);
+    assert_eq!(
+        balance(&env.svm, &env.treasury),
+        1_010_000_000 - 404_000_000
+    );
 
     // min_payout cao hơn payout thật 1 lamport → PayoutBelowMin, state không đổi.
     let ix = ix_withdraw(&env, &env.user, 100_000_000, 101_000_001);
@@ -104,7 +116,10 @@ fn hwm_fee_charges_only_new_profit_and_ratchets() {
     let bal0 = balance(&env.svm, &env.manager.pubkey());
     let ix = ix_collect_fees(&env, &env.manager, 402_000_000);
     assert_ok(send_tx(&mut env.svm, &env.manager, &[&env.manager], &[ix]));
-    assert_eq!(balance(&env.svm, &env.manager.pubkey()), bal0 + 402_000_000 - 5000);
+    assert_eq!(
+        balance(&env.svm, &env.manager.pubkey()),
+        bal0 + 402_000_000 - 5000
+    );
     assert_eq!(vault_state(&env).fee_credit, 0);
     let ix = ix_collect_fees(&env, &env.manager, 1);
     assert_err(
@@ -134,7 +149,10 @@ fn pause_blocks_deposit_but_never_withdraw() {
     let bal0 = balance(&env.svm, &env.user.pubkey());
     let ix = ix_withdraw(&env, &env.user, 100_000_000, 101_000_000);
     assert_ok(send_tx(&mut env.svm, &env.user, &[&env.user], &[ix]));
-    assert_eq!(balance(&env.svm, &env.user.pubkey()), bal0 + 101_000_000 - 5000);
+    assert_eq!(
+        balance(&env.svm, &env.user.pubkey()),
+        bal0 + 101_000_000 - 5000 - env.svm.minimum_balance_for_rent_exemption(8)
+    );
 
     // Unpause → deposit mở lại.
     let ix = ix_set_paused(&env, &env.manager, false);
@@ -171,4 +189,21 @@ fn stale_marks_block_pricing_until_refresh() {
     assert_ok(send_tx(&mut env.svm, &env.user2, &[&env.user2], &[ix]));
     // minted = floor(0.5e9 * 1e9 / 1.11e9) = 450_450_450.
     assert_eq!(token_amount(&env.svm, &env.ata_of(&env.user2)), 450_450_450);
+}
+
+#[test]
+fn duplicate_operation_receipt_rejects_replay() {
+    let mut env = Env::new("nonce-replay", 0, 5000, 0);
+    let op_id = next_operation_id();
+    let ix = ix_deposit_with_id(&env, &env.user, LAMPORTS_PER_SOL, op_id);
+    assert_ok(send_tx(
+        &mut env.svm,
+        &env.user,
+        &[&env.user],
+        &[ix.clone()],
+    ));
+    let replay = send_tx(&mut env.svm, &env.user, &[&env.user], &[ix]);
+    assert!(replay.is_err(), "same operation receipt must reject replay");
+    assert_eq!(vault_state(&env).total_shares, 1_000_000_000);
+    assert_eq!(mint_supply(&env.svm, &env.share_mint), 1_000_000_000);
 }

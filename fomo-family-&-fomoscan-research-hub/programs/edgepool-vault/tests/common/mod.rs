@@ -12,6 +12,7 @@ use solana_instruction::error::InstructionError;
 use solana_transaction::Transaction;
 use solana_transaction_error::TransactionError;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 // Re-export cho test files (dùng qua `use common::*`).
 pub use solana_instruction::{AccountMeta, Instruction};
@@ -61,6 +62,22 @@ pub fn treasury_pda(vault: &Pubkey) -> Pubkey {
 
 pub fn authority_pda(vault: &Pubkey) -> Pubkey {
     pda(&[b"authority", vault.as_ref()])
+}
+
+static OPERATION_ID: AtomicU64 = AtomicU64::new(1);
+
+pub fn next_operation_id() -> u64 {
+    OPERATION_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+pub fn operation_pda(vault: &Pubkey, user: &Pubkey, kind: &[u8], operation_id: u64) -> Pubkey {
+    pda(&[
+        b"operation",
+        kind,
+        vault.as_ref(),
+        user.as_ref(),
+        &operation_id.to_le_bytes(),
+    ])
 }
 
 pub fn user_ata(user: &Pubkey, mint: &Pubkey) -> Pubkey {
@@ -121,10 +138,24 @@ impl Env {
         let treasury = treasury_pda(&vault);
         let authority = authority_pda(&vault);
 
-        let mut env = Env { svm, manager, keeper, user, user2, vault, share_mint, treasury, authority };
+        let mut env = Env {
+            svm,
+            manager,
+            keeper,
+            user,
+            user2,
+            vault,
+            share_mint,
+            treasury,
+            authority,
+        };
         let ix = ix_initialize(&env, name, fee_bps, max_marks_bps, env_flag);
         let res = send_tx(&mut env.svm, &env.manager, &[&env.manager], &[ix]);
-        assert!(res.is_ok(), "initialize failed: {:?}", res.err().map(|e| e.meta.pretty_logs()));
+        assert!(
+            res.is_ok(),
+            "initialize failed: {:?}",
+            res.err().map(|e| e.meta.pretty_logs())
+        );
         env
     }
 
@@ -142,13 +173,24 @@ pub fn send_tx(
     // Expire blockhash mỗi lần gửi: tx lặp lại (cùng ix/accounts) sẽ có signature khác,
     // tránh dedupe "AlreadyProcessed" của LiteSVM.
     svm.expire_blockhash();
-    let tx = Transaction::new_signed_with_payer(ixs, Some(&payer.pubkey()), signers, svm.latest_blockhash());
+    let tx = Transaction::new_signed_with_payer(
+        ixs,
+        Some(&payer.pubkey()),
+        signers,
+        svm.latest_blockhash(),
+    );
     svm.send_transaction(tx)
 }
 
 // ---------- instruction builders ----------
 
-pub fn ix_initialize(env: &Env, name: &str, fee_bps: u16, max_marks_bps: u16, env_flag: u8) -> Instruction {
+pub fn ix_initialize(
+    env: &Env,
+    name: &str,
+    fee_bps: u16,
+    max_marks_bps: u16,
+    env_flag: u8,
+) -> Instruction {
     Instruction {
         program_id: program_id(),
         accounts: vec![
@@ -166,9 +208,9 @@ pub fn ix_initialize(env: &Env, name: &str, fee_bps: u16, max_marks_bps: u16, en
                 name.to_string(),
                 env.keeper.pubkey(),
                 fee_bps,
-                0u16,      // withdraw_fee_bps
-                0u16,      // reserve_bps
-                200u16,    // max_trade_bps
+                0u16,   // withdraw_fee_bps
+                0u16,   // reserve_bps
+                200u16, // max_trade_bps
                 max_marks_bps,
                 env_flag,
             ),
@@ -177,6 +219,15 @@ pub fn ix_initialize(env: &Env, name: &str, fee_bps: u16, max_marks_bps: u16, en
 }
 
 pub fn ix_deposit(env: &Env, user: &Keypair, amount: u64) -> Instruction {
+    ix_deposit_with_id(env, user, amount, next_operation_id())
+}
+
+pub fn ix_deposit_with_id(
+    env: &Env,
+    user: &Keypair,
+    amount: u64,
+    operation_id: u64,
+) -> Instruction {
     Instruction {
         program_id: program_id(),
         accounts: vec![
@@ -185,16 +236,30 @@ pub fn ix_deposit(env: &Env, user: &Keypair, amount: u64) -> Instruction {
             AccountMeta::new(env.share_mint, false),
             AccountMeta::new_readonly(env.authority, false),
             AccountMeta::new(user.pubkey(), true),
+            AccountMeta::new(
+                operation_pda(&env.vault, &user.pubkey(), &[0u8], operation_id),
+                false,
+            ),
             AccountMeta::new(user_ata(&user.pubkey(), &env.share_mint), false),
             AccountMeta::new_readonly(TOKEN_PROGRAM_ID, false),
             AccountMeta::new_readonly(ATA_PROGRAM_ID, false),
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
         ],
-        data: ix_data("deposit", (amount,)),
+        data: ix_data("deposit", (amount, operation_id)),
     }
 }
 
 pub fn ix_withdraw(env: &Env, user: &Keypair, shares: u64, min_payout: u64) -> Instruction {
+    ix_withdraw_with_id(env, user, shares, min_payout, next_operation_id())
+}
+
+pub fn ix_withdraw_with_id(
+    env: &Env,
+    user: &Keypair,
+    shares: u64,
+    min_payout: u64,
+    operation_id: u64,
+) -> Instruction {
     Instruction {
         program_id: program_id(),
         accounts: vec![
@@ -203,11 +268,15 @@ pub fn ix_withdraw(env: &Env, user: &Keypair, shares: u64, min_payout: u64) -> I
             AccountMeta::new(env.share_mint, false),
             AccountMeta::new_readonly(env.authority, false),
             AccountMeta::new(user.pubkey(), true),
+            AccountMeta::new(
+                operation_pda(&env.vault, &user.pubkey(), &[1u8], operation_id),
+                false,
+            ),
             AccountMeta::new(user_ata(&user.pubkey(), &env.share_mint), false),
             AccountMeta::new_readonly(TOKEN_PROGRAM_ID, false),
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
         ],
-        data: ix_data("withdraw", (shares, min_payout)),
+        data: ix_data("withdraw", (shares, min_payout, operation_id)),
     }
 }
 
@@ -246,14 +315,22 @@ pub fn ix_set_paused(env: &Env, manager: &Keypair, flag: bool) -> Instruction {
     }
 }
 
-pub fn ix_update_policy(env: &Env, manager: &Keypair, fee_bps: u16, reserve_bps: u16) -> Instruction {
+pub fn ix_update_policy(
+    env: &Env,
+    manager: &Keypair,
+    fee_bps: u16,
+    reserve_bps: u16,
+) -> Instruction {
     Instruction {
         program_id: program_id(),
         accounts: vec![
             AccountMeta::new(env.vault, false),
             AccountMeta::new_readonly(manager.pubkey(), true),
         ],
-        data: ix_data("update_policy", (fee_bps, 0u16, reserve_bps, 200u16, 5000u16)),
+        data: ix_data(
+            "update_policy",
+            (fee_bps, 0u16, reserve_bps, 200u16, 5000u16),
+        ),
     }
 }
 
@@ -278,7 +355,10 @@ pub fn ix_record_sim_trade(env: &Env, keeper: &Keypair) -> Instruction {
             AccountMeta::new_readonly(env.vault, false),
             AccountMeta::new_readonly(keeper.pubkey(), true),
         ],
-        data: ix_data("record_sim_trade", (Pubkey::new_unique(), 0u8, 1_000u64, 1_000u64, 10i64)),
+        data: ix_data(
+            "record_sim_trade",
+            (Pubkey::new_unique(), 0u8, 1_000u64, 1_000u64, 10i64),
+        ),
     }
 }
 

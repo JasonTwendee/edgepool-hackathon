@@ -285,7 +285,7 @@ export default function PoolDetailPage() {
         }
         if (op.status === 'FAILED') throw new Error(op.error || 'Deposit operation failed.');
         setMsg('Waiting for wallet signature…');
-        const r = await chainDeposit(programId, vault, wallet, amt, { confirm: false });
+        const r = await chainDeposit(programId, vault, wallet, amt, op.id, { confirm: false });
         setChainTx(r.signature);
         await submitChainOperation(token, op.id, r.signature);
         setMsg('Deposit submitted — indexing on-chain…');
@@ -373,7 +373,7 @@ export default function PoolDetailPage() {
           return;
         }
         if (op.status === 'FAILED') throw new Error(op.error || 'Withdraw operation failed.');
-        const r = await chainWithdraw(programId, vault, wallet, shares, undefined, { confirm: false });
+        const r = await chainWithdraw(programId, vault, wallet, shares, undefined, op.id, { confirm: false });
         setChainTx(r.signature);
         await submitChainOperation(token, op.id, r.signature);
         setMsg('Withdraw submitted — indexing on-chain…');

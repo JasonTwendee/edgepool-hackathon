@@ -7,9 +7,10 @@ use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount};
 use crate::errors::EdgepoolError;
 use crate::events::WithdrawEvent;
 use crate::math;
-use crate::state::{Vault, MAX_STALE_SLOTS, MIN_TREASURY_BUFFER_LAMPORTS};
+use crate::state::{OperationReceipt, Vault, MAX_STALE_SLOTS, MIN_TREASURY_BUFFER_LAMPORTS};
 
 #[derive(Accounts)]
+#[instruction(shares_raw: u64, min_payout_lamports: u64, operation_id: u64)]
 pub struct Withdraw<'info> {
     #[account(mut)]
     pub vault: Box<Account<'info, Vault>>,
@@ -27,6 +28,16 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    /// Idempotency receipt; duplicate (vault,user,operation_id) fails at init.
+    #[account(
+        init,
+        payer = user,
+        space = 8,
+        seeds = [b"operation".as_ref(), &[1u8][..], vault.key().as_ref(), user.key().as_ref(), &operation_id.to_le_bytes()],
+        bump
+    )]
+    pub operation: Account<'info, OperationReceipt>,
+
     #[account(mut, token::mint = share_mint, token::authority = user)]
     pub user_share_ata: Box<Account<'info, TokenAccount>>,
 
@@ -34,7 +45,13 @@ pub struct Withdraw<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<Withdraw>, shares_raw: u64, min_payout_lamports: u64) -> Result<()> {
+pub fn handler(
+    ctx: Context<Withdraw>,
+    shares_raw: u64,
+    min_payout_lamports: u64,
+    operation_id: u64,
+) -> Result<()> {
+    let _ = operation_id;
     let vault = &mut ctx.accounts.vault;
     require!(shares_raw > 0, EdgepoolError::InvalidParam);
     require!(
@@ -44,8 +61,7 @@ pub fn handler(ctx: Context<Withdraw>, shares_raw: u64, min_payout_lamports: u64
 
     let clock = Clock::get()?;
     require!(
-        vault.marks_lamports == 0
-            || clock.slot.saturating_sub(vault.marks_slot) <= MAX_STALE_SLOTS,
+        vault.marks_lamports == 0 || clock.slot.saturating_sub(vault.marks_slot) <= MAX_STALE_SLOTS,
         EdgepoolError::StaleMarks
     );
 
@@ -62,8 +78,13 @@ pub fn handler(ctx: Context<Withdraw>, shares_raw: u64, min_payout_lamports: u64
     require!(paid >= min_payout_lamports, EdgepoolError::PayoutBelowMin);
 
     // Thanh khoản: đủ cash + giữ buffer + tôn trọng reserve floor.
-    let leftover = cash.checked_sub(paid).ok_or(EdgepoolError::InsufficientLiquidity)?;
-    require!(leftover >= MIN_TREASURY_BUFFER_LAMPORTS, EdgepoolError::InsufficientLiquidity);
+    let leftover = cash
+        .checked_sub(paid)
+        .ok_or(EdgepoolError::InsufficientLiquidity)?;
+    require!(
+        leftover >= MIN_TREASURY_BUFFER_LAMPORTS,
+        EdgepoolError::InsufficientLiquidity
+    );
     if vault.reserve_bps > 0 {
         let floor = math::bps_of(nav, vault.reserve_bps)?;
         require!(leftover >= floor, EdgepoolError::ReserveFloorBreached);

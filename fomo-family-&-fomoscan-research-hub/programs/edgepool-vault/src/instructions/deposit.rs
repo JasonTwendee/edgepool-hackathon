@@ -7,9 +7,10 @@ use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 use crate::errors::EdgepoolError;
 use crate::events::DepositEvent;
 use crate::math;
-use crate::state::{Vault, MAX_STALE_SLOTS, MIN_DEPOSIT_LAMPORTS};
+use crate::state::{OperationReceipt, Vault, MAX_STALE_SLOTS, MIN_DEPOSIT_LAMPORTS};
 
 #[derive(Accounts)]
+#[instruction(amount_lamports: u64, operation_id: u64)]
 pub struct Deposit<'info> {
     #[account(mut)]
     pub vault: Box<Account<'info, Vault>>,
@@ -27,6 +28,16 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
+    /// Idempotency receipt; duplicate (vault,user,operation_id) fails at init.
+    #[account(
+        init,
+        payer = user,
+        space = 8,
+        seeds = [b"operation".as_ref(), &[0u8][..], vault.key().as_ref(), user.key().as_ref(), &operation_id.to_le_bytes()],
+        bump
+    )]
+    pub operation: Account<'info, OperationReceipt>,
+
     #[account(
         init_if_needed,
         payer = user,
@@ -40,15 +51,18 @@ pub struct Deposit<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<Deposit>, amount_lamports: u64) -> Result<()> {
+pub fn handler(ctx: Context<Deposit>, amount_lamports: u64, operation_id: u64) -> Result<()> {
+    let _ = operation_id;
     let vault = &mut ctx.accounts.vault;
     require!(!vault.is_paused(), EdgepoolError::VaultPaused);
-    require!(amount_lamports >= MIN_DEPOSIT_LAMPORTS, EdgepoolError::DepositTooSmall);
+    require!(
+        amount_lamports >= MIN_DEPOSIT_LAMPORTS,
+        EdgepoolError::DepositTooSmall
+    );
 
     let clock = Clock::get()?;
     require!(
-        vault.marks_lamports == 0
-            || clock.slot.saturating_sub(vault.marks_slot) <= MAX_STALE_SLOTS,
+        vault.marks_lamports == 0 || clock.slot.saturating_sub(vault.marks_slot) <= MAX_STALE_SLOTS,
         EdgepoolError::StaleMarks
     );
 

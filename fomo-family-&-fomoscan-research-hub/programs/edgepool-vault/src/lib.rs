@@ -54,7 +54,14 @@ pub mod edgepool_vault {
         max_trade_bps: u16,
         max_marks_bps: u16,
     ) -> Result<()> {
-        update_policy::handler(ctx, fee_bps, withdraw_fee_bps, reserve_bps, max_trade_bps, max_marks_bps)
+        update_policy::handler(
+            ctx,
+            fee_bps,
+            withdraw_fee_bps,
+            reserve_bps,
+            max_trade_bps,
+            max_marks_bps,
+        )
     }
 
     /// Kill-switch: chặn deposit (+ swap sau này). KHÔNG chặn withdraw.
@@ -63,13 +70,18 @@ pub mod edgepool_vault {
     }
 
     /// User nạp SOL → mint vSHARE tại giá hiện tại. Min 0.5 SOL.
-    pub fn deposit(ctx: Context<Deposit>, amount_lamports: u64) -> Result<()> {
-        deposit::handler(ctx, amount_lamports)
+    pub fn deposit(ctx: Context<Deposit>, amount_lamports: u64, operation_id: u64) -> Result<()> {
+        deposit::handler(ctx, amount_lamports, operation_id)
     }
 
     /// User rút: burn vSHARE → nhận SOL tại giá hiện tại, `min_payout` là slippage guard.
-    pub fn withdraw(ctx: Context<Withdraw>, shares_raw: u64, min_payout_lamports: u64) -> Result<()> {
-        withdraw::handler(ctx, shares_raw, min_payout_lamports)
+    pub fn withdraw(
+        ctx: Context<Withdraw>,
+        shares_raw: u64,
+        min_payout_lamports: u64,
+        operation_id: u64,
+    ) -> Result<()> {
+        withdraw::handler(ctx, shares_raw, min_payout_lamports, operation_id)
     }
 
     /// Keeper đẩy giá trị positions (marks) + freshness slot. Delta cap + trần policy.
