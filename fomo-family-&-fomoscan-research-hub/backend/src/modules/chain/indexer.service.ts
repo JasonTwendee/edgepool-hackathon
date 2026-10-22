@@ -185,20 +185,43 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async start(): Promise<void> {
+    await this.hydrateCursor().catch(() => undefined);
     const connection = this.program.connection();
     if (!connection) return;
-    // Subscribe first; WS may be unavailable when an HTTP RPC proxy is used.
-    try {
-      this.subId = await connection.onLogs(this.program.programId(), (info, ctx) => {
-        if (info.err) return;
-        void this.ingest(info.signature, ctx.slot, info.logs).catch(() => undefined);
-      });
-    } catch (e) {
-      console.warn('[chain-indexer] live subscription unavailable:', (e as Error).message);
+    if (getConfig().chain.wsEnabled) {
+      try {
+        this.subId = await connection.onLogs(this.program.programId(), (info, ctx) => {
+          if (info.err) return;
+          void this.ingest(info.signature, ctx.slot, info.logs).catch(() => undefined);
+        });
+      } catch (e) {
+        console.warn('[chain-indexer] live subscription unavailable:', (e as Error).message);
+      }
     }
     await this.backfill().catch((e) => {
       console.warn('[chain-indexer] backfill delayed:', (e as Error).message);
     });
+  }
+
+  private async hydrateCursor(): Promise<void> {
+    const latest = await this.prisma.chainEvent.findFirst({
+      orderBy: { slot: 'desc' },
+      select: { slot: true },
+    });
+    this.lastSlot = latest ? Number(latest.slot) : 0;
+  }
+
+  /** User-triggered post-tx sync: processes the newest signatures even if a
+   * keeper event already advanced the cursor past the deposit/withdraw slot. */
+  async syncVault(vaultId: number): Promise<{ vaultId: number; synced: boolean }> {
+    if (!this.program.enabled()) return { vaultId, synced: false };
+    const vault = await this.prisma.vault.findUnique({
+      where: { id: vaultId },
+      select: { chainVault: true },
+    });
+    if (!vault?.chainVault) return { vaultId, synced: false };
+    await this.backfill(true);
+    return { vaultId, synced: true };
   }
 
   /**
@@ -206,7 +229,7 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
    * Bound vault accounts have very few transactions and include every
    * deposit/withdraw/init tx that touches them, so scan per vault instead.
    */
-  private async backfill(): Promise<void> {
+  private async backfill(force = false): Promise<void> {
     const connection = this.program.connection();
     if (!connection) return;
     const vaults = await this.prisma.vault.findMany({
@@ -219,14 +242,14 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
       let sigs;
       try {
         sigs = await connection.getSignaturesForAddress(new PublicKey(vault.chainVault), {
-          limit: BACKFILL_LIMIT,
+          limit: force ? 10 : BACKFILL_LIMIT,
         });
       } catch (e) {
         console.warn('[chain-indexer] vault signatures failed:', (e as Error).message);
         continue;
       }
       for (const s of sigs.reverse()) {
-        if (s.blockTime === null || s.slot <= this.lastSlot || seen.has(s.signature)) continue;
+        if (s.blockTime === null || (!force && s.slot <= this.lastSlot) || seen.has(s.signature)) continue;
         seen.add(s.signature);
         try {
           const tx = await this.getTransactionWithRetry(connection, s.signature);

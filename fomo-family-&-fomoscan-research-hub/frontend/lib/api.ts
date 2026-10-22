@@ -427,6 +427,14 @@ export function chainFaucet(token: string, input: { address: string; amountSol?:
   return fetchJsonAuth('/api/chain/faucet', token, { method: 'POST', body: JSON.stringify(input) });
 }
 
+/** Trigger one indexer poll after a user-signed on-chain deposit/withdraw. */
+export function chainSyncPool(
+  token: string,
+  vaultId: number,
+): Promise<{ success: boolean; data: { vaultId: number; synced: boolean } }> {
+  return fetchJsonAuth(`/api/chain/pools/${vaultId}/sync`, token, { method: 'POST' });
+}
+
 export interface ChainDemoPoolResult {
   poolId: number;
   name: string;

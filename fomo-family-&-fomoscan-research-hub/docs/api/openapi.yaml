@@ -1835,6 +1835,52 @@ paths:
               schema:
                 type: string
                 example: "data: {\"type\":\"CONNECTED\",\"vaultId\":1}\n\ndata: {\"type\":\"REPLAY\",\"events\":[...]}\n\ndata: {\"type\":\"SIGNAL\",\"event\":{\"kind\":\"SKIP\",\"token\":\"$XsCP\",\"note\":\"Qualify blocked\"}}\n\n"
+  /api/chain/pools/{id}/sync:
+    post:
+      summary: Auth — poll the bound vault once so a just-signed deposit/withdraw appears in the ledger
+      operationId: chainSyncPool
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      vaultId: { type: integer }
+                      synced: { type: boolean }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/chain/rpc:
+    post:
+      summary: Auth — same-origin JSON-RPC fallback (public-first, server-side Helius fallback)
+      operationId: chainRpcFallback
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Raw JSON-RPC response
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+
   /api/chain/faucet:
     post:
       summary: Devnet SOL faucet for chain testing (P2) — auth required, genesis-gated, 1 grant/24h/user

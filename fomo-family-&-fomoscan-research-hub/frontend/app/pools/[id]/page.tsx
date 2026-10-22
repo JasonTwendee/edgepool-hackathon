@@ -5,9 +5,11 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, LockSimple, PauseCircle, UsersThree, X, XLogo } from '@phosphor-icons/react';
 import {
+  bumpApiCache,
   getAuthMe,
   getPoolDetail,
   chainFaucet,
+  chainSyncPool,
   cloneDemo,
   listBots,
   partialCloseDemo,
@@ -250,10 +252,14 @@ export default function PoolDetailPage() {
         setMsg('Waiting for wallet signature…');
         const r = await chainDeposit(programId, vault, wallet, amt);
         setChainTx(r.signature);
+        setMsg('On-chain deposit confirmed — syncing shares…');
+        await chainSyncPool(token, pool.id).catch(() => undefined);
+        bumpApiCache('pool:');
         const ok = `Deposit ${amt.toFixed(2)} SOL → ${r.estimatedShares} shares (on-chain, devnet).`;
         setMsg(ok);
         toast(ok);
         setAmount('');
+        setWalletSol(await getWalletSol(wallet).catch(() => null));
         await refresh();
       } catch (e) {
         setMsg(mapChainError(e));
@@ -315,9 +321,12 @@ export default function PoolDetailPage() {
       try {
         const r = await chainWithdraw(programId, vault, wallet, shares);
         setChainTx(r.signature);
+        await chainSyncPool(token, pool.id).catch(() => undefined);
+        bumpApiCache('pool:');
         const okMsg = `Withdrew ${shares.toFixed(4)} shares → ${r.estimatedPayout} SOL (on-chain, devnet).`;
         setMsg(okMsg);
         toast(okMsg);
+        setWalletSol(await getWalletSol(wallet).catch(() => null));
       } catch (e) {
         throw new Error(mapChainError(e));
       }

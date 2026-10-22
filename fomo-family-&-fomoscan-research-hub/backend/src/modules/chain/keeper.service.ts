@@ -5,7 +5,7 @@
  * hoặc thiếu keeper key. Mọi lỗi mạng/tx chỉ warn, không crash loop.
  */
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { createRequire } from 'node:module';
 import { PrismaService } from '../../database/prisma.service.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
@@ -67,12 +67,12 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
     const vaults = await this.db.vault.findMany({ where: { chainVault: { not: null } } });
     for (const v of vaults) {
       try {
-        await this.tickVault(v as { id: number; chainVault: string }, program, keeper.publicKey);
+        await this.tickVault(v as { id: number; chainVault: string }, program, keeper);
       } catch (e) {
         console.warn(`[chain-keeper] vault ${v.id} failed:`, (e as Error).message);
       }
     }
-    await this.recordSimTrades(program, keeper.publicKey).catch(() => undefined);
+    await this.recordSimTrades(program, keeper).catch(() => undefined);
   }
 
   private async solPrice(): Promise<number> {
@@ -88,7 +88,7 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
     v: { id: number; chainVault: string },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     program: any,
-    keeperPk: PublicKey,
+    keeper: Keypair,
   ): Promise<void> {
     const vaultPk = new PublicKey(v.chainVault);
     const treasury = this.program.treasuryOf(vaultPk);
@@ -99,13 +99,17 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
     const sol = await this.solPrice();
     const values = open.map((o) => (sol > 0 ? Number(o.amountUsd ?? 0) / sol : 0));
     const marks = computeMarksLamports(values);
-    await program.methods
-      .updateMarks(new BN(marks))
-      .accounts({ vault: vaultPk, treasury, keeper: keeperPk })
-      .signers([])
-      .rpc();
+    await this.program.sendAndConfirmPolling(
+      program.methods
+        .updateMarks(new BN(marks))
+        .accounts({ vault: vaultPk, treasury, keeper: keeper.publicKey }),
+      keeper,
+    );
     if (this.ticks % SETTLE_EVERY_TICKS === 0) {
-      await program.methods.settleEpoch().accounts({ vault: vaultPk, treasury, keeper: keeperPk }).rpc();
+      await this.program.sendAndConfirmPolling(
+        program.methods.settleEpoch().accounts({ vault: vaultPk, treasury, keeper: keeper.publicKey }),
+        keeper,
+      );
     }
     await this.killSwitch(v);
   }
@@ -135,7 +139,7 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
   private async recordSimTrades(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     program: any,
-    keeperPk: PublicKey,
+    keeper: Keypair,
   ): Promise<void> {
     const legs = await this.db.copyOrderLeg.findMany({
       where: { id: { gt: this.lastLegId } },
@@ -157,16 +161,18 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
       const sol = await this.solPrice();
       const sizeLamports = sol > 0 ? Math.floor(Number(order.amountUsd ?? 0) / sol) : 0;
       try {
-        await program.methods
-          .recordSimTrade(
-            new PublicKey(String(order.tokenMint)),
-            String(leg.leg ?? '').startsWith('TP') ? 1 : 0,
-            new BN(sizeLamports),
-            new BN(0),
-            new BN(0),
-          )
-          .accounts({ vault: new PublicKey(String(chainVault)), keeper: keeperPk })
-          .rpc();
+        await this.program.sendAndConfirmPolling(
+          program.methods
+            .recordSimTrade(
+              new PublicKey(String(order.tokenMint)),
+              String(leg.leg ?? '').startsWith('TP') ? 1 : 0,
+              new BN(sizeLamports),
+              new BN(0),
+              new BN(0),
+            )
+            .accounts({ vault: new PublicKey(String(chainVault)), keeper: keeper.publicKey }),
+          keeper,
+        );
       } catch {
         continue;
       }

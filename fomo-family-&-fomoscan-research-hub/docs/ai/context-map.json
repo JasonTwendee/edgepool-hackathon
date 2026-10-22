@@ -288,7 +288,9 @@
     "GET /api/market/prices": "backend/src/modules/market/market.controller.ts (DataStream proxy)",
     "POST /api/chain/faucet": "backend/src/modules/chain/faucet.controller.ts",
     "POST /api/chain/demo-pool": "backend/src/modules/chain/chain-admin.controller.ts",
-    "POST /api/chain/pools/:id/initialize": "backend/src/modules/chain/chain-admin.controller.ts"
+    "POST /api/chain/pools/:id/initialize": "backend/src/modules/chain/chain-admin.controller.ts",
+    "POST /api/chain/pools/:id/sync": "backend/src/modules/chain/faucet.controller.ts",
+    "POST /api/chain/rpc": "backend/src/modules/chain/faucet.controller.ts"
   },
   "scripts": {
     "dev:backend": "npm --prefix backend run dev (tsx watch :3000)",

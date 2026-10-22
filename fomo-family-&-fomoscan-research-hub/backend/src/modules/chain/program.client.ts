@@ -4,7 +4,7 @@
  * Every method no-ops (null/false) unless CHAIN_ENABLED=true.
  */
 import { Injectable } from '@nestjs/common';
-import { Connection, Keypair, PublicKey } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
 import { SystemProgram } from '@solana/web3.js';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -74,14 +74,47 @@ export class ChainProgramClient {
   }
 
   rpcUrl(): string {
-    return this.cluster() === 'mainnet' ? getConfig().solanaRpcUrl : getConfig().devnetRpcUrl || DEVNET_RPC;
+    return this.cluster() === 'mainnet'
+      ? getConfig().solanaRpcUrl
+      : getConfig().chain.publicRpcUrl || getConfig().devnetRpcUrl || DEVNET_RPC;
+  }
+
+  fallbackRpcUrl(): string | undefined {
+    if (this.cluster() !== 'devnet') return undefined;
+    const url = getConfig().chain.fallbackRpcUrl;
+    return url && url !== this.rpcUrl() ? url : undefined;
   }
 
   /**
-   * WS endpoint for Anchor confirmations/live logs. FluxRPC does not serve
-   * Solana devnet, so devnet defaults to the public WS (HTTP reads can still
-   * go through a dedicated/proxied RPC). Mainnet must set SOLANA_WS_URL or
-   * CHAIN_WS_URL when the HTTP provider's WS host differs (e.g. FluxRPC).
+   * Public-first HTTP transport. web3 retries 429 internally by default; we
+   * disable that and send the same JSON-RPC body to the fallback endpoint
+   * only for 429/5xx/network failures. The fallback key never reaches FE.
+   */
+  private failoverFetch(): typeof fetch | undefined {
+    const fallback = this.fallbackRpcUrl();
+    if (!fallback) return undefined;
+    const primary = this.rpcUrl();
+    return async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      let first: Response | null = null;
+      let firstError: unknown = null;
+      try {
+        first = await fetch(primary, init);
+        if (first.status !== 429 && first.status < 500) return first;
+      } catch (e) {
+        firstError = e;
+      }
+      try {
+        return await fetch(fallback, init);
+      } catch (e) {
+        if (first) return first;
+        throw firstError instanceof Error ? firstError : e;
+      }
+    };
+  }
+
+  /**
+   * WS endpoint is optional; polling is the primary path. FluxRPC does not
+   * serve Solana devnet, so devnet defaults to the public WS only if enabled.
    */
   wsUrl(): string | undefined {
     const cfg = getConfig();
@@ -100,12 +133,21 @@ export class ChainProgramClient {
     if (!this.connectionCache) {
       this.connectionCache = new Connection(this.rpcUrl(), {
         commitment: 'confirmed',
-        wsEndpoint: this.wsUrl(),
-        // Let our indexer/keeper own backoff instead of web3 resubscribing hot.
+        ...(getConfig().chain.wsEnabled ? { wsEndpoint: this.wsUrl() } : {}),
+        // Failover is explicit; do not let web3 hot-retry the public endpoint.
         disableRetryOnRateLimit: true,
+        fetch: this.failoverFetch(),
       });
     }
     return this.connectionCache;
+  }
+
+  /** Faucet must hit a real faucet RPC; Helius does not implement requestAirdrop. */
+  faucetConnection(): Connection {
+    return new Connection(this.rpcUrl(), {
+      commitment: 'confirmed',
+      disableRetryOnRateLimit: true,
+    });
   }
 
   keeper(): Keypair | null {
@@ -171,27 +213,29 @@ export class ChainProgramClient {
     const clean = name.trim().slice(0, 24);
     if (!clean) throw new Error('Vault name is required.');
     const pdas = this.derivePdas(clean);
-    const signature = await program.methods
-      .initializeVault(
-        clean,
-        keeper.publicKey,
-        opts.feeBps,
-        opts.withdrawFeeBps,
-        opts.reserveBps,
-        opts.maxTradeBps,
-        opts.maxMarksBps,
-        0,
-      )
-      .accounts({
-        manager: keeper.publicKey,
-        vault: pdas.vault,
-        shareMint: pdas.shares,
-        treasury: pdas.treasury,
-        vaultAuthority: pdas.authority,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-      })
-      .rpc();
+    const signature = await this.sendAndConfirmPolling(
+      program.methods
+        .initializeVault(
+          clean,
+          keeper.publicKey,
+          opts.feeBps,
+          opts.withdrawFeeBps,
+          opts.reserveBps,
+          opts.maxTradeBps,
+          opts.maxMarksBps,
+          0,
+        )
+        .accounts({
+          manager: keeper.publicKey,
+          vault: pdas.vault,
+          shareMint: pdas.shares,
+          treasury: pdas.treasury,
+          vaultAuthority: pdas.authority,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+        }),
+      keeper,
+    );
     return {
       signature,
       programId: this.programId().toBase58(),
@@ -200,6 +244,114 @@ export class ChainProgramClient {
       shares: pdas.shares.toBase58(),
       authority: pdas.authority.toBase58(),
     };
+  }
+
+  /**
+   * Send an Anchor-built tx and confirm with HTTP polling. This avoids WS
+   * confirmation dependencies and works with the public→fallback transport.
+   */
+  async sendAndConfirmPolling(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    builder: { transaction(): Promise<Transaction> },
+    keeper: Keypair,
+  ): Promise<string> {
+    const connection = this.connectionForSetup();
+    const tx = await builder.transaction();
+    tx.feePayer = keeper.publicKey;
+    const { blockhash } = await connection.getLatestBlockhash('confirmed');
+    tx.recentBlockhash = blockhash;
+    tx.sign(keeper);
+    const signature = await connection.sendRawTransaction(tx.serialize(), {
+      skipPreflight: false,
+      maxRetries: 3,
+    });
+    const deadline = Date.now() + 90_000;
+    let lastError: unknown = null;
+    while (Date.now() < deadline) {
+      try {
+        const status = await connection.getSignatureStatuses([signature], {
+          searchTransactionHistory: true,
+        });
+        const value = status.value[0];
+        if (value?.err) {
+          throw new Error(`Transaction failed on-chain: ${JSON.stringify(value.err)}`);
+        }
+        if (
+          value &&
+          (value.confirmationStatus === 'confirmed' ||
+            value.confirmationStatus === 'finalized' ||
+            value.confirmations === null)
+        ) {
+          return signature;
+        }
+      } catch (e) {
+        lastError = e;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    throw new Error(
+      `Transaction confirmation timed out: ${signature}${
+        lastError instanceof Error ? ` (${lastError.message})` : ''
+      }`,
+    );
+  }
+
+  /**
+   * Backend-only JSON-RPC proxy used by the browser as a fallback when the
+   * public endpoint returns 429/5xx. Keeps the Helius key server-side.
+   */
+  async proxyRpc(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const method = typeof body.method === 'string' ? body.method : '';
+    const allowed = new Set([
+      'getAccountInfo',
+      'getBalance',
+      'getBlockHeight',
+      'getEpochInfo',
+      'getFeeForMessage',
+      'getGenesisHash',
+      'getHealth',
+      'getLatestBlockhash',
+      'getMinimumBalanceForRentExemption',
+      'getMultipleAccounts',
+      'getRecentPrioritizationFees',
+      'getSignatureStatuses',
+      'getSignaturesForAddress',
+      'getSlot',
+      'getTokenAccountBalance',
+      'getTokenAccountsByOwner',
+      'getTransaction',
+      'getVersion',
+      'sendTransaction',
+      'simulateTransaction',
+    ]);
+    if (!allowed.has(method)) throw new Error(`RPC method not allowed: ${method || '(missing)'}`);
+    const urls = [this.rpcUrl(), this.fallbackRpcUrl()].filter(
+      (url): url is string => typeof url === 'string' && url.length > 0,
+    );
+    let last: unknown = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const text = await res.text();
+        let parsed: Record<string, unknown> = {};
+        try {
+          parsed = JSON.parse(text) as Record<string, unknown>;
+        } catch {
+          parsed = { error: { code: res.status, message: text.slice(0, 200) } };
+        }
+        const error = parsed.error as { code?: number } | undefined;
+        const retryable = res.status === 429 || res.status >= 500 || error?.code === 429;
+        if (!retryable) return parsed;
+        last = new Error(`RPC ${method} HTTP ${res.status}`);
+      } catch (e) {
+        last = e;
+      }
+    }
+    throw last instanceof Error ? last : new Error('RPC proxy failed');
   }
 
   derivePdas(vaultName: string): VaultPdas {

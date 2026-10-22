@@ -66,13 +66,16 @@ Chuẩn bị (ADMIN + devnet, làm trước giờ demo):
 5. FE withdraw → min_payout mặc định (= estimate − 0.5%) → SOL về ví ngay.
 
 Lưu ý vận hành:
-- Public devnet RPC (`api.devnet.solana.com`) rate-limit rất mạnh `getTransaction` (429).
-  Indexer mirror có thể chậm/không chạy với RPC public; dùng **dedicated devnet RPC**
-  trước khi demo cho khách. Deposit/withdraw trực tiếp trên browser không phụ thuộc indexer.
-- Indexer chạy **WS live + polling HTTP fallback** (`CHAIN_POLL_MS`, mặc định 60s).
-  Devnet dùng `CHAIN_WS_URL=wss://api.devnet.solana.com` (hoặc public default); mainnet
-  FluxRPC dùng `SOLANA_WS_URL`/`CHAIN_WS_URL=wss://ws.eu.fluxrpc.com?key=...`.
-  FluxRPC chỉ có Solana mainnet + Fogo testnet, **không có devnet**.
+- Chain dùng **polling public-first**: `DEVNET_PUBLIC_RPC_URL` trước, chỉ fallback
+  `DEVNET_FALLBACK_RPC_URL` (Helius) khi public trả 429/5xx/network error.
+  Mặc định `CHAIN_POLL_MS=30000`; WS là optional (`CHAIN_WS_ENABLED=false`).
+  `CHAIN_WS_URL`/`SOLANA_WS_URL` chỉ cần khi bật WS hoặc chain mainnet.
+- Sau mỗi deposit/withdraw on-chain, FE gọi `POST /api/chain/pools/:id/sync`
+  để indexer poll ngay và cập nhật shares/position; user không phải chờ 30s.
+- **Faucet** dùng public devnet RPC (không dùng Helius vì Helius không hỗ trợ
+  `requestAirdrop`); nếu public bị rate-limit, thử lại hoặc dùng dashboard faucet.
+- Public devnet vẫn có thể rate-limit `getTransaction`; fallback Helius xử lý.
+  Mainnet vẫn dùng FluxRPC, không bật `MAINNET_SWAP_ENABLED`.
 - Không bind pool 14/15; không bật `MAINNET_SWAP_ENABLED`; không dùng keypair mainnet.
 - Nếu `CHAIN_ENABLED=false`, admin initialize/bind vẫn chạy được (setup path), nhưng
   faucet/keeper/indexer không chạy.

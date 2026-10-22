@@ -24,7 +24,13 @@ export interface ChainConfig {
   maxStaleSlots: number;
   /** Optional chain WS endpoint (FluxRPC: wss://ws.eu.fluxrpc.com?key=...). */
   wsUrl?: string;
-  /** Polling fallback cadence for the indexer (ms). */
+  /** Enable WS live subscription; polling remains the primary safety net. */
+  wsEnabled: boolean;
+  /** Public devnet RPC tried first for chain reads/writes. */
+  publicRpcUrl: string;
+  /** Fallback devnet RPC (Helius) used only on 429/5xx/network errors. */
+  fallbackRpcUrl?: string;
+  /** Polling cadence for the indexer (ms). */
   pollMs: number;
   /** Jupiter swap API (dự phòng P4, chưa dùng). */
   jupiterSwapApiUrl: string;
@@ -80,7 +86,13 @@ export function getConfig(): BackendConfig {
         ? parseInt(process.env.CHAIN_MAX_STALE_SLOTS, 10)
         : 750,
       wsUrl: process.env.CHAIN_WS_URL || undefined,
-      pollMs: process.env.CHAIN_POLL_MS ? Math.max(5000, parseInt(process.env.CHAIN_POLL_MS, 10)) : 60_000,
+      wsEnabled: process.env.CHAIN_WS_ENABLED === 'true',
+      publicRpcUrl:
+        process.env.DEVNET_PUBLIC_RPC_URL ||
+        process.env.DEVNET_RPC_URL ||
+        'https://api.devnet.solana.com',
+      fallbackRpcUrl: process.env.DEVNET_FALLBACK_RPC_URL || undefined,
+      pollMs: process.env.CHAIN_POLL_MS ? Math.max(5000, parseInt(process.env.CHAIN_POLL_MS, 10)) : 30_000,
       jupiterSwapApiUrl: process.env.JUPITER_SWAP_API_URL || '',
       mainnetSwapEnabled: process.env.MAINNET_SWAP_ENABLED === 'true',
     },

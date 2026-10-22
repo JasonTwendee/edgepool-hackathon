@@ -88,6 +88,7 @@ This file is the durable rule source.
 - 2026-10-20: Master trader performance hiển thị từ Fomo (`source=fomo`), pool performance từ copy orders/local; không trộn hai nguồn. Nếu Fomo lỗi/không có handle → fallback local và ghi source.
 - 2026-10-21 (user-approved): Merge `feat/program-vault` vào `main` và deploy lên server hiện tại với `CHAIN_ENABLED=false` trước. Không bind pool 14/15; chỉ bind pool demo riêng khi devnet E2E xong. P4/P5 + mainnet vẫn gated, chưa audit.
 - 2026-10-21: Chain demo binding chỉ cho `unlisted` + tên `demo-chain-*`; endpoint initialize/bind từ chối public pools. Deposit browser E2E có thể chạy khi chain loop OFF; keeper/indexer/faucet chỉ chạy khi `CHAIN_ENABLED=true`. Trước demo khách phải dùng dedicated devnet RPC (public RPC rate-limit `getTransaction` 429) và không bật mainnet.
+- 2026-10-22: Chain devnet reads/writes dùng **polling public-first** (`DEVNET_PUBLIC_RPC_URL`), fallback Helius chỉ khi 429/5xx/network. `CHAIN_WS_ENABLED=false` mặc định; keeper confirm bằng HTTP polling. Faucet `requestAirdrop` phải dùng public devnet RPC, không dùng Helius. FE gọi `POST /api/chain/pools/:id/sync` sau on-chain tx để cập nhật position ngay.
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 <!-- CODEXMINIMAL:PROMOTED_FEEDBACK_RULES END -->
 

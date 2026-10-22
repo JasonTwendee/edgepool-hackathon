@@ -11,6 +11,7 @@ import {
 } from '@solana/web3.js';
 import idl from './idl/edgepool_vault.json';
 import { getInjectedProvider, type InjectedSolanaProvider } from './solana';
+import { getStoredToken } from './api';
 
 export const CHAIN_DEVNET_RPC = 'https://api.devnet.solana.com';
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
@@ -40,7 +41,48 @@ export function txUrl(signature: string): string {
 }
 
 export function getChainConnection(): Connection {
-  return new Connection(CHAIN_DEVNET_RPC, 'confirmed');
+  return new Connection(CHAIN_DEVNET_RPC, {
+    commitment: 'confirmed',
+    disableRetryOnRateLimit: true,
+    fetch: async (input, init) => {
+      try {
+        const primary = await fetch(input, init);
+        if (primary.status !== 429 && primary.status < 500) return primary;
+      } catch {
+        // fall through to the server-side proxy
+      }
+      const token = getStoredToken();
+      const headers = new Headers(init?.headers);
+      headers.set('content-type', 'application/json');
+      if (token) headers.set('authorization', `Bearer ${token}`);
+      return fetch('/api/chain/rpc', {
+        method: 'POST',
+        headers,
+        body: (init?.body ?? null) as BodyInit | null,
+      });
+    },
+  });
+}
+
+async function confirmSignature(connection: Connection, signature: string): Promise<void> {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    const status = await connection.getSignatureStatuses([signature], {
+      searchTransactionHistory: true,
+    });
+    const value = status.value[0];
+    if (value?.err) throw new Error(`Giao dịch thất bại on-chain: ${JSON.stringify(value.err)}`);
+    if (
+      value &&
+      (value.confirmationStatus === 'confirmed' ||
+        value.confirmationStatus === 'finalized' ||
+        value.confirmations === null)
+    ) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error('Giao dịch chưa được xác nhận sau 90s — kiểm tra explorer rồi thử lại.');
 }
 
 export function pdasFor(vaultAddr: string, programId: string): ChainPdas {
@@ -230,7 +272,7 @@ async function sendViaWallet(
 ): Promise<string> {
   const injected = getInjectedProvider();
   if (!injected) throw new Error('Chưa thấy ví Solana trong trình duyệt.');
-  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+  const { blockhash } = await connection.getLatestBlockhash('confirmed');
   tx.recentBlockhash = blockhash;
   tx.feePayer = new PublicKey(walletAddress);
   const p = injected as unknown as Record<string, unknown>;
@@ -247,8 +289,7 @@ async function sendViaWallet(
   } else {
     throw new Error('Ví không hỗ trợ ký giao dịch. Dùng Phantom hoặc OKX Wallet bản mới.');
   }
-  const conf = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-  if (conf.value.err) throw new Error(`Giao dịch thất bại on-chain: ${JSON.stringify(conf.value.err)}`);
+  await confirmSignature(connection, signature);
   return signature;
 }
 
