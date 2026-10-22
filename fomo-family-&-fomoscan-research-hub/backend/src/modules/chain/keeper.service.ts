@@ -126,9 +126,11 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
       take: 2,
     });
     if (epochs.length < 2) return;
-    const [now, prev] = epochs.map((e) => Number(e.navSol ?? 0));
+    // Compare price per share, not NAV: deposits/withdrawals legitimately
+    // change NAV via flows and must not trigger a performance kill-switch.
+    const [now, prev] = epochs.map((e) => Number(e.sharePrice ?? 0));
     if (prev > 0 && now < prev * (1 - KILL_DROP)) {
-      const reason = `nav drop ${(100 * (1 - now / prev)).toFixed(2)}% — manager review, consider set_paused`;
+      const reason = `share-price drop ${(100 * (1 - now / prev)).toFixed(2)}% — manager review, consider set_paused`;
       console.warn(`[chain-keeper] KILL-SWITCH vault ${v.id}: ${reason}`);
       await this.audit
         .record({ actor: 'chain-keeper', action: 'chain.kill_switch', target: String(v.id), reason })
