@@ -36,6 +36,25 @@ function keeperFromBase58(secret: string): Keypair {
   return Keypair.fromSecretKey(bytes);
 }
 
+/** Prisma Json cannot persist Anchor BN/PublicKey objects; normalize first. */
+function jsonSafe(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'bigint') return Number(value);
+  if (value instanceof PublicKey) return value.toBase58();
+  if (Array.isArray(value)) return value.map(jsonSafe);
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown> & {
+      toNumber?: () => number;
+      toBase58?: () => string;
+    };
+    if (typeof obj.toNumber === 'function') return obj.toNumber();
+    if (typeof obj.toBase58 === 'function') return obj.toBase58();
+    return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, jsonSafe(v)]));
+  }
+  return String(value);
+}
+
 @Injectable()
 export class ChainProgramClient {
   private connectionCache: Connection | null = null;
@@ -222,7 +241,7 @@ export class ChainProgramClient {
     try {
       const parser = new anchor.EventParser(this.programId(), program.coder.events);
       for (const ev of parser.parseLogs(logs)) {
-        out.push({ kind: ev.name, payload: { ...(ev.data as object) } });
+        out.push({ kind: ev.name, payload: jsonSafe(ev.data) as Record<string, unknown> });
       }
     } catch {
       return out;
