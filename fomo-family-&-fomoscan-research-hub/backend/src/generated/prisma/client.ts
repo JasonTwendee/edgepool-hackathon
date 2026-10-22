@@ -72,6 +72,11 @@ export type CopyOrderLeg = Prisma.CopyOrderLegModel
  */
 export type Vault = Prisma.VaultModel
 /**
+ * Model ChainOperation
+ * 
+ */
+export type ChainOperation = Prisma.ChainOperationModel
+/**
  * Model Deposit
  * 
  */

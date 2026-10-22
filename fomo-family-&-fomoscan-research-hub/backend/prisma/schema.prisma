@@ -217,6 +217,33 @@ model Vault {
   @@map("vaults")
 }
 
+// Async deposit/withdraw operation + idempotency contract.
+// The client creates a PENDING op with an Idempotency-Key, signs/sends the
+// on-chain tx, then submits the signature. Indexer marks it INDEXED.
+model ChainOperation {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @map("user_id")
+  vaultId        Int       @map("vault_id")
+  idempotencyKey String    @map("idempotency_key") @db.VarChar(128)
+  kind           String    @db.VarChar(16)
+  wallet         String    @db.VarChar(64)
+  amountSol      Decimal?  @map("amount_sol") @db.Decimal(24, 12)
+  shares         Decimal?  @db.Decimal(24, 12)
+  status         String    @default("PENDING") @db.VarChar(16)
+  txSignature    String?   @unique @map("tx_signature") @db.VarChar(96)
+  error          String?   @db.Text
+  attempts       Int       @default(0)
+  submittedAt    DateTime? @map("submitted_at") @db.Timestamptz()
+  indexedAt      DateTime? @map("indexed_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([userId, idempotencyKey])
+  @@index([vaultId, status])
+  @@index([wallet])
+  @@map("chain_operations")
+}
+
 model Deposit {
   id           Int      @id @default(autoincrement())
   vaultId      Int      @map("vault_id")

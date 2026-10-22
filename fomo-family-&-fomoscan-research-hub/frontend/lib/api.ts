@@ -435,6 +435,55 @@ export function chainSyncPool(
   return fetchJsonAuth(`/api/chain/pools/${vaultId}/sync`, token, { method: 'POST' });
 }
 
+export type ChainOperationKind = 'DEPOSIT' | 'WITHDRAW';
+export type ChainOperationStatus = 'PENDING' | 'SUBMITTED' | 'INDEXED' | 'FAILED';
+export interface ChainOperation {
+  id: number;
+  vaultId: number;
+  kind: ChainOperationKind;
+  wallet: string;
+  amountSol: number | null;
+  shares: number | null;
+  status: ChainOperationStatus;
+  txSignature: string | null;
+  error: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  indexedAt: string | null;
+}
+
+/** Create/replay an idempotent on-chain money operation. */
+export function createChainOperation(
+  token: string,
+  vaultId: number,
+  idempotencyKey: string,
+  input: { kind: ChainOperationKind; amountSol?: number; shares?: number },
+): Promise<{ success: boolean; data: { operation: ChainOperation; reused: boolean } }> {
+  return fetchJsonAuth(`/api/chain/pools/${vaultId}/operations`, token, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(input),
+  });
+}
+
+export function submitChainOperation(
+  token: string,
+  operationId: number,
+  signature: string,
+): Promise<{ success: boolean; data: ChainOperation }> {
+  return fetchJsonAuth(`/api/chain/operations/${operationId}/submit`, token, {
+    method: 'POST',
+    body: JSON.stringify({ signature }),
+  });
+}
+
+export function getChainOperation(
+  token: string,
+  operationId: number,
+): Promise<{ success: boolean; data: ChainOperation }> {
+  return fetchJsonAuth(`/api/chain/operations/${operationId}`, token);
+}
+
 export interface ChainDemoPoolResult {
   poolId: number;
   name: string;
@@ -602,12 +651,15 @@ export function getCachedProfile(): { wallet: string; username?: string | null; 
 }
 
 async function fetchJsonAuth<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set('Content-Type', 'application/json');
+  headers.set('Authorization', `Bearer ${token}`);
   const res = await fetch(`${API_BASE}${path}`, {
     // credentials:include lets the httpOnly cookie flow through Next rewrites;
     // Bearer stays for scripts/back-compat.
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     ...init,
+    headers,
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { message?: string };

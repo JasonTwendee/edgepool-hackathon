@@ -10,6 +10,7 @@ import { getConfig } from '../../config/configuration.js';
 import { PrismaService } from '../../database/prisma.service.js';
 import { eventNumber, matchDepositByAmount, parseChainEvents } from './events.js';
 import { ChainProgramClient } from './program.client.js';
+import { ChainOperationService } from './chain-operation.service.js';
 
 const BACKFILL_LIMIT = 50;
 
@@ -18,12 +19,15 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
   private subId: number | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private lastSlot = 0;
+  private readonly opQueue: { vaultId: number; signature: string }[] = [];
+  private opQueueRunning = false;
   /** HTTP polling fallback runs even when WS is down/rate-limited. */
   private readonly pollMs = getConfig().chain.pollMs;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ChainProgramClient) private readonly program: ChainProgramClient,
+    @Inject(ChainOperationService) private readonly operations: ChainOperationService,
   ) {}
 
   onModuleInit(): void {
@@ -88,6 +92,7 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
       }
     }
     if (slot > this.lastSlot) this.lastSlot = slot;
+    await this.operations.markIndexed(signature).catch(() => undefined);
   }
 
   /** Mirror an on-chain event into off-chain rows (best-effort, fuzzy match). */
@@ -185,6 +190,53 @@ export class ChainIndexerService implements OnModuleInit, OnModuleDestroy {
         await db.epochCheckpoint.update({ where: { id: latest.id }, data: { chainSig: signature } });
       }
     }
+  }
+
+  /** Low-latency targeted sync after submit; coalesced into one HTTP worker. */
+  enqueueSignature(vaultId: number, signature: string): void {
+    if (this.opQueue.some((q) => q.signature === signature)) return;
+    this.opQueue.push({ vaultId, signature });
+    void this.drainOperationQueue();
+  }
+
+  private async drainOperationQueue(): Promise<void> {
+    if (this.opQueueRunning) return;
+    this.opQueueRunning = true;
+    try {
+      while (this.opQueue.length > 0) {
+        const item = this.opQueue.shift();
+        if (!item) break;
+        try {
+          await this.syncSignature(item.signature).catch((e) => {
+            console.warn('[chain-indexer] targeted sync failed:', (e as Error).message);
+          });
+        } catch (e) {
+          console.warn('[chain-indexer] operation sync failed:', (e as Error).message);
+        }
+      }
+    } finally {
+      this.opQueueRunning = false;
+    }
+  }
+
+  private async syncSignature(signature: string): Promise<void> {
+    const connection = this.program.connection();
+    if (!connection) return;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const tx = await connection.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
+      if (tx?.meta?.err) {
+        await this.operations.markFailed(signature, JSON.stringify(tx.meta.err));
+        return;
+      }
+      const logs = tx?.meta?.logMessages;
+      if (tx && logs) {
+        await this.ingest(signature, tx.slot, logs);
+        await this.operations.markIndexed(signature);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    // The regular 30s poll is the final safety net for a not-yet-visible tx.
   }
 
   /** Refresh off-chain NAV/price/supply from the vault PDA after money events. */

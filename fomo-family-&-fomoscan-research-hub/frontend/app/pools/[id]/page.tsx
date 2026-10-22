@@ -9,7 +9,9 @@ import {
   getAuthMe,
   getPoolDetail,
   chainFaucet,
-  chainSyncPool,
+  createChainOperation,
+  getChainOperation,
+  submitChainOperation,
   cloneDemo,
   listBots,
   partialCloseDemo,
@@ -32,6 +34,24 @@ import { LoginModal } from '../../../components/LoginModal';
 import { connectBrowserWallet, getInjectedProvider, signWithBrowserWallet } from '../../../lib/solana';
 import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
 import { Toaster, toast } from '../../../components/Toaster';
+
+function newOperationKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `op-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function waitForOperation(token: string, id: number, timeoutMs = 90_000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const r = await getChainOperation(token, id);
+    if (r.data.status === 'INDEXED') return true;
+    if (r.data.status === 'FAILED') throw new Error(r.data.error || 'On-chain operation failed.');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  return false;
+}
 
 type Period = 'day' | 'week' | 'month' | 'all';
 const PERIODS: { key: Period; label: string }[] = [
@@ -249,15 +269,36 @@ export default function PoolDetailPage() {
       setChainTx(null);
       try {
         const wallet = await connectBrowserWallet();
+        setMsg('Creating idempotent deposit operation…');
+        const created = await createChainOperation(token, pool.id, newOperationKey(), {
+          kind: 'DEPOSIT',
+          amountSol: amt,
+        });
+        const op = created.data.operation;
+        if (op.status === 'SUBMITTED' || op.status === 'INDEXED') {
+          setMsg('Deposit operation already exists — syncing position…');
+          const alreadyIndexed = await waitForOperation(token, op.id, 30_000).catch(() => false);
+          bumpApiCache('pool:');
+          setMsg(alreadyIndexed ? 'Deposit already indexed on-chain.' : 'Deposit submitted — indexing pending; refresh in a moment.');
+          await refresh();
+          return;
+        }
+        if (op.status === 'FAILED') throw new Error(op.error || 'Deposit operation failed.');
         setMsg('Waiting for wallet signature…');
-        const r = await chainDeposit(programId, vault, wallet, amt);
+        const r = await chainDeposit(programId, vault, wallet, amt, { confirm: false });
         setChainTx(r.signature);
-        setMsg('On-chain deposit confirmed — syncing shares…');
-        await chainSyncPool(token, pool.id).catch(() => undefined);
+        await submitChainOperation(token, op.id, r.signature);
+        setMsg('Deposit submitted — indexing on-chain…');
+        const indexed = await waitForOperation(token, op.id).catch(() => false);
         bumpApiCache('pool:');
-        const ok = `Deposit ${amt.toFixed(2)} SOL → ${r.estimatedShares} shares (on-chain, devnet).`;
-        setMsg(ok);
-        toast(ok);
+        if (!indexed) {
+          setMsg('Deposit submitted — indexing pending; refresh in a moment.');
+          toast('Deposit submitted; indexing pending');
+        } else {
+          const ok = `Deposit ${amt.toFixed(2)} SOL → ${r.estimatedShares} shares (on-chain, devnet).`;
+          setMsg(ok);
+          toast(ok);
+        }
         setAmount('');
         setWalletSol(await getWalletSol(wallet).catch(() => null));
         await refresh();
@@ -319,13 +360,33 @@ export default function PoolDetailPage() {
       const { vault, programId } = pool.chain;
       const wallet = await connectBrowserWallet();
       try {
-        const r = await chainWithdraw(programId, vault, wallet, shares);
+        const created = await createChainOperation(token, pool.id, newOperationKey(), {
+          kind: 'WITHDRAW',
+          shares,
+        });
+        const op = created.data.operation;
+        if (op.status === 'SUBMITTED' || op.status === 'INDEXED') {
+          const alreadyIndexed = await waitForOperation(token, op.id, 30_000).catch(() => false);
+          bumpApiCache('pool:');
+          setMsg(alreadyIndexed ? 'Withdraw already indexed on-chain.' : 'Withdraw submitted — indexing pending; refresh in a moment.');
+          await refresh();
+          return;
+        }
+        if (op.status === 'FAILED') throw new Error(op.error || 'Withdraw operation failed.');
+        const r = await chainWithdraw(programId, vault, wallet, shares, undefined, { confirm: false });
         setChainTx(r.signature);
-        await chainSyncPool(token, pool.id).catch(() => undefined);
+        await submitChainOperation(token, op.id, r.signature);
+        setMsg('Withdraw submitted — indexing on-chain…');
+        const indexed = await waitForOperation(token, op.id).catch(() => false);
         bumpApiCache('pool:');
-        const okMsg = `Withdrew ${shares.toFixed(4)} shares → ${r.estimatedPayout} SOL (on-chain, devnet).`;
-        setMsg(okMsg);
-        toast(okMsg);
+        if (!indexed) {
+          setMsg('Withdraw submitted — indexing pending; refresh in a moment.');
+          toast('Withdraw submitted; indexing pending');
+        } else {
+          const okMsg = `Withdrew ${shares.toFixed(4)} shares → ${r.estimatedPayout} SOL (on-chain, devnet).`;
+          setMsg(okMsg);
+          toast(okMsg);
+        }
         setWalletSol(await getWalletSol(wallet).catch(() => null));
       } catch (e) {
         throw new Error(mapChainError(e));

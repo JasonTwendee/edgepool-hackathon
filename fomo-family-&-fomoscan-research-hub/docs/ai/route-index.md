@@ -1,6 +1,6 @@
 # Route Index
 
-Canonical contract: `docs/api/openapi.yaml` (75 paths).
+Canonical contract: `docs/api/openapi.yaml` (78 paths).
 
 ## REST — markets / wallets / rotation
 
@@ -90,6 +90,9 @@ Canonical contract: `docs/api/openapi.yaml` (75 paths).
 | Method | Path | BE handler | FE client | Notes |
 |---|---|---|---|---|
 | POST | `/api/chain/faucet` | `faucet.controller.ts` (Auth) | `api.ts#chainFaucet` | public devnet RPC airdrop; 1 grant/24h/user |
+| POST | `/api/chain/pools/:id/operations` | `chain-operation.controller.ts` (Auth) | `api.ts#createChainOperation` | Idempotency-Key + PENDING operation |
+| POST | `/api/chain/operations/:id/submit` | `chain-operation.controller.ts` (Auth) | `api.ts#submitChainOperation` | attach signature; async targeted indexing |
+| GET | `/api/chain/operations/:id` | `chain-operation.controller.ts` (Auth) | `api.ts#getChainOperation` | poll operation status |
 | POST | `/api/chain/pools/:id/sync` | `faucet.controller.ts` (Auth) | `api.ts#chainSyncPool` | one indexer poll after on-chain deposit/withdraw |
 | POST | `/api/chain/rpc` | `faucet.controller.ts` (Auth) | `lib/chain.ts` fallback fetch | public-first JSON-RPC proxy; Helius key server-side |
 | POST | `/api/chain/demo-pool` | `chain-admin.controller.ts` (ADMIN+Audit) | — | create unlisted `demo-chain-*` + initialize devnet vault |

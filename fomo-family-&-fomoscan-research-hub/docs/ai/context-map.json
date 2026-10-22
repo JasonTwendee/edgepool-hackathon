@@ -290,7 +290,10 @@
     "POST /api/chain/demo-pool": "backend/src/modules/chain/chain-admin.controller.ts",
     "POST /api/chain/pools/:id/initialize": "backend/src/modules/chain/chain-admin.controller.ts",
     "POST /api/chain/pools/:id/sync": "backend/src/modules/chain/faucet.controller.ts",
-    "POST /api/chain/rpc": "backend/src/modules/chain/faucet.controller.ts"
+    "POST /api/chain/rpc": "backend/src/modules/chain/faucet.controller.ts",
+    "POST /api/chain/pools/:id/operations": "backend/src/modules/chain/chain-operation.controller.ts",
+    "POST /api/chain/operations/:id/submit": "backend/src/modules/chain/chain-operation.controller.ts",
+    "GET /api/chain/operations/:id": "backend/src/modules/chain/chain-operation.controller.ts"
   },
   "scripts": {
     "dev:backend": "npm --prefix backend run dev (tsx watch :3000)",

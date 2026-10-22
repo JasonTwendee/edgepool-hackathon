@@ -1835,6 +1835,99 @@ paths:
               schema:
                 type: string
                 example: "data: {\"type\":\"CONNECTED\",\"vaultId\":1}\n\ndata: {\"type\":\"REPLAY\",\"events\":[...]}\n\ndata: {\"type\":\"SIGNAL\",\"event\":{\"kind\":\"SKIP\",\"token\":\"$XsCP\",\"note\":\"Qualify blocked\"}}\n\n"
+  /api/chain/pools/{id}/operations:
+    post:
+      summary: Auth — create/replay an idempotent deposit/withdraw operation
+      operationId: createChainOperation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind: { type: string, enum: [DEPOSIT, WITHDRAW] }
+                amountSol: { type: number }
+                shares: { type: number }
+      responses:
+        '200':
+          description: Existing or newly-created PENDING operation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '409': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/chain/operations/{id}/submit:
+    post:
+      summary: Auth — attach the signed tx signature to an operation and queue targeted indexing
+      operationId: submitChainOperation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signature]
+              properties:
+                signature: { type: string }
+      responses:
+        '202':
+          description: Operation accepted for asynchronous indexing
+          content:
+            application/json:
+              schema:
+                type: object
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '409': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/chain/operations/{id}:
+    get:
+      summary: Auth — poll operation status (PENDING/SUBMITTED/INDEXED/FAILED)
+      operationId: getChainOperation
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Operation status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
+
   /api/chain/pools/{id}/sync:
     post:
       summary: Auth — poll the bound vault once so a just-signed deposit/withdraw appears in the ledger

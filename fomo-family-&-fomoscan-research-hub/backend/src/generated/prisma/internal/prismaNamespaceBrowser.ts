@@ -57,6 +57,7 @@ export const ModelName = {
   CopyOrder: 'CopyOrder',
   CopyOrderLeg: 'CopyOrderLeg',
   Vault: 'Vault',
+  ChainOperation: 'ChainOperation',
   Deposit: 'Deposit',
   Withdrawal: 'Withdrawal',
   EpochCheckpoint: 'EpochCheckpoint',
@@ -232,6 +233,28 @@ export const VaultScalarFieldEnum = {
 } as const
 
 export type VaultScalarFieldEnum = (typeof VaultScalarFieldEnum)[keyof typeof VaultScalarFieldEnum]
+
+
+export const ChainOperationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  vaultId: 'vaultId',
+  idempotencyKey: 'idempotencyKey',
+  kind: 'kind',
+  wallet: 'wallet',
+  amountSol: 'amountSol',
+  shares: 'shares',
+  status: 'status',
+  txSignature: 'txSignature',
+  error: 'error',
+  attempts: 'attempts',
+  submittedAt: 'submittedAt',
+  indexedAt: 'indexedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ChainOperationScalarFieldEnum = (typeof ChainOperationScalarFieldEnum)[keyof typeof ChainOperationScalarFieldEnum]
 
 
 export const DepositScalarFieldEnum = {

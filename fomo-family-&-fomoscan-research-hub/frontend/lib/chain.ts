@@ -194,6 +194,7 @@ export async function chainDeposit(
   vaultAddr: string,
   walletAddress: string,
   amountSol: number,
+  opts: { confirm?: boolean } = {},
 ): Promise<{ signature: string; estimatedShares: string }> {
   if (!(amountSol >= 0.5)) throw new Error('Nạp tối thiểu 0.5 SOL.');
   const connection = getChainConnection();
@@ -219,7 +220,7 @@ export async function chainDeposit(
       tokenProgram: TOKEN_PROGRAM_ID,
     })
     .transaction();
-  const signature = await sendViaWallet(connection, walletAddress, tx);
+  const signature = await sendViaWallet(connection, walletAddress, tx, opts.confirm !== false);
   void price;
   return { signature, estimatedShares: (Number(minted) / 1_000_000_000).toFixed(4) };
 }
@@ -231,6 +232,7 @@ export async function chainWithdraw(
   walletAddress: string,
   shares: number,
   minPayoutSol?: number,
+  opts: { confirm?: boolean } = {},
 ): Promise<{ signature: string; estimatedPayout: string }> {
   if (!(shares > 0)) throw new Error('Số share phải lớn hơn 0.');
   const connection = getChainConnection();
@@ -261,7 +263,7 @@ export async function chainWithdraw(
       tokenProgram: TOKEN_PROGRAM_ID,
     })
     .transaction();
-  const signature = await sendViaWallet(connection, walletAddress, tx);
+  const signature = await sendViaWallet(connection, walletAddress, tx, opts.confirm !== false);
   return { signature, estimatedPayout: (Number(paid) / 1_000_000_000).toFixed(4) };
 }
 
@@ -269,6 +271,7 @@ async function sendViaWallet(
   connection: Connection,
   walletAddress: string,
   tx: Transaction,
+  confirm = true,
 ): Promise<string> {
   const injected = getInjectedProvider();
   if (!injected) throw new Error('Chưa thấy ví Solana trong trình duyệt.');
@@ -289,7 +292,7 @@ async function sendViaWallet(
   } else {
     throw new Error('Ví không hỗ trợ ký giao dịch. Dùng Phantom hoặc OKX Wallet bản mới.');
   }
-  await confirmSignature(connection, signature);
+  if (confirm) await confirmSignature(connection, signature);
   return signature;
 }
 
