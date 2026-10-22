@@ -207,3 +207,21 @@ fn duplicate_operation_receipt_rejects_replay() {
     assert_eq!(vault_state(&env).total_shares, 1_000_000_000);
     assert_eq!(mint_supply(&env.svm, &env.share_mint), 1_000_000_000);
 }
+
+#[test]
+fn duplicate_withdraw_operation_receipt_rejects_replay() {
+    let mut env = Env::new("withdraw-nonce", 0, 5000, 0);
+    let dep = ix_deposit(&env, &env.user, LAMPORTS_PER_SOL);
+    assert_ok(send_tx(&mut env.svm, &env.user, &[&env.user], &[dep]));
+    let op_id = next_operation_id();
+    let ix = ix_withdraw_with_id(&env, &env.user, 100_000_000, 0, op_id);
+    assert_ok(send_tx(
+        &mut env.svm,
+        &env.user,
+        &[&env.user],
+        &[ix.clone()],
+    ));
+    let replay = send_tx(&mut env.svm, &env.user, &[&env.user], &[ix]);
+    assert!(replay.is_err(), "same withdraw receipt must reject replay");
+    assert_eq!(token_amount(&env.svm, &env.ata_of(&env.user)), 900_000_000);
+}
