@@ -296,6 +296,20 @@ export class ChainProgramClient {
     );
   }
 
+  /** Demo faucet fallback: keeper transfers devnet SOL when public airdrop is unavailable. */
+  async transferFromKeeper(to: string, lamports: number): Promise<string> {
+    const keeper = this.keeperForSetup();
+    if (!keeper) throw new Error('Faucet unavailable: keeper key missing.');
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: keeper.publicKey,
+        toPubkey: new PublicKey(to),
+        lamports,
+      }),
+    );
+    return this.sendAndConfirmPolling({ transaction: async () => tx }, keeper);
+  }
+
   /**
    * Backend-only JSON-RPC proxy used by the browser as a fallback when the
    * public endpoint returns 429/5xx. Keeps the Helius key server-side.

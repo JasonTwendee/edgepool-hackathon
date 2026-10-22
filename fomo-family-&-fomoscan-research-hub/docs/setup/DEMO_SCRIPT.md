@@ -73,7 +73,9 @@ Lưu ý vận hành:
 - Sau mỗi deposit/withdraw on-chain, FE gọi `POST /api/chain/pools/:id/sync`
   để indexer poll ngay và cập nhật shares/position; user không phải chờ 30s.
 - **Faucet** dùng public devnet RPC (không dùng Helius vì Helius không hỗ trợ
-  `requestAirdrop`); nếu public bị rate-limit, thử lại hoặc dùng dashboard faucet.
+  `requestAirdrop`); nếu public bị rate-limit, backend fallback chuyển SOL từ
+  keeper ví (demo-only, cần keeper còn đủ SOL). Nếu keeper cạn, dùng dashboard
+  faucet hoặc nạp thêm keeper.
 - Public devnet vẫn có thể rate-limit `getTransaction`; fallback Helius xử lý.
   Mainnet vẫn dùng FluxRPC, không bật `MAINNET_SWAP_ENABLED`.
 - Không bind pool 14/15; không bật `MAINNET_SWAP_ENABLED`; không dùng keypair mainnet.

@@ -73,7 +73,15 @@ export class ChainFaucetController {
     if (genesis !== DEVNET_GENESIS_HASH) {
       fail(HttpStatus.BAD_REQUEST, 'Faucet runs on devnet only.');
     }
-    const sig = await connection.requestAirdrop(new PublicKey(address), Math.floor(amountSol * LAMPORTS_PER_SOL));
+    const lamports = Math.floor(amountSol * LAMPORTS_PER_SOL);
+    let sig: string;
+    try {
+      sig = await connection.requestAirdrop(new PublicKey(address), lamports);
+    } catch {
+      // Public faucet is frequently rate-limited; keeper fallback keeps the
+      // demo usable without exposing a paid RPC to the browser.
+      sig = await this.program.transferFromKeeper(address, lamports);
+    }
     this.lastGrant.set(key, Date.now());
     return { success: true, data: { signature: sig, address, amountSol } };
   }
