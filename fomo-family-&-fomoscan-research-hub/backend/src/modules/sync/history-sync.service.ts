@@ -17,6 +17,9 @@ const DEFAULT_MAX_TX = 1000;
 // Helius paginates reliably with small pages; big limits truncate `before`.
 const PAGE_LIMIT = 100;
 const HEAL_BATCH = 200;
+// History RPCs keep days, not months: start the heal cursor at the last 48h
+// instead of grinding ancient rows that can never be parsed again.
+const HEAL_WINDOW_SEC = 48 * 3600;
 // Live pipeline cutoff: events older than this are backfill, not "live".
 const LIVE_STALENESS_SEC = 15 * 60;
 
@@ -170,7 +173,8 @@ export class HistorySyncService {
   private readonly healCursor = new Map<string, bigint>();
 
   private async healWallet(address: string): Promise<number> {
-    const cursor = this.healCursor.get(address) ?? 0n;
+    const floor = BigInt(Math.floor(Date.now() / 1000) - HEAL_WINDOW_SEC);
+    const cursor = this.healCursor.get(address) ?? floor;
     const rows = await this.prisma.transaction.findMany({
       where: { walletAddress: address, blockTime: { gt: cursor } },
       orderBy: { blockTime: 'asc' },
