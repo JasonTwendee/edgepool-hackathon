@@ -239,6 +239,12 @@ export class VaultService {
     const { id } = await this.resolveVault(vaultId);
     const vault = await this.prisma.vault.findUnique({ where: { id } });
     if (!vault) fail(`Vault ${id} not found.`);
+    // Chain-bound pools must use the on-chain flow: a paper deposit changes
+    // NAV/shares without touching the vault treasury and breaks reconcile
+    // (supply-mirror / treasury-cash checks).
+    if ((vault as unknown as { chainVault?: string | null }).chainVault) {
+      fail(`Pool ${id} is bound to the on-chain vault; deposit must be signed on-chain (devnet).`);
+    }
     // Kill-switch: deposits into a halted vault are refused (withdrawals
     // still work — exits are never blocked).
     {
@@ -319,6 +325,11 @@ export class VaultService {
     }
     const vault = await this.prisma.vault.findUnique({ where: { id: resolvedId } });
     if (!vault) fail(`Vault ${resolvedId} not found.`);
+    // Chain-bound pools must burn shares on-chain (withdraw instruction).
+    // A paper withdraw would mint a payout without touching the treasury.
+    if ((vault as unknown as { chainVault?: string | null }).chainVault) {
+      fail(`Pool ${resolvedId} is bound to the on-chain vault; withdraw must be signed on-chain (devnet).`);
+    }
     // Supply sanity (defense-in-depth): a single request can never exceed the
     // vault's outstanding shares, even if historical rows drifted (pre-fix
     // cross-wallet drain left holders claiming more shares than supply).

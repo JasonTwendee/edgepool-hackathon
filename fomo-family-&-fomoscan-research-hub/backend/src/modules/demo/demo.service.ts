@@ -107,13 +107,29 @@ export class DemoService {
       ]);
       if (!v || !v.name.startsWith(DEMO_PREFIX)) fail(`Vault ${vaultId} is not a demo vault.`);
       if (!b || !b.name.startsWith(DEMO_PREFIX)) fail(`Bot ${botId} is not a demo bot.`);
+      this.assertOffChain(v, vaultId);
       return { vaultId, botId };
     }
     const v = await this.prisma.vault.findFirst({ where: { name: { startsWith: DEMO_PREFIX } }, orderBy: { id: 'desc' } });
     if (!v) fail('No demo vault yet — POST /api/demo/seed first.');
+    this.assertOffChain(v, v.id);
     const b = await this.prisma.bot.findFirst({ where: { vaultId: v.id }, orderBy: { id: 'desc' } });
     if (!b) fail(`Demo vault ${v.id} has no bot.`);
     return { vaultId: v.id, botId: b.id };
+  }
+
+  /**
+   * Paper demo lifecycle (seed/replay/partial-close) writes NAV + shares
+   * without touching the on-chain treasury. Chain-bound devnet pools must
+   * use the on-chain deposit/withdraw instructions instead, otherwise
+   * reconcile reports supply-mirror / HWM drift.
+   */
+  private assertOffChain(vault: { chainVault?: string | null } | null, vaultId: number): void {
+    if (vault && vault.chainVault) {
+      fail(
+        `Vault ${vaultId} is chain-bound (devnet). Demo seed/replay is off-chain only — use the signed on-chain deposit/withdraw flow.`,
+      );
+    }
   }
 
   async replay(
@@ -516,8 +532,10 @@ export class DemoService {
   }
 
   async reset(actor: string) {
-    const vaults = await this.prisma.vault.findMany({ where: { name: { startsWith: DEMO_PREFIX } }, select: { id: true } });
-    const vaultIds = vaults.map((v) => v.id);
+    const vaults = await this.prisma.vault.findMany({ where: { name: { startsWith: DEMO_PREFIX } }, select: { id: true, chainVault: true } });
+    const chainBound = vaults.filter((v) => (v as unknown as { chainVault?: string | null }).chainVault).length;
+    const offChainVaults = vaults.filter((v) => !(v as unknown as { chainVault?: string | null }).chainVault);
+    const vaultIds = offChainVaults.map((v) => v.id);
     const bots = await this.prisma.bot.findMany({ where: { name: { startsWith: DEMO_PREFIX } }, select: { id: true } });
     const botIds = bots.map((b) => b.id);
     const demoOrders = await this.prisma.copyOrder.findMany({
@@ -552,7 +570,7 @@ export class DemoService {
       actor,
       action: 'demo.reset',
       target: 'demo:*',
-      reason: `vaults=${vaultIds.length} bots=${botIds.length} orders=${orders} legs=${legs} deposits=${deposits} withdrawals=${withdrawals} epochs=${epochs} traders=${traders} (audit kept)`,
+      reason: `vaults=${vaultIds.length} bots=${botIds.length} orders=${orders} legs=${legs} deposits=${deposits} withdrawals=${withdrawals} epochs=${epochs} traders=${traders} chainBoundSkipped=${chainBound} (audit kept)`,
     });
     return {
       vaults: vaultIds.length,
