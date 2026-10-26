@@ -22,6 +22,7 @@
 | `modules/copy-trade/assert-autofire.ts` | auto-fire qualify→size→enter |
 | `modules/copy-trade/assert-alloc.ts` | allocation/rebalance math |
 | `modules/copy-trade/assert-manage.ts` | TP ladder + trailing (11 cases) |
+| `modules/copy-trade/assert-kill-switch.ts` | halt on share price (flow-neutral NAV ignored), legacy NAV fallback |
 | `modules/copy-trade/assert-signals.ts` | signal bus (ring/isolate/unsub) + DB replay mapping |
 | `modules/copy-trade/assert-paper-executor.ts` | devnet genesis gate (never mainnet) |
 | `modules/demo/assert-demo.ts` | seed/replay/reset |

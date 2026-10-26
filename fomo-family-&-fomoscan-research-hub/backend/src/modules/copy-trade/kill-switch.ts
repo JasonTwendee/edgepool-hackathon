@@ -6,6 +6,8 @@
 
 export interface EpsRow {
   navSol: unknown;
+  /** Per-share price; flow-neutral (deposits/withdrawals don't move it). */
+  sharePrice?: unknown;
   createdAt: unknown;
 }
 
@@ -25,18 +27,24 @@ const num = (v: unknown): number => {
 };
 
 export function vaultLoss(epochs: EpsRow[]): { dayPct: number; weekPct: number; nav: number } {
+  // Performance must be measured on SHARE PRICE: deposits/withdrawals move
+  // NAV without any trading loss (rule 2026-10-22). Legacy rows without a
+  // share price fall back to NAV so old history still computes.
+  const valueOf = (e: EpsRow): number => {
+    const price = num(e.sharePrice);
+    return price > 0 ? price : num(e.navSol);
+  };
   const at = (ts: number): number | null => {
     const past = epochs.filter((e) => new Date(e.createdAt as unknown as string).getTime() <= ts);
-    return past.length > 0 ? num(past[past.length - 1].navSol) : null;
+    return past.length > 0 ? valueOf(past[past.length - 1]) : null;
   };
-  const navs = epochs.map((e) => num(e.navSol));
-  const navNum = navs.length > 0 ? navs[navs.length - 1] : 0;
+  const latest = epochs.length > 0 ? valueOf(epochs[epochs.length - 1]) : 0;
   const now = Date.now();
-  const dayBase = at(now - 86400000) ?? navNum;
-  const weekBase = at(now - 7 * 86400000) ?? navNum;
-  const dayPct = dayBase > 0 ? r9(((navNum - dayBase) / dayBase) * 100) : 0;
-  const weekPct = weekBase > 0 ? r9(((navNum - weekBase) / weekBase) * 100) : 0;
-  return { dayPct, weekPct, nav: navNum };
+  const dayBase = at(now - 86400000) ?? latest;
+  const weekBase = at(now - 7 * 86400000) ?? latest;
+  const dayPct = dayBase > 0 ? r9(((latest - dayBase) / dayBase) * 100) : 0;
+  const weekPct = weekBase > 0 ? r9(((latest - weekBase) / weekBase) * 100) : 0;
+  return { dayPct, weekPct, nav: latest };
 }
 
 export function killLimits(rulesJson: unknown): { daily: number; weekly: number } {

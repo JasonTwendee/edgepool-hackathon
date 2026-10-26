@@ -104,20 +104,20 @@
   },
   "entities": {
     "CopyRecord": "backend/src/modules/copy-trade/copy-trade.service.ts (return shape)",
-    "CopyOrder": "prisma copy_orders (lifecycle PENDING\u2192QUATED\u2192SENT\u2192CONFIRMED|FAILED, TP/stop params, vaultId)",
+    "CopyOrder": "prisma copy_orders (lifecycle PENDING→QUATED→SENT→CONFIRMED|FAILED, TP/stop params, vaultId)",
     "CopyOrderLeg": "prisma copy_order_legs (TP1|TP2|STOP|TRAIL|TIME, unique per order)",
     "OnChainTransactionEvent": "backend/src/modules/onchain/entities/onchain-event.entity.ts",
     "TrackedWallet": "backend/src/modules/wallets/entities/tracked-wallet.entity.ts",
     "Vault": "prisma vaults (kind FLAGSHIP|PARTNER, status, slots/traders caps, settle windows, HWM)",
-    "Deposit": "prisma deposits (QUEUED\u2192SETTLED, sharesMinted)",
-    "Withdrawal": "prisma withdrawals (QUEUED\u2192SETTLED, payoutSol, cancellable)",
+    "Deposit": "prisma deposits (QUEUED→SETTLED, sharesMinted)",
+    "Withdrawal": "prisma withdrawals (QUEUED→SETTLED, payoutSol, cancellable)",
     "EpochCheckpoint": "prisma epoch_checkpoints (navSol/sharePrice/feeSol)",
     "VaultTrader": "prisma vault_traders (weightBps, isActive)",
     "User": "prisma users (wallet/username, scrypt passwordHash, role USER|KOL|ADMIN, payoutWallet+verifiedAt)",
     "Session": "prisma sessions (sha256 tokenHash, httpOnly cookie)",
     "AuthNonce": "prisma auth_nonces (wallet login challenge)",
     "PayoutWalletChallenge": "prisma payout_wallet_challenges (verify-before-set payout wallet)",
-    "PartnerPayout": "prisma partner_payouts (PERF_FEE ledger, ACCRUED\u2192CLAIMED\u2192PAID)",
+    "PartnerPayout": "prisma partner_payouts (PERF_FEE ledger, ACCRUED→CLAIMED→PAID)",
     "PartnerApplication": "prisma partner_applications (pending review)",
     "TraderRequest": "prisma trader_requests (per-pool trader ask)",
     "Bot": "prisma bots (mode AUTO|PAUSED, vaultId)",
@@ -140,7 +140,7 @@
     "rugcheck": "RUGCHECK_API_KEY Qualify mcap/liquidity gate",
     "coingecko": "majors ticker via BE proxy /api/market/ticks; FE never holds keys",
     "jito": "JITO_BLOCK_ENGINE_URL (future copy-trade)",
-    "publicUrl": "reverse-proxy URL do ch\u1ee7 h\u1ec7 th\u1ed1ng c\u1ea5p (xem docs/setup/OPERATOR.md)"
+    "publicUrl": "reverse-proxy URL do chủ hệ thống cấp (xem docs/setup/OPERATOR.md)"
   },
   "jobs": {
     "onchainPoll": "backend/src/server/solana.service.ts poll loop (live scope only)",
@@ -256,7 +256,7 @@
     "GET /api/vaults/portfolio": "backend/src/modules/vaults/vaults.controller.ts (AuthGuard, overview)",
     "GET /api/vaults/:id/pool": "backend/src/modules/vaults/vaults.controller.ts (pool detail + advanced)",
     "GET /api/vaults/:id/ledger": "backend/src/modules/vaults/vaults.controller.ts (fund-flow: per-order allocation/MTM + cash reconciliation)",
-    "GET /api/vaults/:id/orders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN journey rail: per-signal Detect\u2192Exit evidence)",
+    "GET /api/vaults/:id/orders": "backend/src/modules/vaults/vaults.controller.ts (ADMIN journey rail: per-signal Detect→Exit evidence)",
     "GET /api/vaults/:id/signals/stream": "backend/src/modules/vaults/vaults.controller.ts (SSE: CONNECTED, REPLAY, live SIGNAL via signal-bus)",
     "GET /api/vaults/:id/earnings": "backend/src/modules/vaults/vaults.controller.ts (KOL-gated partner fees)",
     "GET /api/vaults/:id/traders": "backend/src/modules/vaults/vaults.controller.ts",
@@ -355,7 +355,8 @@
     "assert-rpc-parse": "backend/src/modules/sync/assert-rpc-parse.ts (RPC parser fallback in WS sync)",
     "assert-selection-snapshot": "backend/src/common/fomoscan/assert-selection-snapshot.ts (Fomo why-top snapshot/hash)",
     "assert-retired-prune": "backend/src/modules/sync/assert-retired-prune.ts (30d retired raw cleanup)",
-    "assert-chain": "backend/src/modules/chain/assert-chain.ts (events/mirror/reconcile/faucet/marks)"
+    "assert-chain": "backend/src/modules/chain/assert-chain.ts (events/mirror/reconcile/faucet/marks)",
+    "assert-kill-switch": "backend/src/modules/copy-trade/assert-kill-switch.ts (share-price halt, flow-neutral NAV ignored)"
   },
   "verification": {
     "commands": [
@@ -364,8 +365,8 @@
       "curl -s http://localhost:3000/api/health",
       "curl -s http://localhost:3001/api/health (via FE rewrites)",
       "docker compose ps (healthy)",
-      "curl -s <PUBLIC_URL>/api/vaults/pools (URL do ch\u1ee7 h\u1ec7 th\u1ed1ng c\u1ea5p)"
+      "curl -s <PUBLIC_URL>/api/vaults/pools (URL do chủ hệ thống cấp)"
     ]
   },
-  "version": 3
+  "version": 4
 }
