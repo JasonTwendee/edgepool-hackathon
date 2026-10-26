@@ -72,6 +72,12 @@ export interface PaperOverrides {
   rugcheck?: Pick<RugCheckService, 'qualify'>;
   market?: Pick<DataStreamService, 'bulkPrices' | 'tokenDetails' | 'candles'>;
   strict?: boolean;
+  /**
+   * Devnet demo-chain pools only: skip NAV-relative caps (1% sizing / 2% mint).
+   * Their NAV is intentionally tiny (0.5 SOL demo deposit) so any real signal
+   * would be blocked. Never set this for real pools.
+   */
+  skipNavCaps?: boolean;
   /** T1 auto-fire: size against this vault (default 1) + tag the actor. */
   vaultId?: number;
   triggeredBy?: string;
@@ -232,11 +238,16 @@ export class CopyTradeService {
         const solPrice = px[WSOL] ?? 0;
         if (solPrice > 0) {
           navUsd = st.lastEpoch.navSol * solPrice;
-          sizedCapUsd = Math.min(maxUsd, navUsd * 0.01, 0.1 * solPrice);
+          // Demo-chain devnet pools: NAV is a 0.5 SOL seed, so 1% sizing would
+          // round every signal to dust. Skip NAV caps there only.
+          sizedCapUsd = overrides.skipNavCaps
+            ? maxUsd
+            : Math.min(maxUsd, navUsd * 0.01, 0.1 * solPrice);
           sizedNote = {
             navSol: st.lastEpoch.navSol,
             navUsd: Math.round(navUsd * 100) / 100,
             capUsd: Math.round(sizedCapUsd * 100) / 100,
+            ...(overrides.skipNavCaps ? { skipNavCaps: true } : {}),
           };
         }
       }
@@ -327,7 +338,7 @@ export class CopyTradeService {
       fail(`Pool already holds ${openCount} open positions (max 10).`);
     }
     // Deck §7.4 layer 2: per-mint ≤2% NAV by value (open CONFIRMED notional).
-    if (navUsd > 0 && dto.tokenMint) {
+    if (!overrides.skipNavCaps && navUsd > 0 && dto.tokenMint) {
       const mintOpen = (await this.prisma.copyOrder.findMany({
         where: { vaultId: sizingVaultId, tokenMint: dto.tokenMint, status: 'CONFIRMED', closedAt: null },
         select: { amountUsd: true },

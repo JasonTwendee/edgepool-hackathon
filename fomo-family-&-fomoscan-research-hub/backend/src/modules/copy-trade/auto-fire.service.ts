@@ -223,7 +223,7 @@ export class AutoFireService implements OnModuleInit {
                 ...this.overrides,
                 vaultId: botVault,
                 triggeredBy: `bot:${bot.id}`,
-                ...(demoChainPool ? { strict: false } : {}),
+                ...(demoChainPool ? { strict: false, skipNavCaps: true } : {}),
               },
             );
             summary.fired++;
