@@ -17,9 +17,9 @@ const DEFAULT_MAX_TX = 1000;
 // Helius paginates reliably with small pages; big limits truncate `before`.
 const PAGE_LIMIT = 100;
 const HEAL_BATCH = 200;
-// History RPCs keep days, not months: start the heal cursor at the last 48h
-// instead of grinding ancient rows that can never be parsed again.
-const HEAL_WINDOW_SEC = 48 * 3600;
+// History RPCs keep ~24h (publicnode: 24h ok, 48h null). Heal newest-first so
+// fresh BUYs classify immediately for auto-fire; older rows follow.
+const HEAL_WINDOW_SEC = 20 * 3600;
 // Live pipeline cutoff: events older than this are backfill, not "live".
 const LIVE_STALENESS_SEC = 15 * 60;
 
@@ -173,11 +173,14 @@ export class HistorySyncService {
   private readonly healCursor = new Map<string, bigint>();
 
   private async healWallet(address: string): Promise<number> {
-    const floor = BigInt(Math.floor(Date.now() / 1000) - HEAL_WINDOW_SEC);
-    const cursor = this.healCursor.get(address) ?? floor;
+    const nowSec = BigInt(Math.floor(Date.now() / 1000));
+    const floor = nowSec - BigInt(HEAL_WINDOW_SEC);
+    // Descending keyset: newest unhealed rows first (auto-fire needs them now).
+    const cursor = this.healCursor.get(address) ?? nowSec + 1n;
+    if (cursor <= floor) return 0;
     const rows = await this.prisma.transaction.findMany({
-      where: { walletAddress: address, blockTime: { gt: cursor } },
-      orderBy: { blockTime: 'asc' },
+      where: { walletAddress: address, blockTime: { lt: cursor, gte: floor } },
+      orderBy: { blockTime: 'desc' },
       select: { signature: true, amountUsd: true, rawPayload: true, blockTime: true },
       take: HEAL_BATCH,
     });
@@ -198,11 +201,11 @@ export class HistorySyncService {
       if (!targets.has(r.signature)) targets.set(r.signature, 'usd');
     }
     if (targets.size === 0) {
-      // Window clean (or empty): advance cursor past it (-1s overlap so a
-      // same-second boundary sibling is never skipped on truncation).
+      // Window clean (or empty): step the descending cursor past it (+1s
+      // overlap so a same-second sibling is never skipped on truncation).
       if (rows.length > 0) {
-        const maxTs = rows.reduce((m, r) => (r.blockTime > m ? r.blockTime : m), cursor);
-        this.healCursor.set(address, maxTs > 0n ? maxTs - 1n : maxTs);
+        const minTs = rows.reduce((m, r) => (r.blockTime < m ? r.blockTime : m), cursor);
+        this.healCursor.set(address, minTs + 1n);
       }
       return 0;
     }
@@ -265,10 +268,10 @@ export class HistorySyncService {
    * attempted so gaps don't spin forever.
    */
   private async healUsdViaCandles(address: string): Promise<number> {
-    const cursor = this.healCursor.get(address) ?? 0n;
+    const floor = BigInt(Math.floor(Date.now() / 1000) - HEAL_WINDOW_SEC);
     const rows = await this.prisma.transaction.findMany({
-      where: { walletAddress: address, amountUsd: null, NOT: [{ tokenMint: null }], blockTime: { gt: cursor } },
-      orderBy: { blockTime: 'asc' },
+      where: { walletAddress: address, amountUsd: null, NOT: [{ tokenMint: null }], blockTime: { gte: floor } },
+      orderBy: { blockTime: 'desc' },
       select: { signature: true, tokenMint: true, amountToken: true, blockTime: true, rawPayload: true },
       take: 60,
     });
