@@ -1460,7 +1460,8 @@ export class VaultService {
    * epoch checkpoints), trader basket (handle + rank), and optional myHolding.
    */
   async pools(user?: { id: number; wallet: string }): Promise<unknown[]> {
-    const vaults = await this.prisma.vault.findMany({ orderBy: { id: 'asc' } });
+    // Public index: unlisted demo/chain pools must not leak here.
+    const vaults = await this.prisma.vault.findMany({ where: { listing: 'public' }, orderBy: { id: 'asc' } });
     const traders = await this.prisma.vaultTrader.findMany({
       where: { vaultId: { in: vaults.map((v) => v.id) }, isActive: true },
       orderBy: { id: 'asc' },
