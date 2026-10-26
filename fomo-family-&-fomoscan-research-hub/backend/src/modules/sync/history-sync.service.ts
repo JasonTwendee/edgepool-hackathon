@@ -178,8 +178,10 @@ export class HistorySyncService {
       take: HEAL_BATCH,
     });
     const pendingUnenriched = rows.filter((r) => {
-      const raw = r.rawPayload as { enriched?: boolean } | null;
-      return !raw || raw.enriched !== true;
+      const raw = r.rawPayload as { enriched?: boolean; fullHealAttempts?: number } | null;
+      if (raw?.enriched === true) return false;
+      // Unparseable rows (non-swap/system tx) must not pin the cursor forever.
+      return (raw?.fullHealAttempts ?? 0) < 2;
     });
     const pendingUsd = rows.filter((r) => {
       if (r.amountUsd !== null) return false;
@@ -210,6 +212,13 @@ export class HistorySyncService {
       err: null,
       memo: null,
     })));
+    // Helius is decommissioned: the pure-RPC parser is the only real
+    // enrichment path left. Without this fallback every bare row stays
+    // UNKNOWN forever (auto-fire only copies BUY signals).
+    const rpcParsed = await this.rpcParse.classifyFresh(address, sigs.map((signature) => ({ signature })), new Set(enriched.keys()));
+    for (const [sig, partial] of rpcParsed) {
+      if (!enriched.has(sig)) enriched.set(sig, partial);
+    }
     let healed = 0;
     const attempted = new Set<string>();
     for (const [sig, partial] of enriched) {
@@ -234,6 +243,12 @@ export class HistorySyncService {
     for (const [sig, partial] of enriched) {
       if (targets.get(sig) === 'usd' && partial.amountUsd === undefined) {
         await this.markUsdHealAttempted(sig);
+      }
+    }
+    // Unparseable "full" rows: count attempts so the keyset cursor can move on.
+    for (const sig of targets.keys()) {
+      if (targets.get(sig) === 'full' && !enriched.has(sig)) {
+        await this.markFullHealAttempted(sig);
       }
     }
     healed += await this.healUsdViaCandles(address);
@@ -303,6 +318,24 @@ export class HistorySyncService {
       }
     }
     return healed;
+  }
+
+  private async markFullHealAttempted(signature: string): Promise<void> {
+    const existing = await this.prisma.transaction.findUnique({
+      where: { signature },
+      select: { rawPayload: true },
+    });
+    if (!existing) return;
+    const raw = (existing.rawPayload as Record<string, unknown> | null) ?? {};
+    await this.prisma.transaction.update({
+      where: { signature },
+      data: {
+        rawPayload: {
+          ...raw,
+          fullHealAttempts: ((raw.fullHealAttempts as number | undefined) ?? 0) + 1,
+        } as Prisma.InputJsonValue,
+      },
+    });
   }
 
   private async markUsdHealAttempted(signature: string): Promise<void> {

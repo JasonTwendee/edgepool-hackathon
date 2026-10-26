@@ -23,6 +23,16 @@ export function getReadRpcUrl(): string {
   return getConfig().lanternUrl || getConfig().solanaRpcUrl;
 }
 
+/**
+ * History-capable RPC for `getTransaction` parsing.
+ * FluxRPC keeps only ~5 minutes of transactions ("not available in cache"),
+ * which made every Helius-free parse land as UNKNOWN. Public node serves
+ * older signatures without an API key; override with SOLANA_PARSE_RPC_URL.
+ */
+export function getParseRpcUrl(): string {
+  return getConfig().parseRpcUrl || 'https://solana-rpc.publicnode.com';
+}
+
 export function isHeliusEnabled(): boolean {
   return Boolean(getConfig().heliusApiKey);
 }

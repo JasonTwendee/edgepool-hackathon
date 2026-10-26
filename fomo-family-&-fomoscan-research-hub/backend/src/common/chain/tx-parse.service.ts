@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Connection } from '@solana/web3.js';
-import { getReadRpcUrl, SOLANA_COMMITMENT } from '../../config/solana.config.js';
+import { getParseRpcUrl, getReadRpcUrl, SOLANA_COMMITMENT } from '../../config/solana.config.js';
 import { DataStreamService } from '../market/datastream.service.js';
 import type { EnrichedPartial } from '../../modules/helius/enrich.service.js';
 
@@ -41,8 +41,31 @@ export class TxParseService {
   constructor(@Inject(DataStreamService) private readonly prices: DataStreamService) {}
 
   conn(): Connection {
-    if (!this.connection) this.connection = new Connection(getReadRpcUrl(), SOLANA_COMMITMENT);
+    if (!this.connection) this.connection = new Connection(getParseRpcUrl(), SOLANA_COMMITMENT);
     return this.connection;
+  }
+
+  /** FluxRPC fallback: used only when the history RPC is unreachable. */
+  private fallbackConnection: Connection | null = null;
+  fallbackConn(): Connection {
+    if (!this.fallbackConnection) {
+      this.fallbackConnection = new Connection(getReadRpcUrl(), SOLANA_COMMITMENT);
+    }
+    return this.fallbackConnection;
+  }
+
+  /** Single getTransaction call with the encoding the parser expects. */
+  private async fetchTx(
+    connection: {
+      getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
+    },
+    signature: string,
+  ): Promise<unknown> {
+    return connection.getTransaction(signature, {
+      commitment: 'confirmed',
+      encoding: 'jsonParsed',
+      maxSupportedTransactionVersion: 1,
+    });
   }
 
   async parse(
@@ -54,11 +77,11 @@ export class TxParseService {
       getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
     },
   ): Promise<ParsedSwap | null> {
-    const tx = (await connection.getTransaction(signature, {
-      commitment: 'confirmed',
-      encoding: 'jsonParsed',
-      maxSupportedTransactionVersion: 1,
-    })) as null | {
+    const primary = connection as unknown as {
+      getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
+      rpcEndpoint?: string;
+    };
+    let tx = (await this.fetchTx(primary, signature)) as null | {
       meta?: {
         err?: unknown;
         fee?: number;
@@ -70,6 +93,14 @@ export class TxParseService {
       };
       transaction?: { message?: { accountKeys?: unknown } };
     };
+    // FluxRPC fallback only when the history RPC misses (and the caller did
+    // not inject a stub connection for tests).
+    if (!tx?.meta && connection === undefined) {
+      const fb = this.fallbackConn();
+      if (fb.rpcEndpoint !== primary.rpcEndpoint) {
+        tx = (await this.fetchTx(fb, signature)) as typeof tx;
+      }
+    }
     if (!tx?.meta) return null;
     const meta = tx.meta;
     const status = meta.err ? 'FAILED' : 'SUCCESS';

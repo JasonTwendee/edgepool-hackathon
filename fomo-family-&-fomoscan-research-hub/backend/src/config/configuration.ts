@@ -45,6 +45,12 @@ export interface BackendConfig {
   solanaWsUrl?: string;
   /** Lantern local cache (read-path only; WS stays on solanaRpcUrl). */
   lanternUrl?: string;
+  /**
+   * History-capable RPC for getTransaction parsing (Helius-free path).
+   * FluxRPC only caches ~5 minutes of transactions, so the pure-RPC parser
+   * must use a provider that serves older signatures (default: publicnode).
+   */
+  parseRpcUrl?: string;
   heliusApiKey?: string;
   jitoBlockEngineUrl: string;
   /** Local-only execution key (devnet paper). Never logged. */
@@ -65,6 +71,7 @@ export function getConfig(): BackendConfig {
     solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
     solanaWsUrl: process.env.SOLANA_WS_URL || undefined,
     lanternUrl: process.env.LANTERN_URL || undefined,
+    parseRpcUrl: process.env.SOLANA_PARSE_RPC_URL || undefined,
     heliusApiKey: process.env.HELIUS_API_KEY || undefined,
     jitoBlockEngineUrl:
       process.env.JITO_BLOCK_ENGINE_URL || 'https://mainnet.block-engine.jito.wtf',
