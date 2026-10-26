@@ -161,11 +161,20 @@ export class HistorySyncService {
    * (raw_payload without an `enriched` flag): re-parse and patch in place.
    * Also retries rows whose USD pricing is still missing (new price sources
    * land over time), capped at 2 attempts per row via raw_payload marker.
+   *
+   * Keyset cursor per wallet (healCursor): only rows ABOVE the last clean
+   * blockTime are scanned, oldest-first, HEAL_BATCH at a time. The cursor
+   * advances only past windows with zero pending targets, so each tick
+   * either heals or advances — never rescans the same arbitrary head rows.
    */
+  private readonly healCursor = new Map<string, bigint>();
+
   private async healWallet(address: string): Promise<number> {
+    const cursor = this.healCursor.get(address) ?? 0n;
     const rows = await this.prisma.transaction.findMany({
-      where: { walletAddress: address },
-      select: { signature: true, amountUsd: true, rawPayload: true },
+      where: { walletAddress: address, blockTime: { gt: cursor } },
+      orderBy: { blockTime: 'asc' },
+      select: { signature: true, amountUsd: true, rawPayload: true, blockTime: true },
       take: HEAL_BATCH,
     });
     const pendingUnenriched = rows.filter((r) => {
@@ -182,7 +191,15 @@ export class HistorySyncService {
     for (const r of pendingUsd) {
       if (!targets.has(r.signature)) targets.set(r.signature, 'usd');
     }
-    if (targets.size === 0) return 0;
+    if (targets.size === 0) {
+      // Window clean (or empty): advance cursor past it (-1s overlap so a
+      // same-second boundary sibling is never skipped on truncation).
+      if (rows.length > 0) {
+        const maxTs = rows.reduce((m, r) => (r.blockTime > m ? r.blockTime : m), cursor);
+        this.healCursor.set(address, maxTs > 0n ? maxTs - 1n : maxTs);
+      }
+      return 0;
+    }
     const sigs = [...targets.keys()];
     // Reuse enrich pipeline with stub sigInfos (slot/time refreshed from parse below is skipped;
     // only action/symbol/amounts/venue/status are patched).
@@ -229,8 +246,10 @@ export class HistorySyncService {
    * attempted so gaps don't spin forever.
    */
   private async healUsdViaCandles(address: string): Promise<number> {
+    const cursor = this.healCursor.get(address) ?? 0n;
     const rows = await this.prisma.transaction.findMany({
-      where: { walletAddress: address, amountUsd: null, NOT: [{ tokenMint: null }] },
+      where: { walletAddress: address, amountUsd: null, NOT: [{ tokenMint: null }], blockTime: { gt: cursor } },
+      orderBy: { blockTime: 'asc' },
       select: { signature: true, tokenMint: true, amountToken: true, blockTime: true, rawPayload: true },
       take: 60,
     });

@@ -1,0 +1,31 @@
+name: ghcr-retention
+
+# Dọn tag :sha cũ trên GHCR, giữ 10 bản mới nhất để rollback.
+# Deploy luôn pull theo SHA exact (xem deploy.yml), nên giữ đủ bản gần nhất.
+# :main là tag di động trỏ bản mới nhất — action mặc định không xoá tag
+# đang dùng nếu còn version khác giữ, nhưng min-versions-to-keep đảm bảo an toàn.
+# Chạy weekly + manual. Cần GITHUB_TOKEN quyền packages:write (đã cấp dưới).
+
+on:
+  schedule:
+    - cron: '30 3 * * 0' # 03:30 UTC Chủ nhật
+  workflow_dispatch:
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        package: [fomo-backend, fomo-frontend]
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          owner: jasontwendee
+          repo: edgepool-hackathon
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: false
