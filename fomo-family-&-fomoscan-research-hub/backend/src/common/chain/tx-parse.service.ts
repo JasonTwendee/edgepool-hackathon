@@ -49,13 +49,34 @@ export class TxParseService {
     return this.connection;
   }
 
-  /** FluxRPC fallback: used only when the history RPC is unreachable. */
-  private fallbackConnection: Connection | null = null;
-  fallbackConn(): Connection {
-    if (!this.fallbackConnection) {
-      this.fallbackConnection = new Connection(getReadRpcUrl(), SOLANA_COMMITMENT);
+  /**
+   * Raw JSON-RPC getTransaction. web3.js validates the response against its
+   * own schema and THROWS on newer nodes (`meta.innerInstructions[].accounts`
+   * undefined) — that exception was swallowed by classifyFresh and turned
+   * every transaction into UNKNOWN. Raw fetch keeps the payload intact.
+   */
+  private async rpcCall(url: string, signature: string): Promise<unknown> {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getTransaction',
+          params: [
+            signature,
+            { commitment: 'confirmed', encoding: 'jsonParsed', maxSupportedTransactionVersion: 1 },
+          ],
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      const json = (await res.json()) as { result?: unknown; error?: unknown };
+      if (json.error) return null;
+      return json.result ?? null;
+    } catch {
+      return null;
     }
-    return this.fallbackConnection;
   }
 
   /** Single getTransaction call with the encoding the parser expects. */
@@ -75,17 +96,11 @@ export class TxParseService {
   async parse(
     signature: string,
     wallet: string,
-    connection: {
-      getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
-    } = this.conn() as unknown as {
+    connection?: {
       getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
     },
   ): Promise<ParsedSwap | null> {
-    const primary = connection as unknown as {
-      getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
-      rpcEndpoint?: string;
-    };
-    let tx = (await this.fetchTx(primary, signature)) as null | {
+    type TxShape = null | {
       meta?: {
         err?: unknown;
         fee?: number;
@@ -97,13 +112,19 @@ export class TxParseService {
       };
       transaction?: { message?: { accountKeys?: unknown } };
     };
-    // FluxRPC fallback only when the history RPC misses (and the caller did
-    // not inject a stub connection for tests).
-    if (!tx?.meta && connection === undefined) {
-      const fb = this.fallbackConn();
-      if (fb.rpcEndpoint !== primary.rpcEndpoint) {
-        tx = (await this.fetchTx(fb, signature)) as typeof tx;
-      }
+    let tx: TxShape;
+    if (connection !== undefined) {
+      // Test seam: injected stub connection (never touches the network).
+      tx = (await this.fetchTx(
+        connection as unknown as {
+          getTransaction(sig: string, cfg: Record<string, unknown>): Promise<unknown>;
+        },
+        signature,
+      )) as TxShape;
+    } else {
+      tx = (await this.rpcCall(getParseRpcUrl(), signature)) as TxShape;
+      // FluxRPC fallback only when the history RPC misses.
+      if (!tx?.meta) tx = (await this.rpcCall(getReadRpcUrl(), signature)) as TxShape;
     }
     if (!tx?.meta) return null;
     const meta = tx.meta;
