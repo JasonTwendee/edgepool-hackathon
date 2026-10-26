@@ -313,9 +313,11 @@ export class CopyTradeService {
     if (dto.delayDragPct !== undefined && dto.delayDragPct > 25) {
       fail(`Entry skipped: price already ran +${dto.delayDragPct}% since the master fill (cap 25%).`);
     }
-    // Exposure caps (24h, non-FAILED): per-trader ≤3, per-mint ≤2.
+    // Exposure caps (24h, non-FAILED): per-trader ≤3, per-mint ≤2 — PER VAULT.
+    // Counting globally let pool 14/15 orders starve every other pool (vault 41
+    // was blocked with zero orders of its own).
     const dayAgo = new Date(Date.now() - 24 * 3600 * 1000);
-    const liveWhere = { status: { not: 'FAILED' }, createdAt: { gte: dayAgo } };
+    const liveWhere = { vaultId: sizingVaultId, status: { not: 'FAILED' }, createdAt: { gte: dayAgo } };
     const [traderCount, mintCount] = await Promise.all([
       dto.masterWallet
         ? this.prisma.copyOrder.count({ where: { ...liveWhere, masterWallet: dto.masterWallet } })
