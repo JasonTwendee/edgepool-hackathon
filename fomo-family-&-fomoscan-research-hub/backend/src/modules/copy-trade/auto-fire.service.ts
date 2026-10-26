@@ -157,86 +157,92 @@ export class AutoFireService implements OnModuleInit {
       }
       const handleOf = new Map(wallets.map((w) => [w.address, w]));
       for (const s of signals.slice(0, Math.min(Math.max(limit, 1), 20))) {
-        const bot = bots.find((b) =>
+        // Both public pools share the same 5 traders: a signal must fire once
+        // PER POOL, not just for the first matching bot (vault 15 never got
+        // orders while vault 14 consumed every signal).
+        const matchingBots = bots.filter((b) =>
           traders.some((t) => t.vaultId === (b.vaultId ?? 1) && t.wallet === s.walletAddress),
         );
-        if (!bot) {
+        if (matchingBots.length === 0) {
           summary.skippedNoScope++;
           continue;
         }
-        const botVault = bot.vaultId ?? 1;
-        const trader = traders.find(
-          (t) => t.vaultId === botVault && t.wallet === s.walletAddress,
-        );
-        const enteredSec = trader?.enteredAt
-          ? Math.floor(trader.enteredAt.getTime() / 1000)
-          : 0;
-        if (Number(s.blockTime) < enteredSec) {
-          summary.skippedBeforeEntry++;
-          continue;
-        }
-        if (halted.has(botVault)) {
-          summary.blocked++;
-          continue;
-        }
-        const dupe = await this.prisma.copyOrder.findFirst({
-          where: { masterTxHash: s.signature },
-          select: { id: true },
-        });
-        if (dupe) {
-          summary.skippedDedupe++;
-          continue;
-        }
         const meta = handleOf.get(s.walletAddress) as { label?: string; handle?: string } | undefined;
-        try {
-          const order = await this.copy.executePaper(
-            {
-              masterWallet: s.walletAddress,
-              masterHandle: meta?.handle ?? meta?.label ?? undefined,
-              masterTxHash: s.signature,
-              symbol: s.symbol ?? undefined,
-              action: 'BUY',
-              tokenMint: s.tokenMint ?? undefined,
-              amountUsd: num(s.amountUsd),
-              venue: s.dexVenue ?? undefined,
-              mode: 'paper',
-              confirm: true,
-              entryMode: 'immediate',
-              // No pinned tp1/stop: the engine ATR-tunes from 1h volatility
-              // (falls back to 60/30 when candles are missing).
-            },
-            { ...this.overrides, vaultId: botVault, triggeredBy: `bot:${bot.id}` },
+        for (const bot of matchingBots) {
+          const botVault = bot.vaultId ?? 1;
+          const trader = traders.find(
+            (t) => t.vaultId === botVault && t.wallet === s.walletAddress,
           );
-          summary.fired++;
-          summary.orderIds.push(order.id);
-          emitSignal({
-            vaultId: botVault,
-            kind: 'ENTER',
-            token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
-            trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
-            note: `order #${order.id} entered`,
+          const enteredSec = trader?.enteredAt
+            ? Math.floor(trader.enteredAt.getTime() / 1000)
+            : 0;
+          if (Number(s.blockTime) < enteredSec) {
+            summary.skippedBeforeEntry++;
+            continue;
+          }
+          if (halted.has(botVault)) {
+            summary.blocked++;
+            continue;
+          }
+          // Dedupe is per pool: the same master tx seeds one order per vault.
+          const dupe = await this.prisma.copyOrder.findFirst({
+            where: { masterTxHash: s.signature, vaultId: botVault },
+            select: { id: true },
           });
-          await this.audit
-            .record({
-              actor: `bot:${bot.id}`,
-              action: 'copy.auto_fire',
-              target: `order:${order.id}`,
-              reason: `signal ${s.signature.slice(0, 8)}… ${s.symbol ?? ''} vault:${botVault}`,
-            })
-            .catch((e: unknown) => {
-              console.warn('[auto-fire] audit record failed:', (e as Error).message);
+          if (dupe) {
+            summary.skippedDedupe++;
+            continue;
+          }
+          try {
+            const order = await this.copy.executePaper(
+              {
+                masterWallet: s.walletAddress,
+                masterHandle: meta?.handle ?? meta?.label ?? undefined,
+                masterTxHash: s.signature,
+                symbol: s.symbol ?? undefined,
+                action: 'BUY',
+                tokenMint: s.tokenMint ?? undefined,
+                amountUsd: num(s.amountUsd),
+                venue: s.dexVenue ?? undefined,
+                mode: 'paper',
+                confirm: true,
+                entryMode: 'immediate',
+                // No pinned tp1/stop: the engine ATR-tunes from 1h volatility
+                // (falls back to 60/30 when candles are missing).
+              },
+              { ...this.overrides, vaultId: botVault, triggeredBy: `bot:${bot.id}` },
+            );
+            summary.fired++;
+            summary.orderIds.push(order.id);
+            emitSignal({
+              vaultId: botVault,
+              kind: 'ENTER',
+              token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
+              trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
+              note: `order #${order.id} entered`,
             });
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : 'auto-fire failed';
-          if (isGateBlock(msg)) summary.blocked++;
-          else summary.errors++;
-          emitSignal({
-            vaultId: botVault,
-            kind: 'SKIP',
-            token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
-            trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
-            note: msg.slice(0, 120),
-          });
+            await this.audit
+              .record({
+                actor: `bot:${bot.id}`,
+                action: 'copy.auto_fire',
+                target: `order:${order.id}`,
+                reason: `signal ${s.signature.slice(0, 8)}… ${s.symbol ?? ''} vault:${botVault}`,
+              })
+              .catch((e: unknown) => {
+                console.warn('[auto-fire] audit record failed:', (e as Error).message);
+              });
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : 'auto-fire failed';
+            if (isGateBlock(msg)) summary.blocked++;
+            else summary.errors++;
+            emitSignal({
+              vaultId: botVault,
+              kind: 'SKIP',
+              token: s.symbol ?? (s.tokenMint ?? '').slice(0, 8),
+              trader: meta?.handle ?? meta?.label ?? s.walletAddress.slice(0, 8),
+              note: msg.slice(0, 120),
+            });
+          }
         }
       }
       return summary;
