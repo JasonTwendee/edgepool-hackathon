@@ -16,6 +16,10 @@ export interface ParsedSwap {
 }
 
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
+/** "Cash" legs — never the traded token in a BUY/SELL classification. */
+const QUOTE_MINTS = new Set([WSOL_MINT, USDC_MINT, USDT_MINT]);
 
 /** Venue from log markers (robust without hardcoding program ids). */
 function venueFromLogs(logs: string[]): string {
@@ -130,17 +134,22 @@ export class TxParseService {
       }
     }
     void confidences;
-    // Pick the largest absolute token flow as the trade leg.
+    const logs = meta.logMessages ?? [];
+    const venue = venueFromLogs(logs);
+    // Quote assets are the cash leg, never the traded token. Most tracked
+    // wallets trade token↔token (USDC→memecoin) with SOL delta 0, so a
+    // SOL-only heuristic classified every such swap as UNKNOWN.
     let mint: string | undefined;
     let qty = 0;
     for (const [m, d] of deltas) {
+      if (QUOTE_MINTS.has(m)) continue;
       if (Math.abs(d) > Math.abs(qty)) {
         mint = m;
         qty = d;
       }
     }
-    const logs = meta.logMessages ?? [];
-    const venue = venueFromLogs(logs);
+    const quoteUsd =
+      Math.abs(deltas.get(USDC_MINT) ?? 0) + Math.abs(deltas.get(USDT_MINT) ?? 0);
     if (!mint || qty === 0) {
       // Pure SOL move (or no wallet token flow): TRANSFER with SOL delta.
       if (Math.abs(solDelta) < 1e-9) return null;
@@ -155,16 +164,21 @@ export class TxParseService {
         feeSol,
       };
     }
-    // Token in + SOL out = BUY; token out + SOL in = SELL.
-    const action = qty > 0 ? (solDelta < 0 ? 'BUY' : 'UNKNOWN') : solDelta > 0 ? 'SELL' : 'UNKNOWN';
+    // Non-quote token flow decides direction; quote delta only prices it.
+    const action: 'BUY' | 'SELL' | 'UNKNOWN' = qty > 0 ? 'BUY' : qty < 0 ? 'SELL' : 'UNKNOWN';
     let amountUsd: number | undefined;
-    try {
-      const prices = await this.prices.bulkPrices([mint]);
-      if (prices[mint] !== undefined) {
-        amountUsd = Math.round(Math.abs(qty) * prices[mint] * 100) / 100;
+    if (quoteUsd > 0) {
+      // Stablecoin/spent-cash leg ≈ USD notional (no external price needed).
+      amountUsd = Math.round(quoteUsd * 100) / 100;
+    } else {
+      try {
+        const prices = await this.prices.bulkPrices([mint]);
+        if (prices[mint] !== undefined) {
+          amountUsd = Math.round(Math.abs(qty) * prices[mint] * 100) / 100;
+        }
+      } catch {
+        amountUsd = undefined;
       }
-    } catch {
-      amountUsd = undefined;
     }
     return {
       action,
