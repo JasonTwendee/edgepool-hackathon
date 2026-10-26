@@ -170,6 +170,15 @@ export class AutoFireService implements OnModuleInit {
         const meta = handleOf.get(s.walletAddress) as { label?: string; handle?: string } | undefined;
         for (const bot of matchingBots) {
           const botVault = bot.vaultId ?? 1;
+          const vaultMeta = vaultRows.find((v) => v.id === botVault) as unknown as
+            | { name?: string; chainEnv?: string | null }
+            | undefined;
+          // Devnet demo pools intentionally skip RugCheck: their tokens are
+          // throwaway demo memecoins and the gate would block every entry,
+          // leaving the on-chain demo pool without signals. Scoped strictly to
+          // demo-chain-* on devnet; real pools keep the strict gate.
+          const demoChainPool =
+            Boolean(vaultMeta?.name?.startsWith('demo-chain')) && vaultMeta?.chainEnv === 'devnet';
           const trader = traders.find(
             (t) => t.vaultId === botVault && t.wallet === s.walletAddress,
           );
@@ -210,7 +219,12 @@ export class AutoFireService implements OnModuleInit {
                 // No pinned tp1/stop: the engine ATR-tunes from 1h volatility
                 // (falls back to 60/30 when candles are missing).
               },
-              { ...this.overrides, vaultId: botVault, triggeredBy: `bot:${bot.id}` },
+              {
+                ...this.overrides,
+                vaultId: botVault,
+                triggeredBy: `bot:${bot.id}`,
+                ...(demoChainPool ? { strict: false } : {}),
+              },
             );
             summary.fired++;
             summary.orderIds.push(order.id);
