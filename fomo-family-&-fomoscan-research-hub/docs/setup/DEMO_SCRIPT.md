@@ -83,3 +83,18 @@ Lưu ý vận hành:
   faucet/keeper/indexer không chạy.
 - Kiểm tra nhanh DB: `vaults.chain_vault`, `chain_events`, `vault_deposits.chain_sig`,
   `vault_withdrawals.chain_sig`.
+
+### Pitfalls on-chain devnet (đo 2026-10-26)
+
+- **Tên vault on-chain là `demo-{poolId}`**, không phải tên pool `demo-chain-*`.
+  Ví dụ pool 39 → account `demo-39` (`DcAmBAiUhoiT…`). Derive PDA từ tên pool sẽ ra
+  địa chỉ khác và **không tồn tại**. Luôn đọc `vaults.chain_vault` hoặc dùng
+  `devnetVaultName(poolId)` trong `chain-admin.service.ts`.
+- **Deposit on-chain được credit theo ví ký** (`user` account). Nếu demo bằng keeper
+  thì “My position” của user đăng nhập sẽ trống — phải nạp từ chính ví presenter.
+- **Min deposit on-chain = 0.5 SOL** (program `DepositTooSmall`), khớp UI.
+- **Keeper cần dư SOL**: deposit 0.5 gần như rút cạn ví keeper; nạp thêm devnet SOL
+  trước demo (faucet công cộng hay bị rate-limit, dùng fallback hoặc ví khác).
+- Pool `demo-chain-*` mặc định `unlisted`; nếu list public để demo thì
+  `initialize` sẽ từ chối bind lại (đã bind thì không sao). Badge UI hiển thị
+  `ON-CHAIN DEVNET` khi API trả block `chain`.

@@ -22,6 +22,15 @@ export interface ChainPoolBinding {
  * to a freshly initialized edgepool-vault account. Existing production pools
  * (public listings) are deliberately refused.
  */
+/**
+ * Devnet vault account name for a pool. The on-chain account is derived from
+ * `demo-{poolId}`, NOT from the pool display name (`demo-chain-*`). Any PDA
+ * derivation must use this helper or read `vaults.chainVault` from the DB.
+ */
+export function devnetVaultName(poolId: number): string {
+  return `demo-${poolId}`.slice(0, 24);
+}
+
 @Injectable()
 export class ChainAdminService {
   constructor(
@@ -69,6 +78,13 @@ export class ChainAdminService {
       throw new BadRequestException('Only unlisted demo-chain-* pools may be bound to the program.');
     }
     if (vault.chainVault && vault.chainProgramId) {
+      // Guard against name/PDA drift: the account must match demo-{poolId}.
+      const expected = this.program.derivePdas(devnetVaultName(poolId)).vault.toBase58();
+      if (expected !== vault.chainVault) {
+        console.warn(
+          `[chain] vault ${poolId} chainVault ${vault.chainVault} does not match ${expected} (demo-${poolId}); using DB value`,
+        );
+      }
       return {
         poolId,
         name: vault.name,
@@ -84,7 +100,7 @@ export class ChainAdminService {
       };
     }
 
-    const onchainName = `demo-${poolId}`.slice(0, 24);
+    const onchainName = devnetVaultName(poolId);
     const result = await this.program.initializeVault(onchainName, {
       feeBps: vault.feeBps,
       withdrawFeeBps: vault.withdrawFeeBps,
