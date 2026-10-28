@@ -98,7 +98,33 @@ export class ChainKeeperService implements OnModuleInit, OnModuleDestroy {
     });
     const sol = await this.solPrice();
     const values = open.map((o) => (sol > 0 ? Number(o.amountUsd ?? 0) / sol : 0));
-    const marks = computeMarksLamports(values);
+    const desiredMarks = computeMarksLamports(values);
+    const connection = this.program.connection();
+    // The program enforces a 20% delta cap vs old NAV and max_marks_bps.
+    // Clamp keeper output instead of retrying a transaction that cannot land.
+    let marks = desiredMarks;
+    if (connection) {
+      const onchain = (await program.account.vault.fetch(vaultPk)) as {
+        marksLamports?: unknown;
+        feeCredit?: unknown;
+        maxMarksBps?: unknown;
+      };
+      const cash = await connection.getBalance(treasury);
+      const oldMarks = Number(String(onchain.marksLamports ?? 0));
+      const feeCredit = Number(String(onchain.feeCredit ?? 0));
+      const navOld = cash + oldMarks - feeCredit;
+      const deltaCap = Math.floor((navOld * 2_000) / 10_000);
+      const maxMarksBps = Number(onchain.maxMarksBps ?? 0);
+      const policyCap = maxMarksBps > 0 ? Math.floor((cash * maxMarksBps) / 10_000) : Number.MAX_SAFE_INTEGER;
+      const lower = Math.max(0, oldMarks - deltaCap);
+      const upper = Math.max(lower, Math.min(oldMarks + deltaCap, policyCap));
+      marks = Math.min(upper, Math.max(lower, desiredMarks));
+      if (marks !== desiredMarks) {
+        console.warn(
+          `[chain-keeper] vault ${v.id} marks clamped ${desiredMarks} -> ${marks} (delta/policy cap)`,
+        );
+      }
+    }
     await this.program.sendAndConfirmPolling(
       program.methods
         .updateMarks(new BN(marks))

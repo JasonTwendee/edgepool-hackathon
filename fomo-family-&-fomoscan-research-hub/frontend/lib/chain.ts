@@ -304,17 +304,26 @@ async function sendViaWallet(
   tx.recentBlockhash = blockhash;
   tx.feePayer = new PublicKey(walletAddress);
   const p = injected as unknown as Record<string, unknown>;
-  let signature: string;
-  if (typeof p.signAndSendTransaction === 'function') {
+  let signature: string | null = null;
+  // Prefer signTransaction + our own devnet connection. Some wallets'
+  // signAndSendTransaction uses their selected network/RPC and can return a
+  // signature that was never broadcast to devnet (ghost tx).
+  if (typeof p.signTransaction === 'function') {
+    try {
+      const signed = (await (p.signTransaction as (tx: Transaction) => Promise<Transaction>).call(p, tx)) as Transaction;
+      signature = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+    } catch (err) {
+      if (typeof p.signAndSendTransaction !== 'function') throw err;
+    }
+  }
+  if (!signature && typeof p.signAndSendTransaction === 'function') {
     const ret = (await (p.signAndSendTransaction as (tx: Transaction) => Promise<{ signature: string } | string>).call(
       p,
       tx,
     )) as { signature: string } | string;
     signature = typeof ret === 'string' ? ret : ret.signature;
-  } else if (typeof p.signTransaction === 'function') {
-    const signed = (await (p.signTransaction as (tx: Transaction) => Promise<Transaction>).call(p, tx)) as Transaction;
-    signature = await connection.sendRawTransaction(signed.serialize());
-  } else {
+  }
+  if (!signature) {
     throw new Error('Ví không hỗ trợ ký giao dịch. Dùng Phantom hoặc OKX Wallet bản mới.');
   }
   if (confirm) await confirmSignature(connection, signature);
