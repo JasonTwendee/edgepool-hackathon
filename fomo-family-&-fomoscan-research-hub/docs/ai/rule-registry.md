@@ -106,3 +106,5 @@ This file is the durable rule source.
 - 2026-10-28: `computeNav` phải quy đổi **USD PnL → SOL** bằng SOL/USD trước khi cộng vào NAV SOL; thiếu SOL price thì **không auto-settle**. Kill-switch đo share price, không NAV. Đã repair epoch pool 14 bị lỗi đơn vị.
 
 - 2026-10-28: Chain deposit/withdraw dùng `signTransaction` + backend/FE devnet RPC và **confirm on-chain trước khi submit operation**; không tin signature từ `signAndSendTransaction` nếu tx không thấy trên devnet (ghost tx). Keeper clamp marks theo delta 20% + max_marks_bps trước update_marks.
+
+- 2026-10-28: Pool PnL trên index/detail phải tính từ **share price** (không lấy NAV difference, vì deposit/withdraw làm NAV thay đổi); PnL SOL = (priceNow − priceBase) × shares hiện tại.

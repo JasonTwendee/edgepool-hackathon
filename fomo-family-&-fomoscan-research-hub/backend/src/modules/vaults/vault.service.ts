@@ -1503,12 +1503,15 @@ export class VaultService {
         // (fallback: oldest funded checkpoint when the pool is younger than
         // the window). The genesis 0-NAV checkpoint is never a base — using it
         // prints a contradictory "+X SOL at +0.0%".
-        const funded = eps.filter((e) => num(e.navSol) > 0);
+        const funded = eps.filter((e) => num(e.navSol) > 0 && num(e.sharePrice) > 0);
         const base = [...funded].reverse().find((e) => new Date(e.createdAt as unknown as string).getTime() < cut) ?? funded[0];
-        const navNow = last ? num(last.navSol) : 0;
-        const navBase = base ? num(base.navSol) : navNow;
-        const sol = r9(navNow - navBase);
-        pnl[key] = { sol, pct: navBase > 0 ? r9((sol / navBase) * 100) : 0 };
+        const priceNow = last ? num(last.sharePrice) : 0;
+        const priceBase = base ? num(base.sharePrice) : priceNow;
+        const sharesNow = last && num(last.sharesOutstanding) > 0 ? num(last.sharesOutstanding) : num(v.totalShares);
+        // Performance must be measured on share price; deposits/withdrawals
+        // change NAV without being PnL.
+        const sol = r9((priceNow - priceBase) * sharesNow);
+        pnl[key] = { sol, pct: priceBase > 0 ? r9((priceNow / priceBase - 1) * 100) : 0 };
       }
       const used = new Set(deposits.filter((d) => d.vaultId === v.id).map((d) => d.depositor)).size;
       const basket = traders
