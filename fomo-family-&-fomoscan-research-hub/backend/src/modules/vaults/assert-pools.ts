@@ -165,11 +165,15 @@ async function main(): Promise<void> {
       findMany: async ({ where }: { where: Row }) => db3.orders.filter((r) => match3(r, where)),
     },
   } as never;
-  const navSvc = new VaultService(prisma3, { bulkPrices: async () => ({ M1: 2 }) } as never);
+  const SOL = 'So11111111111111111111111111111111111111112';
+  const navSvc = new VaultService(prisma3, { bulkPrices: async () => ({ M1: 2, [SOL]: 1 }) } as never);
   assert.equal(await navSvc.computeNav(9), 17);
-  // No prices provider → unrealized skipped, base + realized only.
+  // Same USD PnL with SOL at $2 → convert USD before adding to NAV SOL.
+  const navSvcSol2 = new VaultService(prisma3, { bulkPrices: async () => ({ M1: 2, [SOL]: 2 }) } as never);
+  assert.equal(await navSvcSol2.computeNav(9), 13.5);
+  // No price provider → refuse to mix USD PnL into SOL NAV.
   const navSvc2 = new VaultService(prisma3);
-  assert.equal(await navSvc2.computeNav(9), 12);
+  await assert.rejects(() => navSvc2.computeNav(9));
 
   // 4. Deposit gates: min 0.5 SOL + slots (full blocks newcomers only).
   const gateDb: { vault: Row[]; deposits: Row[] } = {

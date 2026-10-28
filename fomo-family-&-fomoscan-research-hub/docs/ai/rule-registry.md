@@ -102,3 +102,5 @@ This file is the durable rule source.
 
 - 2026-10-22: Keeper kill-switch so sánh **share price**, không so NAV; deposit/withdraw làm NAV thay đổi nhưng không phải performance drawdown.
 - 2026-10-26 (user-confirmed): Devnet demo pool `demo-chain-*` được phép **list public** để demo (override docs cũ "chỉ unlisted"). Vault on-chain được initialize với tên `demo-{poolId}` — KHÔNG phải tên pool; mọi PDA derive phải dùng `demo-{poolId}` hoặc đọc `vaults.chainVault` từ DB. UI pool detail hiển thị badge `ON-CHAIN DEVNET` khi có `chain` block.
+
+- 2026-10-28: `computeNav` phải quy đổi **USD PnL → SOL** bằng SOL/USD trước khi cộng vào NAV SOL; thiếu SOL price thì **không auto-settle**. Kill-switch đo share price, không NAV. Đã repair epoch pool 14 bị lỗi đơn vị.

@@ -4,6 +4,8 @@ import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { isHaltedVault } from '../copy-trade/kill-switch.js';
 
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+
 export interface VaultStatus {
   id: number;
   name: string;
@@ -663,22 +665,32 @@ export class VaultService {
     const pricable = opens.filter(
       (o) => (o.action ?? 'BUY') === 'BUY' && o.tokenMint && num(o.entryPriceUsd) > 0 && num(o.amountUsd) > 0,
     );
-    let unrealized = 0;
-    if (pricable.length > 0) {
+    let unrealizedUsd = 0;
+    let solUsd = 0;
+    if (realized !== 0 || pricable.length > 0) {
+      if (!this.prices) fail('Price service unavailable — cannot convert PnL USD to SOL.');
       let px: Record<string, number> = {};
       try {
-        px = this.prices ? await this.prices.bulkPrices([...new Set(pricable.map((o) => o.tokenMint as string))]) : {};
+        px = await this.prices.bulkPrices([
+          ...new Set([...pricable.map((o) => o.tokenMint as string), SOL_MINT]),
+        ]);
       } catch {
         px = {};
+      }
+      solUsd = px[SOL_MINT] ?? 0;
+      if (!(solUsd > 0)) {
+        fail('SOL price unavailable — refusing to settle USD PnL as SOL.');
       }
       for (const o of pricable) {
         const live = px[o.tokenMint as string];
         if (!Number.isFinite(live)) continue;
         const qty = num(o.amountUsd) / num(o.entryPriceUsd);
-        unrealized += qty * live - num(o.amountUsd);
+        unrealizedUsd += qty * live - num(o.amountUsd);
       }
     }
-    return r9(Math.max(0, base + unrealized + realized));
+    // PnL fields are USD; vault NAV is SOL. Never add the two units directly.
+    const pnlSol = solUsd > 0 ? (realized + unrealizedUsd) / solUsd : 0;
+    return r9(Math.max(0, base + pnlSol));
   }
 
   /**
