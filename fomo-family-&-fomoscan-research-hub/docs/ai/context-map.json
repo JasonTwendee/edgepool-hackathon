@@ -131,7 +131,8 @@
     "compose": "docker-compose.yml + docker-compose.prod.yml (Caddy :80/:443 single entry) + docker-compose.ghcr.yml (pull-only: ghcr images, mem limits, pg tune)"
   },
   "handlers": {
-    "sseStream": "backend/src/modules/onchain/onchain.controller.ts#stream"
+    "sseStream": "backend/src/modules/onchain/onchain.controller.ts#stream",
+    "traderProfile": "backend/src/modules/wallets/wallets.controller.ts#traderProfile (public GET /api/wallets/trader/:handle → /traders/[handle])"
   },
   "integrations": {
     "solanaRpc": "FluxRPC eu SOLANA_RPC_URL, confirmed; head reads + WS + send (ledger cache ~70s, NOT for history)",

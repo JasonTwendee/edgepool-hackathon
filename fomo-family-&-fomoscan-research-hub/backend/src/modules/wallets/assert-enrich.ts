@@ -86,6 +86,26 @@ async function main(): Promise<void> {
     assert.deepEqual(calls, ['W1']);
   }
 
+  // 1b. Public trader profile: local handle + FomoScan identity, no wallets.
+  {
+    const fake = makeFake();
+    const fomoscan = {
+      resolveHandle: async (h: string) => ({
+        id: 'u1', handle: h, name: 'Trader One', bio: 'bio', profilePicture: 'https://pic/t1',
+        twitter: 'https://x.com/t1', solanaAddress: 'W1', evmAddress: null,
+      }),
+    } as never;
+    const svc = svcWith(fake, fomoscan);
+    const out = await svc.publicProfile('@t1') as unknown as Row;
+    assert.equal(out.handle, 't1');
+    assert.equal(out.name, 'T1');
+    assert.equal(out.avatarUrl, 'https://pic/t1');
+    assert.equal(out.twitter, 'https://x.com/t1');
+    assert.equal(out.verified, true);
+    assert.match(String(out.fomoUrl), /fomo\.family\/profile\/t1$/);
+    assert.deepEqual(out.pools, []);
+  }
+
   // 2. Nulls from FomoScan never blank existing local values.
   {
     const fake = makeFake();

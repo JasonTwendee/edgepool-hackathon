@@ -31,6 +31,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WalletListResponse'
+  /api/wallets/trader/{handle}:
+    get:
+      summary: Public trader profile by FOMO handle (local stats + FomoScan identity)
+      operationId: getTraderProfile
+      parameters:
+        - name: handle
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Trader profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '404': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/wallets/rotation/status:
     get:
       summary: Rotation config + tracked counts (topN/cap/period)

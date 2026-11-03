@@ -18,7 +18,7 @@ import {
   type TrackedWallet,
 } from './entities/tracked-wallet.entity.js';
 import type { UpdateWalletDto } from './dto/update-wallet.dto.js';
-import { FomoscanService } from '../../common/fomoscan/fomoscan.service.js';
+import { FomoscanService, type FomoscanIdentity } from '../../common/fomoscan/fomoscan.service.js';
 
 /**
  * Wallets CRUD — Postgres (reference schema `tracked_wallets`) is source of
@@ -33,6 +33,9 @@ export class WalletsService implements OnModuleInit, OnModuleDestroy {
   private liveTimer?: NodeJS.Timeout;
   private reconciling = false;
   private lastLiveLog = '';
+  // Free FomoScan keys answer SAMPLE_SET_ONLY for most handles; remember the
+  // miss briefly so profile views do not retry the same restricted lookup.
+  private readonly profileLookupMiss = new Map<string, number>();
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -197,6 +200,80 @@ export class WalletsService implements OnModuleInit, OnModuleDestroy {
     // the pool (or drop a live pool trader).
     await this.reconcileLiveStream();
     return true;
+  }
+
+  /**
+   * Public trader profile by FOMO handle. Uses the local tracked-wallet row as
+   * the primary source and FomoScan identity as a fail-soft enrichment (bio,
+   * avatar, X link). No wallet addresses are exposed; the profile links to the
+   * public FomoScan leaderboard and to FOMO's own profile (login-gated).
+   */
+  async publicProfile(handle: string): Promise<Record<string, unknown>> {
+    const clean = (handle ?? '').trim().replace(/^@/, '');
+    if (!clean) throw new BadRequestException({ success: false, message: 'A trader handle is required.' });
+    let identity: FomoscanIdentity | null = null;
+    const cacheKey = clean.toLowerCase();
+    if ((this.profileLookupMiss.get(cacheKey) ?? 0) <= Date.now()) {
+      try {
+        identity = await this.fomoscan.resolveHandle(clean);
+      } catch {
+        identity = null;
+        this.profileLookupMiss.set(cacheKey, Date.now() + 6 * 3600 * 1000);
+      }
+    }
+    const rows = await this.prisma.trackedWallet.findMany({
+      where: {
+        OR: [
+          { handle: { equals: clean, mode: 'insensitive' } },
+          ...(identity?.solanaAddress ? [{ address: identity.solanaAddress }] : []),
+        ],
+      },
+    });
+    if (rows.length === 0 && !identity) {
+      throw new NotFoundException({ success: false, message: `Trader @${clean} not found.` });
+    }
+    const primary = rows.sort((a, b) => {
+      const aHas = a.fomoPnlUsd !== null ? 1 : 0;
+      const bHas = b.fomoPnlUsd !== null ? 1 : 0;
+      return bHas - aHas;
+    })[0];
+    const addresses = rows.map((r) => r.address);
+    const memberships = addresses.length === 0 ? [] : await this.prisma.vaultTrader.findMany({
+      where: {
+        wallet: { in: addresses },
+        isActive: true,
+        vault: { listing: 'public', status: 'live' },
+      },
+      select: { vaultId: true, vault: { select: { id: true, name: true, kind: true } } },
+    });
+    const pools = [...new Map(memberships.map((m) => [m.vaultId, m.vault])).values()];
+    const n = (v: unknown): number => {
+      if (typeof v === 'number') return v;
+      if (typeof v === 'string') return Number(v) || 0;
+      const maybe = v as { toNumber?: () => number } | null;
+      return maybe && typeof maybe.toNumber === 'function' ? maybe.toNumber() : 0;
+    };
+    return {
+      handle: primary?.handle || identity?.handle || clean,
+      name: primary?.label || identity?.name || clean,
+      bio: primary?.bio ?? identity?.bio ?? null,
+      avatarUrl: primary?.avatarUrl ?? identity?.profilePicture ?? null,
+      twitter: identity?.twitter ?? null,
+      rank: primary?.fomoRank ?? null,
+      ranks: {
+        h24: primary?.rank24h ?? null,
+        d7: primary?.rank7d ?? null,
+        d30: primary?.rank30d ?? null,
+      },
+      pnlUsd: n(primary?.fomoPnlUsd),
+      winRate: n(primary?.winRate),
+      trades: primary?.totalTradesCount ?? 0,
+      pools: pools.map((p) => ({ id: p.id, name: p.name, kind: p.kind })),
+      verified: !!identity,
+      updatedAt: primary?.fomoSyncedAt ? new Date(primary.fomoSyncedAt as unknown as string).toISOString() : null,
+      fomoUrl: `https://fomo.family/profile/${encodeURIComponent(clean)}`,
+      fomoScanLeaderboardUrl: 'https://www.fomoscan.sh/leaderboard',
+    };
   }
 
   /**

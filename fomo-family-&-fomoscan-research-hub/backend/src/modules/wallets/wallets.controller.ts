@@ -28,6 +28,14 @@ export class WalletsController {
     return { success: true, total: data.length, data };
   }
 
+  // Public trader profile by FOMO handle (used by pool-detail trader links).
+  // FomoScan identity enrichment is fail-soft; local tracked-wallet stats win.
+  @Get('trader/:handle')
+  async traderProfile(@Param('handle') handle: string): Promise<{ success: boolean; data: unknown }> {
+    const data = await this.wallets.publicProfile(handle);
+    return { success: true, data };
+  }
+
   // NOTE: manual add/remove was removed — tracked wallets rotate automatically
   // from the verified leaderboard (leaderboard module). PATCH copy-config stays.
 

@@ -220,7 +220,7 @@ async function main(): Promise<void> {
         !where || (where as Row).vaultId === 9
           ? [
               { id: 1, vaultId: 9, status: 'CONFIRMED', symbol: 'T1', masterHandle: 't1', masterWallet: 'W1', tokenMint: 'M1', amountUsd: 10, entryPriceUsd: 1, closeReason: null, closedAt: null, quoteJson: { qualify: true }, error: null, createdAt: new Date(now - 3600000) },
-              { id: 2, vaultId: 9, status: 'FAILED', symbol: 'T2', masterHandle: 't2', masterWallet: 'W2', tokenMint: null, amountUsd: 5, entryPriceUsd: null, closeReason: null, closedAt: null, quoteJson: {}, error: 'gate', createdAt: new Date(now - 7200000) },
+              { id: 2, vaultId: 9, status: 'FAILED', symbol: 'T2', masterHandle: 't2', masterWallet: 'W2', tokenMint: null, amountUsd: 5, entryPriceUsd: null, closeReason: null, closedAt: null, quoteJson: {}, error: 'Error: 429 Too Many Requests: {"jsonrpc":"2.0","error":{"code":429}}', createdAt: new Date(now - 7200000) },
             ]
           : [],
     },
@@ -249,6 +249,7 @@ async function main(): Promise<void> {
   assert.equal((((det.openPositions as Row[])[0] as Row).sizeSol as null), null);
   assert.equal((((det.signals as Row[])[0] as Row).token as string), 'T1');
   assert.equal((((det.signals as Row[])[0] as Row).mint as string), 'M1');
+  assert.match((((det.signals as Row[])[1] as Row).note as string), /RPC rate limit/);
   assert.ok(Array.isArray(det.navSeries) && (det.navSeries as Row[]).length === 1);
   const adv = det.advanced as Row;
   assert.ok(adv && typeof (adv.kpis as Row).deployedPctNav === 'number');

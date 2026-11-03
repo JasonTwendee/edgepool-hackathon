@@ -118,6 +118,30 @@ function signalDetail(o: any, legs: { leg: string }[]): string {
 }
 
 /**
+ * Customer-facing error text. Raw JSON-RPC bodies (429 rate limits, fetch
+ * timeouts, long account dumps) must never leak into the pool UI. Risk-check
+ * reasons stay visible because they explain why a signal was skipped.
+ */
+function friendlySignalError(raw: string): string {
+  const text = (raw ?? '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (/429|too many requests|rate[\s-]*limit/i.test(text)) {
+    return 'Market data temporarily unavailable (RPC rate limit) — signal skipped.';
+  }
+  if (/failed to get info about account|account.*not found/i.test(text)) {
+    return 'Token metadata temporarily unavailable — signal skipped.';
+  }
+  if (/jsonrpc|econn|etimedout|fetch failed|network error|socket hang up/i.test(text)) {
+    return 'Market data temporarily unavailable — signal skipped.';
+  }
+  if (/^Qualify error:/i.test(text)) {
+    return text.length > 220 ? `${text.slice(0, 217)}…` : text;
+  }
+  if (/^Slippage /i.test(text)) return text;
+  return text.length > 180 ? `${text.slice(0, 177)}…` : text;
+}
+
+/**
  * Paywall (pool-math.ts): holding < 0.5 SOL sees sizes/entries/live PnL as
  * null/•••. Traceability (token, mint, trader, order id, tx hashes) stays
  * public; applied server-side so curl can't bypass the economics mask.
@@ -813,7 +837,7 @@ export class VaultService {
       copyTxSignature: o.devnetSignature ?? null,
       status: o.status,
       ageSec: Math.max(0, Math.floor((Date.now() - new Date(o.createdAt as unknown as string).getTime()) / 1000)),
-      note: (o.error as string | null) ?? '',
+      note: friendlySignalError((o.error as string | null) ?? ''),
       detail: signalDetail(o, withLegs.filter((l) => l.orderId === o.id)),
       steps: stepsOf({ status: o.status, quoteJson: o.quoteJson, legs: withLegs.filter((l) => l.orderId === o.id) }),
     }));
@@ -832,7 +856,7 @@ export class VaultService {
         copyTxSignature: o.devnetSignature ?? null,
         status: o.status,
         event: o.status === 'FAILED' ? 'skip' : 'exit',
-        detail: ((o.closeReason as string | null) ?? o.error ?? '') as string,
+        detail: friendlySignalError(((o.closeReason as string | null) ?? o.error ?? '') as string),
         kind: o.status === 'FAILED' ? 'skip' : 'exit',
       }));
     const exp = new Map<string, number>();

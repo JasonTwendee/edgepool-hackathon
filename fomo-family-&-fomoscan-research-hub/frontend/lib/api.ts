@@ -289,6 +289,28 @@ export function getPoolDetail(id: number): Promise<{ success: boolean; data: Poo
   );
 }
 
+export interface TraderProfile {
+  handle: string;
+  name: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  twitter: string | null;
+  rank: number | null;
+  ranks: { h24: number | null; d7: number | null; d30: number | null };
+  pnlUsd: number;
+  winRate: number;
+  trades: number;
+  pools: { id: number; name: string; kind: string }[];
+  verified: boolean;
+  updatedAt: string | null;
+  fomoUrl: string;
+  fomoScanLeaderboardUrl: string;
+}
+
+export function getTraderProfile(handle: string): Promise<{ success: boolean; data: TraderProfile }> {
+  return fetchJson(`/api/wallets/trader/${encodeURIComponent(handle.replace(/^@/, ''))}`);
+}
+
 export interface PortfolioOverview {
   totalValueSol: number;
   totalDepositedSol: number;

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, ArrowSquareOut, LockSimple, PauseCircle, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, LockSimple, PauseCircle, UsersThree, X } from '@phosphor-icons/react';
 import {
   bumpApiCache,
   getAuthMe,
@@ -192,12 +192,6 @@ function WithdrawModal({ poolName, valueSol, queuedSol, price, openCount, onClos
   );
 }
 
-/** Fomo trader profile (public). Handles are case-sensitive in the URL. */
-function fomoProfileUrl(handle?: string | null): string | null {
-  const clean = (handle ?? '').trim().replace(/^@/, '');
-  return clean ? `https://fomo.family/profile/${encodeURIComponent(clean)}` : null;
-}
-
 /** RugCheck token report by mint (the only public token identity we store). */
 function rugcheckTokenUrl(mint?: string | null): string | null {
   return mint ? `https://rugcheck.xyz/tokens/${encodeURIComponent(mint)}` : null;
@@ -220,11 +214,10 @@ function TokenLink({ token, mint }: { token: string; mint?: string | null }) {
 function TraderLink({ handle, wallet }: { handle?: string | null; wallet?: string | null }) {
   const clean = (handle ?? '').trim().replace(/^@/, '');
   const label = clean ? `@${clean}` : wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : 'Trader';
-  const url = fomoProfileUrl(clean);
-  return url ? (
-    <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'var(--ep-aqua, #49E6D7)' }} title="Open Fomo profile">
+  return clean ? (
+    <Link href={`/traders/${encodeURIComponent(clean)}`} className="hover:underline" style={{ color: 'var(--ep-aqua, #49E6D7)' }} title="Open trader profile">
       {label}
-    </a>
+    </Link>
   ) : <>{label}</>;
 }
 
@@ -960,7 +953,7 @@ export default function PoolDetailPage() {
                     {items.map((s, i) => {
                       const age = s.ageSec < 60 ? `${Math.floor(s.ageSec)}s` : s.ageSec < 3600 ? `${Math.floor(s.ageSec / 60)}m` : `${Math.floor(s.ageSec / 3600)}h`;
                       return (
-                        <div key={`${start + i}`} className="flex flex-col gap-2 text-[13px] shrink-0" style={{ padding: '12px 14px', borderRadius: 10, background: '#1A1C2A', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
+                        <div key={`${start + i}`} className="flex flex-col gap-2 text-[13px] shrink-0" style={{ padding: '12px 14px', borderRadius: 10, background: '#1A1C2A', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', minWidth: 0 }}>
                           <div className="flex justify-between items-center gap-2">
                             <span>
                               <b className="font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>
@@ -982,7 +975,7 @@ export default function PoolDetailPage() {
                               );
                             })}
                           </div>
-                          <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                          <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                             {s.detail || s.note}
                             {locked ? ' · size & entry locked' : ''}
                           </span>
@@ -1028,11 +1021,6 @@ export default function PoolDetailPage() {
                   <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
                     <span className="flex items-center gap-1.5 text-sm font-medium">
                       <TraderLink handle={t.handle} wallet={t.wallet} />
-                      {!locked && fomoProfileUrl(t.handle) ? (
-                        <a href={fomoProfileUrl(t.handle) as string} target="_blank" rel="noreferrer" aria-label={`Open ${t.handle} on Fomo`} style={{ color: 'var(--ep-faint, #75798C)' }}>
-                          <ArrowSquareOut size={12} weight="regular" />
-                        </a>
-                      ) : null}
                     </span>
                     <span className="font-mono" style={{ fontSize: 11, color: 'var(--ep-muted, #9397AB)' }}>
                       #{t.ranks?.h24 ?? '—'} · #{t.ranks?.d7 ?? '—'} · #{t.ranks?.d30 ?? '—'}
@@ -1690,7 +1678,7 @@ function AdvancedView({
                 <span className="font-medium" style={{ color: l.kind === 'skip' ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-violet, #9184D9)' }}>{l.event}</span>
                 {' · '}<span style={{ letterSpacing: locked ? '0.12em' : 0 }}><TokenLink token={l.token} mint={l.mint} /></span>
               </span>
-              <span style={{ color: 'var(--ep-muted, #9397AB)' }}>
+              <span style={{ color: 'var(--ep-muted, #9397AB)', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                 <TraderLink handle={l.traderHandle} wallet={l.traderWallet} /> · {l.detail}
               </span>
               <TraceLinks orderId={l.id} mint={l.mint} masterTxHash={l.masterTxHash} copyTxSignature={l.copyTxSignature} />
