@@ -252,6 +252,7 @@ export type UserWhereInput = {
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   ownedVaults?: Prisma.VaultListRelationFilter
+  memberships?: Prisma.VaultMemberListRelationFilter
   payoutChallenges?: Prisma.PayoutWalletChallengeListRelationFilter
   signedIntents?: Prisma.SignedIntentListRelationFilter
 }
@@ -270,6 +271,7 @@ export type UserOrderByWithRelationInput = {
   deposits?: Prisma.DepositOrderByRelationAggregateInput
   withdrawals?: Prisma.WithdrawalOrderByRelationAggregateInput
   ownedVaults?: Prisma.VaultOrderByRelationAggregateInput
+  memberships?: Prisma.VaultMemberOrderByRelationAggregateInput
   payoutChallenges?: Prisma.PayoutWalletChallengeOrderByRelationAggregateInput
   signedIntents?: Prisma.SignedIntentOrderByRelationAggregateInput
 }
@@ -291,6 +293,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   deposits?: Prisma.DepositListRelationFilter
   withdrawals?: Prisma.WithdrawalListRelationFilter
   ownedVaults?: Prisma.VaultListRelationFilter
+  memberships?: Prisma.VaultMemberListRelationFilter
   payoutChallenges?: Prisma.PayoutWalletChallengeListRelationFilter
   signedIntents?: Prisma.SignedIntentListRelationFilter
 }, "id" | "wallet" | "username" | "email">
@@ -340,6 +343,7 @@ export type UserCreateInput = {
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
@@ -358,6 +362,7 @@ export type UserUncheckedCreateInput = {
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
@@ -375,6 +380,7 @@ export type UserUpdateInput = {
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
@@ -393,6 +399,7 @@ export type UserUncheckedUpdateInput = {
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -435,6 +442,11 @@ export type UserUncheckedUpdateManyInput = {
 export type UserNullableScalarRelationFilter = {
   is?: Prisma.UserWhereInput | null
   isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserScalarRelationFilter = {
+  is?: Prisma.UserWhereInput
+  isNot?: Prisma.UserWhereInput
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -481,11 +493,6 @@ export type UserSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
-export type UserScalarRelationFilter = {
-  is?: Prisma.UserWhereInput
-  isNot?: Prisma.UserWhereInput
-}
-
 export type UserCreateNestedOneWithoutOwnedVaultsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutOwnedVaultsInput, Prisma.UserUncheckedCreateWithoutOwnedVaultsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutOwnedVaultsInput
@@ -500,6 +507,20 @@ export type UserUpdateOneWithoutOwnedVaultsNestedInput = {
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutOwnedVaultsInput, Prisma.UserUpdateWithoutOwnedVaultsInput>, Prisma.UserUncheckedUpdateWithoutOwnedVaultsInput>
+}
+
+export type UserCreateNestedOneWithoutMembershipsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMembershipsInput, Prisma.UserUncheckedCreateWithoutMembershipsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMembershipsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutMembershipsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMembershipsInput, Prisma.UserUncheckedCreateWithoutMembershipsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMembershipsInput
+  upsert?: Prisma.UserUpsertWithoutMembershipsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMembershipsInput, Prisma.UserUpdateWithoutMembershipsInput>, Prisma.UserUncheckedUpdateWithoutMembershipsInput>
 }
 
 export type UserCreateNestedOneWithoutDepositsInput = {
@@ -588,6 +609,7 @@ export type UserCreateWithoutOwnedVaultsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
@@ -605,6 +627,7 @@ export type UserUncheckedCreateWithoutOwnedVaultsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
@@ -637,6 +660,7 @@ export type UserUpdateWithoutOwnedVaultsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
@@ -654,6 +678,93 @@ export type UserUncheckedUpdateWithoutOwnedVaultsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
+  signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMembershipsInput = {
+  wallet: string
+  username?: string | null
+  email?: string | null
+  passwordHash?: string | null
+  role?: string
+  payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
+  createdAt?: Date | string
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
+  withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
+  ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
+  signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutMembershipsInput = {
+  id?: number
+  wallet: string
+  username?: string | null
+  email?: string | null
+  passwordHash?: string | null
+  role?: string
+  payoutWallet?: string | null
+  payoutWalletVerifiedAt?: Date | string | null
+  createdAt?: Date | string
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
+  withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
+  ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
+  signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutMembershipsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMembershipsInput, Prisma.UserUncheckedCreateWithoutMembershipsInput>
+}
+
+export type UserUpsertWithoutMembershipsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMembershipsInput, Prisma.UserUncheckedUpdateWithoutMembershipsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMembershipsInput, Prisma.UserUncheckedCreateWithoutMembershipsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMembershipsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMembershipsInput, Prisma.UserUncheckedUpdateWithoutMembershipsInput>
+}
+
+export type UserUpdateWithoutMembershipsInput = {
+  wallet?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
+  withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
+  ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
+  signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMembershipsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  wallet?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.StringFieldUpdateOperationsInput | string
+  payoutWallet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  payoutWalletVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
+  withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
+  ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -670,6 +781,7 @@ export type UserCreateWithoutDepositsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
@@ -687,6 +799,7 @@ export type UserUncheckedCreateWithoutDepositsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
@@ -719,6 +832,7 @@ export type UserUpdateWithoutDepositsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
@@ -736,6 +850,7 @@ export type UserUncheckedUpdateWithoutDepositsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -752,6 +867,7 @@ export type UserCreateWithoutWithdrawalsInput = {
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
@@ -769,6 +885,7 @@ export type UserUncheckedCreateWithoutWithdrawalsInput = {
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
@@ -801,6 +918,7 @@ export type UserUpdateWithoutWithdrawalsInput = {
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
@@ -818,6 +936,7 @@ export type UserUncheckedUpdateWithoutWithdrawalsInput = {
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -835,6 +954,7 @@ export type UserCreateWithoutPayoutChallengesInput = {
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
 
@@ -852,6 +972,7 @@ export type UserUncheckedCreateWithoutPayoutChallengesInput = {
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -884,6 +1005,7 @@ export type UserUpdateWithoutPayoutChallengesInput = {
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
 
@@ -901,6 +1023,7 @@ export type UserUncheckedUpdateWithoutPayoutChallengesInput = {
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -916,6 +1039,7 @@ export type UserCreateWithoutSessionsInput = {
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentCreateNestedManyWithoutUserInput
 }
@@ -933,6 +1057,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
   signedIntents?: Prisma.SignedIntentUncheckedCreateNestedManyWithoutUserInput
 }
@@ -965,6 +1090,7 @@ export type UserUpdateWithoutSessionsInput = {
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUpdateManyWithoutUserNestedInput
 }
@@ -982,6 +1108,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
   signedIntents?: Prisma.SignedIntentUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -999,6 +1126,7 @@ export type UserCreateWithoutSignedIntentsInput = {
   deposits?: Prisma.DepositCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeCreateNestedManyWithoutUserInput
 }
 
@@ -1016,6 +1144,7 @@ export type UserUncheckedCreateWithoutSignedIntentsInput = {
   deposits?: Prisma.DepositUncheckedCreateNestedManyWithoutUserInput
   withdrawals?: Prisma.WithdrawalUncheckedCreateNestedManyWithoutUserInput
   ownedVaults?: Prisma.VaultUncheckedCreateNestedManyWithoutOwnerInput
+  memberships?: Prisma.VaultMemberUncheckedCreateNestedManyWithoutUserInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedCreateNestedManyWithoutUserInput
 }
 
@@ -1048,6 +1177,7 @@ export type UserUpdateWithoutSignedIntentsInput = {
   deposits?: Prisma.DepositUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUpdateManyWithoutUserNestedInput
 }
 
@@ -1065,6 +1195,7 @@ export type UserUncheckedUpdateWithoutSignedIntentsInput = {
   deposits?: Prisma.DepositUncheckedUpdateManyWithoutUserNestedInput
   withdrawals?: Prisma.WithdrawalUncheckedUpdateManyWithoutUserNestedInput
   ownedVaults?: Prisma.VaultUncheckedUpdateManyWithoutOwnerNestedInput
+  memberships?: Prisma.VaultMemberUncheckedUpdateManyWithoutUserNestedInput
   payoutChallenges?: Prisma.PayoutWalletChallengeUncheckedUpdateManyWithoutUserNestedInput
 }
 
@@ -1078,6 +1209,7 @@ export type UserCountOutputType = {
   deposits: number
   withdrawals: number
   ownedVaults: number
+  memberships: number
   payoutChallenges: number
   signedIntents: number
 }
@@ -1087,6 +1219,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   deposits?: boolean | UserCountOutputTypeCountDepositsArgs
   withdrawals?: boolean | UserCountOutputTypeCountWithdrawalsArgs
   ownedVaults?: boolean | UserCountOutputTypeCountOwnedVaultsArgs
+  memberships?: boolean | UserCountOutputTypeCountMembershipsArgs
   payoutChallenges?: boolean | UserCountOutputTypeCountPayoutChallengesArgs
   signedIntents?: boolean | UserCountOutputTypeCountSignedIntentsArgs
 }
@@ -1132,6 +1265,13 @@ export type UserCountOutputTypeCountOwnedVaultsArgs<ExtArgs extends runtime.Type
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountMembershipsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.VaultMemberWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountPayoutChallengesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.PayoutWalletChallengeWhereInput
 }
@@ -1158,6 +1298,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   deposits?: boolean | Prisma.User$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.User$withdrawalsArgs<ExtArgs>
   ownedVaults?: boolean | Prisma.User$ownedVaultsArgs<ExtArgs>
+  memberships?: boolean | Prisma.User$membershipsArgs<ExtArgs>
   payoutChallenges?: boolean | Prisma.User$payoutChallengesArgs<ExtArgs>
   signedIntents?: boolean | Prisma.User$signedIntentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -1205,6 +1346,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   deposits?: boolean | Prisma.User$depositsArgs<ExtArgs>
   withdrawals?: boolean | Prisma.User$withdrawalsArgs<ExtArgs>
   ownedVaults?: boolean | Prisma.User$ownedVaultsArgs<ExtArgs>
+  memberships?: boolean | Prisma.User$membershipsArgs<ExtArgs>
   payoutChallenges?: boolean | Prisma.User$payoutChallengesArgs<ExtArgs>
   signedIntents?: boolean | Prisma.User$signedIntentsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -1219,6 +1361,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     deposits: Prisma.$DepositPayload<ExtArgs>[]
     withdrawals: Prisma.$WithdrawalPayload<ExtArgs>[]
     ownedVaults: Prisma.$VaultPayload<ExtArgs>[]
+    memberships: Prisma.$VaultMemberPayload<ExtArgs>[]
     payoutChallenges: Prisma.$PayoutWalletChallengePayload<ExtArgs>[]
     signedIntents: Prisma.$SignedIntentPayload<ExtArgs>[]
   }
@@ -1630,6 +1773,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   deposits<T extends Prisma.User$depositsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$depositsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DepositPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   withdrawals<T extends Prisma.User$withdrawalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$withdrawalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WithdrawalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   ownedVaults<T extends Prisma.User$ownedVaultsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$ownedVaultsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VaultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  memberships<T extends Prisma.User$membershipsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VaultMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   payoutChallenges<T extends Prisma.User$payoutChallengesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$payoutChallengesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PayoutWalletChallengePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   signedIntents<T extends Prisma.User$signedIntentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$signedIntentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SignedIntentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -2156,6 +2300,30 @@ export type User$ownedVaultsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.VaultScalarFieldEnum | Prisma.VaultScalarFieldEnum[]
+}
+
+/**
+ * User.memberships
+ */
+export type User$membershipsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the VaultMember
+   */
+  select?: Prisma.VaultMemberSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the VaultMember
+   */
+  omit?: Prisma.VaultMemberOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.VaultMemberInclude<ExtArgs> | null
+  where?: Prisma.VaultMemberWhereInput
+  orderBy?: Prisma.VaultMemberOrderByWithRelationInput | Prisma.VaultMemberOrderByWithRelationInput[]
+  cursor?: Prisma.VaultMemberWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.VaultMemberScalarFieldEnum | Prisma.VaultMemberScalarFieldEnum[]
 }
 
 /**

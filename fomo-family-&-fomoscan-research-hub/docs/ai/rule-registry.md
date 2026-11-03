@@ -108,3 +108,11 @@ This file is the durable rule source.
 - 2026-10-28: Chain deposit/withdraw dùng `signTransaction` + backend/FE devnet RPC và **confirm on-chain trước khi submit operation**; không tin signature từ `signAndSendTransaction` nếu tx không thấy trên devnet (ghost tx). Keeper clamp marks theo delta 20% + max_marks_bps trước update_marks.
 
 - 2026-10-28: Pool PnL trên index/detail phải tính từ **share price** (không lấy NAV difference, vì deposit/withdraw làm NAV thay đổi); PnL SOL = (priceNow − priceBase) × shares hiện tại.
+
+- 2026-11-03 (user-confirmed): KOL/partner pools are **invite-only for deposits** via `vault_members` allowlist. Only `role=KOL` accounts added by the owner KOL or ADMIN may deposit; the owner KOL is auto-added; ADMIN bypasses for ops/testing. Basket pools remain open. Withdrawals are never gated — existing holders (including grandfathered USER deposits) can always exit. Enforced in both paper (`VaultService.deposit`) and on-chain (`ChainOperationService.create`). **Do not refund grandfathered non-KOL balances** (user-confirmed 2026-11-03): leave existing funds as-is; only new deposits are blocked.
+
+- 2026-11-03 (user-confirmed): KOL pools use the shared **5-trader roster**. `maxTraders` is fixed at 5 for `kind='partner'`; the owner UI no longer offers 3/4. Trader display shows **only the 5 active** roster rows; rotated-out memberships are collapsed under “Past traders” history and are never counted as current. The KOL trader table count must read `5 of 5 active`, not total membership rows.
+
+- 2026-11-03 (user-confirmed): KOL ownership model **A** — both demo KOL pools (14 `KOL Star Pool`, 43 `KOL Devnet Pool`) stay owned by the system `kol` account (user id 8). Seeing both in `/trader` is correct owner-scoped behavior; no code/data change to hide pool 14. Other KOL accounts still see only pools assigned to them by ADMIN.
+
+- 2026-11-03 (user-confirmed): Pool-detail traceability — token symbols link to `https://rugcheck.xyz/tokens/<mint>`, trader handles link to `https://fomo.family/profile/<handle>`, and every signal/position/log row exposes `order #id`, the Fomo master tx (`masterTxHash` → Solscan mainnet), and the devnet paper-fill proof signature (explorer, labelled “proof tx”). `mint`, handles, wallets and tx hashes must be nulled server-side for locked (<0.5 SOL) users; never rely on the UI alone.

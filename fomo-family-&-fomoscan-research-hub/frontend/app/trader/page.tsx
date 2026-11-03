@@ -9,6 +9,7 @@ import {
   getSolPriceUsd,
   getStoredToken,
   loginAccount,
+  partnerAddPoolMember,
   partnerApply,
   partnerApplyStatus,
   partnerClaim,
@@ -16,7 +17,9 @@ import {
   partnerPayoutChallenge,
   partnerPayouts,
   partnerPauseTrader,
+  partnerPoolMembers,
   partnerPoolTraders,
+  partnerRemovePoolMember,
   partnerRemoveTrader,
   partnerRequestTrader,
   partnerSetPayoutWallet,
@@ -24,6 +27,8 @@ import {
   partnerUpdateSettings,
   storeSession,
   type PartnerMe,
+  type PartnerPoolMember,
+  type PartnerPoolTrader,
   type PoolDetail,
 } from '../../lib/api';
 import { connectProvider, detectWallets, signWithBrowserWallet, signWithProvider, type InjectedSolanaProvider } from '../../lib/solana';
@@ -44,7 +49,7 @@ function countdown(iso: string, now: number): string {
 }
 
 /** Render the 600×315 X share card on canvas and trigger a PNG download. */
-function downloadShareCard(input: {
+async function downloadShareCard(input: {
   poolName: string;
   handle: string;
   pill: string;
@@ -53,7 +58,7 @@ function downloadShareCard(input: {
   pctText: string;
   pctSub: string;
   link: string;
-}): void {
+}): Promise<void> {
   const c = document.createElement('canvas');
   c.width = 600;
   c.height = 315;
@@ -66,6 +71,20 @@ function downloadShareCard(input: {
   grad.addColorStop(1, 'rgba(73,230,215,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, 600, 315);
+  // Brand motif, same vertical placement as the on-page share preview.
+  try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('motif-flow unavailable'));
+      img.src = '/brand/motif-flow.svg';
+    });
+    g.globalAlpha = 0.55;
+    g.drawImage(img, 0, 78, 600, 200);
+    g.globalAlpha = 1;
+  } catch {
+    // The card still works without the decorative motif.
+  }
   g.fillStyle = '#E9E9ED';
   g.font = '700 22px Inter, sans-serif';
   g.fillText('◈ edgepool', 36, 56);
@@ -220,7 +239,11 @@ export default function TraderPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [me, setMe] = useState<PartnerMe | null>(null);
   const [poolId, setPoolId] = useState<number | null>(null);
-  const [traders, setTraders] = useState<{ wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[]>([]);
+  const [traders, setTraders] = useState<PartnerPoolTrader[]>([]);
+  const [traderHistory, setTraderHistory] = useState<PartnerPoolTrader[]>([]);
+  const [members, setMembers] = useState<PartnerPoolMember[]>([]);
+  const [memberName, setMemberName] = useState('');
+  const [membersBusy, setMembersBusy] = useState(false);
   const [signals, setSignals] = useState<{ id: number; token: string; trader: string; status: string; profitUsd: number | null }[]>([]);
   const [payouts, setPayouts] = useState<{ id: number; vaultId: number; trader: string; amountSol: number; epochId: number | null; kind: string; status: string; createdAt: string }[]>([]);
   const [payoutInput, setPayoutInput] = useState('');
@@ -291,7 +314,13 @@ export default function TraderPage() {
 
   useEffect(() => {
     if (!token || poolId === null) return;
-    void partnerPoolTraders(token, poolId).then((r) => setTraders(r.data)).catch(() => undefined);
+    void partnerPoolTraders(token, poolId)
+      .then((r) => {
+        setTraders(r.data);
+        setTraderHistory(r.history ?? []);
+      })
+      .catch(() => undefined);
+    void partnerPoolMembers(token, poolId).then((r) => setMembers(r.data)).catch(() => undefined);
     void partnerSignals(token, poolId).then((r) => setSignals(r.data)).catch(() => undefined);
     void partnerPayouts(token).then((r) => setPayouts(r.data)).catch(() => undefined);
     void getPoolDetail(poolId).then((r) => setDetail(r.data)).catch(() => setDetail(null));
@@ -621,8 +650,48 @@ export default function TraderPage() {
     try {
       const r = await partnerPoolTraders(token, poolId);
       setTraders(r.data);
+      setTraderHistory(r.history ?? []);
     } catch (e) {
       setMsg((e as Error).message);
+    }
+  }
+
+  async function refreshMembers() {
+    if (!token || poolId === null) return;
+    try {
+      const r = await partnerPoolMembers(token, poolId);
+      setMembers(r.data);
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  }
+
+  async function addMember() {
+    if (!token || !pool || !memberName.trim()) return;
+    setMembersBusy(true);
+    try {
+      await partnerAddPoolMember(token, pool.id, { username: memberName.trim().replace(/^@/, '') });
+      setMemberName('');
+      await refreshMembers();
+      setMsg('KOL added to the deposit allowlist.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setMembersBusy(false);
+    }
+  }
+
+  async function removeMember(userId: number) {
+    if (!token || !pool) return;
+    setMembersBusy(true);
+    try {
+      await partnerRemovePoolMember(token, pool.id, userId);
+      await refreshMembers();
+      setMsg('KOL removed from the deposit allowlist.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setMembersBusy(false);
     }
   }
 
@@ -847,21 +916,13 @@ export default function TraderPage() {
                 </div>
                 <div className="flex justify-between items-center gap-2 flex-wrap">
                   <span className="text-[13px]" style={{ color: 'var(--ep-text, #E9E9ED)' }}>
-                    Traders · {traders.length} of {pool.maxTraders}
+                    Traders · {traders.length} of 5 active
+                    {traderHistory.length > 0 ? <span style={{ color: 'var(--ep-faint, #75798C)' }}> · {traderHistory.length} past</span> : null}
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>Max traders</span>
-                    <span className="flex rounded-lg overflow-hidden" style={{ boxShadow: '0 0 0 1px var(--ep-border, #2E313F)' }}>
-                      {[3, 4, 5].map((n) => (
-                        <button key={n} onClick={() => void saveSettings({ maxTraders: n }, `Max traders → ${n}.`)} disabled={busy}
-                          className="font-bold disabled:opacity-50"
-                          style={pool.maxTraders === n
-                            ? { width: 34, height: 32, fontSize: 13, background: '#2E313F', color: '#E9E9ED' }
-                            : { width: 34, height: 32, fontSize: 13, background: 'transparent', color: 'var(--ep-muted, #9397AB)' }}>
-                          {n}
-                        </button>
-                      ))}
-                    </span>
+                    <span className="grid place-items-center font-mono text-xs" style={{ width: 34, height: 32, borderRadius: 8, background: '#2E313F', color: '#E9E9ED' }}>5</span>
+                    <span className="text-[11px]" style={{ color: 'var(--ep-faint, #75798C)' }}>fixed shared roster</span>
                   </span>
                 </div>
                 <div className="overflow-x-auto">
@@ -919,9 +980,39 @@ export default function TraderPage() {
                     </div>
                   ))}
                   {traders.length === 0 && (
-                    <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', padding: '8px 4px' }}>No traders yet.</p>
+                    <p className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)', padding: '8px 4px' }}>No active traders.</p>
                   )}
                 </div>
+                {traderHistory.length > 0 && (
+                  <details className="rounded-lg" style={{ background: 'var(--ep-surface-sunk, #1A1C2A)', boxShadow: 'inset 0 0 0 1px var(--ep-border, #2E313F)' }}>
+                    <summary className="cursor-pointer text-[11px] font-mono px-3 py-2.5" style={{ color: 'var(--ep-faint, #75798C)', letterSpacing: '0.04em' }}>
+                      Past traders ({traderHistory.length}) — rotated out, history only
+                    </summary>
+                    <div className="px-3 pb-2">
+                      {traderHistory.map((t) => (
+                        <div key={t.wallet} className="flex items-center justify-between gap-2 text-[11px] py-2" style={{ borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                          <span className="min-w-0 flex flex-col gap-0.5">
+                            <span className="font-medium truncate" title={t.wallet}>@{t.handle}</span>
+                            <span className="font-mono" style={{ color: 'var(--ep-faint, #75798C)' }}>
+                              {t.enteredAt ? `in ${t.enteredAt.slice(0, 10)}` : 'legacy'}{t.exitedAt ? ` · out ${t.exitedAt.slice(0, 10)}` : ''}{t.exitReason ? ` · ${t.exitReason}` : ''}
+                            </span>
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (!token) return;
+                              void partnerPauseTrader(token, pool.id, t.wallet, true)
+                                .then(() => refreshTraders())
+                                .catch((e) => setMsg((e as Error).message));
+                            }}
+                            className="text-[10px] font-bold px-2 py-1 rounded-md shrink-0"
+                            style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                            Resume
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {undone && (
                   <div className="flex items-center justify-between gap-2 text-[11px] rounded-lg px-3 py-2" style={{ background: 'rgba(240,190,103,0.12)', boxShadow: '0 0 0 1px var(--ep-amber, #F0BE67)' }}>
                     <span style={{ color: 'var(--ep-amber, #F0BE67)' }}>Trader removed.</span>
@@ -955,6 +1046,56 @@ export default function TraderPage() {
                     @{r.fomoHandle} · {r.status}
                   </div>
                 ))}
+                {pool.kind === 'partner' && (
+                  <div className="flex flex-col gap-2" style={{ paddingTop: 14, borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                    <div className="flex justify-between items-start gap-2 flex-wrap">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>KOL depositors · allowlist</span>
+                        <span className="text-[11px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Only KOL accounts on this list can deposit. Existing holders can always withdraw.</span>
+                      </div>
+                      <span className="font-mono text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{members.length} allowed</span>
+                    </div>
+                    <div className="flex flex-col">
+                      {members.map((m) => (
+                        <div key={m.userId} className="flex items-center justify-between gap-2 text-[12px] py-2" style={{ borderTop: '1px solid var(--ep-border, #2E313F)' }}>
+                          <span className="min-w-0 flex items-center gap-2">
+                            <span className="font-medium truncate">@{m.username ?? m.wallet.slice(0, 8)}</span>
+                            {m.isOwner && <span className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(73,230,215,0.12)', color: 'var(--ep-aqua, #49E6D7)' }}>OWNER</span>}
+                            <span className="font-mono text-[10px]" style={{ color: 'var(--ep-faint, #75798C)' }}>{m.role}</span>
+                          </span>
+                          {!m.isOwner && (
+                            <button
+                              onClick={() => void removeMember(m.userId)}
+                              disabled={membersBusy}
+                              className="text-[10px] font-bold px-2 py-1 rounded-md disabled:opacity-50 shrink-0"
+                              style={{ border: '1px solid var(--ep-neg, #F28881)', color: 'var(--ep-neg, #F28881)' }}>
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {members.length === 0 && (
+                        <span className="text-[11px] py-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>No KOL depositors yet — the owner is added automatically.</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <input
+                        value={memberName}
+                        onChange={(e) => setMemberName(e.target.value)}
+                        placeholder="KOL username to allow"
+                        className="min-w-0 text-xs px-2.5 py-2 rounded-lg outline-none"
+                        style={{ width: 220, background: 'var(--ep-surface-sunk, #1A1C2A)', border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}
+                      />
+                      <button
+                        onClick={() => void addMember()}
+                        disabled={membersBusy || !memberName.trim()}
+                        className="text-xs font-medium px-3 py-2 rounded-lg disabled:opacity-50"
+                        style={{ border: '1px dashed var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)' }}>
+                        ＋ Add KOL
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
@@ -1127,18 +1268,15 @@ export default function TraderPage() {
                       onClick={() => {
                         if (!pool) return;
                         const pv = sharePreview();
-                        try {
-                          downloadShareCard({
-                            poolName: pool.name, handle: me.handle,
-                            pill: isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER OF ${pool.name.toUpperCase()}`,
-                            profitText: pv?.wSol ?? '—', profitSub: `Pool profit · 7d`,
-                            pctText: pv?.wPct ?? '—', pctSub: `Pool NAV / share · 7d`,
-                            link: `edgepool · ${slug}`,
-                          });
-                          setMsg('Share card downloaded.');
-                        } catch (e) {
-                          setMsg((e as Error).message);
-                        }
+                        void downloadShareCard({
+                          poolName: pool.name, handle: me.handle,
+                          pill: isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER · ${slug.replace(/-/g, ' ').toUpperCase() || 'POOL'}`,
+                          profitText: pv?.wSol ?? '—', profitSub: `Pool profit · 7d`,
+                          pctText: pv?.wPct ?? '—', pctSub: `Pool NAV / share · 7d`,
+                          link: `edgepool · ${slug}`,
+                        })
+                          .then(() => setMsg('Share card downloaded.'))
+                          .catch((e) => setMsg((e as Error).message));
                       }}
                       className="font-medium flex items-center gap-2" style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 14, border: '1px solid var(--ep-aqua, #49E6D7)', background: 'transparent', color: 'var(--ep-aqua, #49E6D7)' }}>
                       <DownloadSimple size={16} weight="regular" /> Download PNG
@@ -1172,12 +1310,12 @@ function SharePreview({ handle, isBasket, weekSol, weekPct, slug }: {
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: 600, borderRadius: 12, background: 'radial-gradient(70% 90% at 80% 40%, #1C1F30 0%, #161826 50%, #0D0F18 100%)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', padding: '28px 32px 22px', overflow: 'hidden' }}>
       <img src="/brand/motif-flow.svg" alt="" aria-hidden="true"
-        style={{ position: 'absolute', right: -160, top: 8, width: 560, opacity: 0.4, pointerEvents: 'none' }} />
+        style={{ position: 'absolute', left: 0, top: '50%', width: '100%', height: 'auto', transform: 'translateY(-28%)', opacity: 0.55, pointerEvents: 'none' }} />
       <div className="relative flex flex-col" style={{ gap: 14 }}>
       <img src="/brand/edgepool-horizontal-dark.svg" alt="edgepool" style={{ height: 22, alignSelf: 'flex-start' }} />
       <span className="self-start flex items-center gap-2 font-mono" style={{ fontSize: 11, letterSpacing: '0.1em', padding: '5px 11px', borderRadius: 999, background: 'rgba(73,230,215,0.08)', boxShadow: 'inset 0 0 0 1px rgba(73,230,215,0.5)', color: 'var(--ep-aqua, #49E6D7)' }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ep-aqua, #49E6D7)' }} />
-        {isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER · ${slug.toUpperCase() || 'POOL'}`}
+        {isBasket ? 'TRADER IN THE EDGEPOOL FLAGSHIP BASKET' : `PARTNER · ${slug.replace(/-/g, ' ').toUpperCase() || 'POOL'}`}
       </span>
       <span className="font-display font-medium" style={{ fontSize: 30, letterSpacing: '-0.02em' }}>@{handle}</span>
       <div className="flex" style={{ gap: 36 }}>

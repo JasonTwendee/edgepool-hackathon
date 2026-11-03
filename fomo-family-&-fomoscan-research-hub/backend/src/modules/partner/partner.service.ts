@@ -303,6 +303,8 @@ export class PartnerService {
     // checks and additionally owns fees/settle elsewhere. Guards stay here
     // (not just the route) so direct API calls are confined the same way.
     await this.assertOwner(vaultId, user);
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    if (!vault) missing(`Vault ${vaultId} not found.`);
     const data: Record<string, unknown> = {};
     if (patch.name !== undefined) {
       const name = String(patch.name ?? '').trim();
@@ -329,7 +331,12 @@ export class PartnerService {
     }
     if (patch.maxTraders !== undefined) {
       const maxTraders = patch.maxTraders as number;
-      if (!Number.isInteger(maxTraders) || maxTraders < 3 || maxTraders > 5) fail('maxTraders must be 3, 4 or 5.');
+      if (!Number.isInteger(maxTraders) || maxTraders < 3 || maxTraders > 5) fail('maxTraders must be an integer 3..5.');
+      if ((vault.kind as string | null) === 'partner' && maxTraders !== 5) {
+        fail('KOL pools use the shared 5-trader roster; maxTraders is fixed at 5.');
+      }
+      const active = await this.prisma.vaultTrader.count({ where: { vaultId, isActive: true } });
+      if (maxTraders < active) fail(`maxTraders cannot go below active traders (${active}).`);
       data.maxTraders = maxTraders;
     }
     if (patch.rulesJson !== undefined) {
@@ -346,8 +353,12 @@ export class PartnerService {
     return { id: updated.id, name: updated.name, kind: updated.kind, status: updated.status, listing: updated.listing, maxSlots: updated.maxSlots, maxTraders: updated.maxTraders, rulesJson: updated.rulesJson ?? null };
   }
 
-  /** Per-trader table: status, signals 7d, profit, fee earned (owner scope). */
-  async poolTraders(vaultId: number, user: PartnerUser): Promise<unknown[]> {
+  /**
+   * Per-trader table: active roster + inactive history. The display surface is
+   * capped at the live 5; history is returned separately so the UI can collapse
+   * it instead of counting 20+ rotated-out memberships as current traders.
+   */
+  async poolTraders(vaultId: number, user: PartnerUser): Promise<{ traders: unknown[]; history: unknown[] }> {
     await this.assertOwner(vaultId, user);
     const [trs, orders, payouts, tracked] = await Promise.all([
       this.prisma.vaultTrader.findMany({ where: { vaultId }, orderBy: { id: 'asc' } }),
@@ -357,18 +368,111 @@ export class PartnerService {
     ]);
     const handleOf = new Map(tracked.map((t) => [t.address, t.handle]));
     const weekAgo = Date.now() - 7 * 86400000;
-    return trs.map((t) => {
+    const rows = trs.map((t) => {
       const mine = orders.filter((o) => o.masterWallet === t.wallet);
       return {
         wallet: t.wallet,
         handle: handleOf.get(t.wallet) ?? t.wallet.slice(0, 6),
         isActive: t.isActive,
         weightBps: t.weightBps,
+        enteredAt: t.enteredAt ? new Date(t.enteredAt as unknown as string).toISOString() : null,
+        exitedAt: t.exitedAt ? new Date(t.exitedAt as unknown as string).toISOString() : null,
+        exitReason: t.exitReason ?? null,
         signals7d: mine.filter((o) => new Date(o.createdAt as unknown as string).getTime() >= weekAgo).length,
         profitUsd: Math.round(mine.filter((o) => o.closedAt).reduce((s, o) => s + num(o.realizedPnlUsd), 0)),
         feeSol: r9(payouts.filter((p) => p.trader === t.wallet).reduce((s, p) => s + num(p.amountSol), 0)),
       };
     });
+    return { traders: rows.filter((t) => t.isActive), history: rows.filter((t) => !t.isActive) };
+  }
+
+  /** Backfill/repair the owner KOL's implicit allowlist row. */
+  private async ensureOwnerMembership(vaultId: number, ownerUserId: number | null): Promise<void> {
+    if (!ownerUserId) return;
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId }, select: { kind: true } });
+    if ((vault?.kind as string | null) !== 'partner') return;
+    const owner = await this.prisma.user.findUnique({ where: { id: ownerUserId }, select: { role: true } });
+    if ((owner?.role as string | null) !== 'KOL') return;
+    await this.prisma.vaultMember.upsert({
+      where: { vaultId_userId: { vaultId, userId: ownerUserId } },
+      create: { vaultId, userId: ownerUserId },
+      update: {},
+    });
+  }
+
+  /** KOL allowlist for a partner pool (owner or ADMIN). */
+  async poolMembers(vaultId: number, user: PartnerUser): Promise<unknown[]> {
+    await this.assertOwner(vaultId, user);
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    if (!vault) missing(`Vault ${vaultId} not found.`);
+    if ((vault.kind as string | null) !== 'partner') return [];
+    await this.ensureOwnerMembership(vaultId, vault.ownerUserId as number | null);
+    const rows = await this.prisma.vaultMember.findMany({
+      where: { vaultId },
+      orderBy: { id: 'asc' },
+      include: { user: { select: { id: true, username: true, wallet: true, role: true } } },
+    });
+    return rows.map((r) => ({
+      userId: r.userId,
+      username: (r.user as { username: string | null }).username,
+      wallet: (r.user as { wallet: string }).wallet,
+      role: (r.user as { role: string }).role,
+      isOwner: (vault.ownerUserId as number | null) === r.userId,
+      addedByUserId: r.addedByUserId,
+      createdAt: new Date(r.createdAt as unknown as string).toISOString(),
+    }));
+  }
+
+  /** Add a KOL account to the pool's deposit allowlist (owner or ADMIN). */
+  async addPoolMember(vaultId: number, user: PartnerUser, input: { userId?: number; username?: string }): Promise<unknown> {
+    await this.assertOwner(vaultId, user);
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    if (!vault) missing(`Vault ${vaultId} not found.`);
+    if ((vault.kind as string | null) !== 'partner') fail('Only KOL partner pools have a deposit allowlist.');
+    const target = input.userId
+      ? await this.prisma.user.findUnique({ where: { id: input.userId } })
+      : await this.prisma.user.findUnique({ where: { username: String(input.username ?? '').trim() } });
+    if (!target) missing('KOL account not found.');
+    if ((target.role as string) !== 'KOL') fail('Only accounts with role KOL can be added to a KOL pool.');
+    const row = await this.prisma.vaultMember.upsert({
+      where: { vaultId_userId: { vaultId, userId: target.id } },
+      create: { vaultId, userId: target.id, addedByUserId: user.id },
+      update: {},
+    });
+    await this.audit
+      .record({
+        actor: user.wallet,
+        action: 'partner.add_member',
+        target: `vault:${vaultId} user:${target.id}`,
+        reason: String(target.username ?? target.wallet).slice(0, 100),
+      })
+      .catch(() => undefined);
+    return {
+      userId: target.id,
+      username: target.username,
+      wallet: target.wallet,
+      role: target.role,
+      isOwner: (vault.ownerUserId as number | null) === target.id,
+      createdAt: new Date(row.createdAt as unknown as string).toISOString(),
+    };
+  }
+
+  /** Remove a KOL from the allowlist; the owner cannot be removed. */
+  async removePoolMember(vaultId: number, user: PartnerUser, memberUserId: number): Promise<unknown> {
+    await this.assertOwner(vaultId, user);
+    const vault = await this.prisma.vault.findUnique({ where: { id: vaultId } });
+    if (!vault) missing(`Vault ${vaultId} not found.`);
+    if ((vault.ownerUserId as number | null) === memberUserId) fail('The pool owner cannot be removed from the allowlist.');
+    const deleted = await this.prisma.vaultMember.deleteMany({ where: { vaultId, userId: memberUserId } });
+    if (deleted.count === 0) missing('KOL member not found on this pool.');
+    await this.audit
+      .record({
+        actor: user.wallet,
+        action: 'partner.remove_member',
+        target: `vault:${vaultId} user:${memberUserId}`,
+      })
+      .catch(() => undefined);
+    return { userId: memberUserId, removed: true };
   }
 
   async pauseTrader(vaultId: number, user: PartnerUser, wallet: string, active: boolean): Promise<unknown> {
@@ -460,7 +564,11 @@ export class PartnerService {
     if (!row) missing(`Application ${id} not found.`);
     await this.prisma.partnerApplication.update({ where: { id }, data: { status: decision } });
     if (decision === 'approved' && input.vaultId && input.userId) {
+      const owner = await this.prisma.user.findUnique({ where: { id: input.userId } });
+      if (!owner) missing(`User ${input.userId} not found.`);
+      if ((owner.role as string) !== 'KOL') fail('Pool owner must be a KOL account.');
       await this.prisma.vault.update({ where: { id: input.vaultId }, data: { ownerUserId: input.userId } });
+      await this.ensureOwnerMembership(input.vaultId, input.userId);
     }
     return { id, status: decision };
   }

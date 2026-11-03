@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service.js';
 import { decodeWalletAddress } from '../../common/auth/solana-verify.js';
 import { DataStreamService } from '../../common/market/datastream.service.js';
 import { isHaltedVault } from '../copy-trade/kill-switch.js';
+import { depositPolicy, type PolicyPrisma } from '../../common/pools/deposit-policy.js';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
@@ -127,11 +128,20 @@ function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: 
   if (!masked) return { positions: clean, signals, log, exposure, advanced };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    positions: clean.map((p: any) => ({ ...p, token: '$••••', trader: 'Trader •', sizeSol: null, entryPriceUsd: null, livePriceUsd: null })),
+    positions: clean.map((p: any) => ({
+      ...p, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
+      masterTxHash: null, copyTxSignature: null, sizeSol: null, entryPriceUsd: null, livePriceUsd: null,
+    })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signals: (signals as any[]).map((s: any) => ({ ...s, token: '$••••', trader: 'Trader •' })),
+    signals: (signals as any[]).map((s: any) => ({
+      ...s, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
+      masterTxHash: null, copyTxSignature: null,
+    })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    log: (log as any[]).map((l: any) => ({ ...l, token: '$••••', trader: 'Trader •' })),
+    log: (log as any[]).map((l: any) => ({
+      ...l, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
+      masterTxHash: null, copyTxSignature: null,
+    })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exposure: (exposure as any[]).map((e: any) => ({ ...e, trader: 'Trader •' })),
     advanced: advanced
@@ -139,7 +149,8 @@ function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: 
           ...advanced,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ladder: ((advanced as any).ladder as any[]).map((l: any) => ({
-            ...l, token: '$••••', trader: 'Trader •', entry: null, live: null, sizeSol: null,
+            ...l, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
+            masterTxHash: null, copyTxSignature: null, entry: null, live: null, sizeSol: null,
           })),
         }
       : advanced,
@@ -214,7 +225,7 @@ export class VaultService {
 
   async deposit(
     vaultId: number,
-    userOrDepositor: { id: number; wallet: string } | string,
+    userOrDepositor: { id: number; wallet: string; role?: string } | string,
     amountSol: number,
     userIdOrDisplay?: number | string,
   ): Promise<{ id: number; status: string }> {
@@ -241,6 +252,21 @@ export class VaultService {
     const { id } = await this.resolveVault(vaultId);
     const vault = await this.prisma.vault.findUnique({ where: { id } });
     if (!vault) fail(`Vault ${id} not found.`);
+    // KOL-pool allowlist: partner pools are invite-only. The string overload is
+    // internal (asserts/legacy) and never exposed through the guarded
+    // controller path; the authenticated object carries the session role.
+    if (typeof userOrDepositor !== 'string') {
+      const access = await depositPolicy(
+        this.prisma as unknown as PolicyPrisma,
+        {
+          id: vault.id,
+          kind: vault.kind as string | null,
+          ownerUserId: vault.ownerUserId as number | null,
+        },
+        userOrDepositor,
+      );
+      if (!access.allowed) fail(access.reason ?? 'Deposits are restricted for this pool.');
+    }
     // Chain-bound pools must use the on-chain flow: a paper deposit changes
     // NAV/shares without touching the vault treasury and breaks reconcile
     // (supply-mirror / treasury-cash checks).
@@ -732,8 +758,15 @@ export class VaultService {
         const qty = entry > 0 ? num(o.amountUsd) / entry : 0;
         const unreal = live !== null && entry > 0 ? r9(qty * live - num(o.amountUsd)) : null;
         return {
+          id: o.id,
           token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+          mint: o.tokenMint ?? null,
           trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+          traderHandle: o.masterHandle ?? null,
+          traderWallet: o.masterWallet ?? null,
+          masterTxHash: o.masterTxHash ?? null,
+          copyTxSignature: o.devnetSignature ?? null,
+          status: o.status,
           sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
           notionalUsd: num(o.amountUsd),
           unrealizedPct: unreal !== null && num(o.amountUsd) > 0 ? r9((unreal / num(o.amountUsd)) * 100) : null,
@@ -746,7 +779,7 @@ export class VaultService {
     return { positions, nav };
   }
 
-  async poolDetail(vaultId: number, user?: { id: number; wallet: string }): Promise<Record<string, unknown>> {
+  async poolDetail(vaultId: number, user?: { id: number; wallet: string; role?: string }): Promise<Record<string, unknown>> {
     const { id } = await this.resolveVault(vaultId);
     vaultId = id;
     const base = ((await this.pools(user)) as Record<string, unknown>[]).find((p) => p.id === vaultId);
@@ -777,8 +810,15 @@ export class VaultService {
       where: { orderId: { in: orders.slice(0, 20).map((o) => o.id) } },
     });
     const signals = orders.slice(0, 20).map((o) => ({
+      id: o.id,
       token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+      mint: o.tokenMint ?? null,
       trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+      traderHandle: o.masterHandle ?? null,
+      traderWallet: o.masterWallet ?? null,
+      masterTxHash: o.masterTxHash ?? null,
+      copyTxSignature: o.devnetSignature ?? null,
+      status: o.status,
       ageSec: Math.max(0, Math.floor((Date.now() - new Date(o.createdAt as unknown as string).getTime()) / 1000)),
       note: (o.error as string | null) ?? '',
       detail: signalDetail(o, withLegs.filter((l) => l.orderId === o.id)),
@@ -789,8 +829,15 @@ export class VaultService {
       .slice(0, 20)
       .map((o) => ({
         at: new Date((o.closedAt ?? o.createdAt) as unknown as string).toISOString(),
+        id: o.id,
         token: o.symbol ?? o.tokenMint?.slice(0, 8) ?? '—',
+        mint: o.tokenMint ?? null,
         trader: o.masterHandle ?? o.masterWallet?.slice(0, 8) ?? '—',
+        traderHandle: o.masterHandle ?? null,
+        traderWallet: o.masterWallet ?? null,
+        masterTxHash: o.masterTxHash ?? null,
+        copyTxSignature: o.devnetSignature ?? null,
+        status: o.status,
         event: o.status === 'FAILED' ? 'skip' : 'exit',
         detail: ((o.closeReason as string | null) ?? o.error ?? '') as string,
         kind: o.status === 'FAILED' ? 'skip' : 'exit',
@@ -824,8 +871,24 @@ export class VaultService {
     const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
     const unmasked = maskPoolDetail(masked, positions, signals, log, exposure, advanced);
     const chain = await this.chainBlock(vaultId);
+    const policyVault = await this.prisma.vault.findUnique({
+      where: { id: vaultId },
+      select: { kind: true, ownerUserId: true },
+    });
+    const access = await depositPolicy(
+      this.prisma as unknown as PolicyPrisma,
+      {
+        id: vaultId,
+        kind: (policyVault?.kind as string | null) ?? (base.kind as string | null),
+        ownerUserId: policyVault?.ownerUserId as number | null,
+      },
+      user,
+    );
     return {
       ...base,
+      depositPolicy: access.policy,
+      canDeposit: access.allowed,
+      depositBlockedReason: access.reason,
       navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
       liveNavSol: marks.liveNavSol,
       liveSharePrice: marks.liveSharePrice,
@@ -1048,8 +1111,14 @@ export class VaultService {
       const live = o.tokenMint ? ((px[o.tokenMint as string] as number | undefined) ?? null) : null;
       const movePct = entry > 0 && typeof live === 'number' ? r9(((live - entry) / entry) * 100) : null;
       return {
+        id: o.id,
         token: o.symbol ?? (o.tokenMint as string)?.slice(0, 8) ?? '—',
+        mint: o.tokenMint ?? null,
         trader: o.masterHandle ?? (o.masterWallet as string)?.slice(0, 8) ?? '—',
+        traderHandle: o.masterHandle ?? null,
+        traderWallet: o.masterWallet ?? null,
+        masterTxHash: o.masterTxHash ?? null,
+        copyTxSignature: o.devnetSignature ?? null,
         entry, live, movePct,
         sizeSol: solPx > 0 ? r9(num(o.amountUsd) / solPx) : null,
         createdAt: new Date(o.createdAt as unknown as string).toISOString(),
@@ -1471,7 +1540,7 @@ export class VaultService {
    * with kind/status/listing, slots, NAV/sharePrice/HWM, per-period PnL (from
    * epoch checkpoints), trader basket (handle + rank), and optional myHolding.
    */
-  async pools(user?: { id: number; wallet: string }): Promise<unknown[]> {
+  async pools(user?: { id: number; wallet: string; role?: string }): Promise<unknown[]> {
     // Public index: unlisted demo/chain pools must not leak here.
     const vaults = await this.prisma.vault.findMany({ where: { listing: 'public' }, orderBy: { id: 'asc' } });
     const traders = await this.prisma.vaultTrader.findMany({
@@ -1590,6 +1659,8 @@ export class VaultService {
       fail('weightBps must be an integer 0..10000.');
     }
     const { id } = await this.resolveVault(vaultId);
+    const vault = await this.prisma.vault.findUnique({ where: { id }, select: { maxTraders: true } });
+    const cap = Math.min((vault?.maxTraders as number | null) ?? MAX_VAULT_TRADERS, MAX_VAULT_TRADERS);
     const existing = await this.prisma.vaultTrader.findUnique({
       where: { vaultId_wallet: { vaultId: id, wallet: clean } },
     });
@@ -1597,8 +1668,8 @@ export class VaultService {
     if (activating) {
       const activeCount = await this.prisma.vaultTrader.count({ where: { vaultId: id, isActive: true } });
       const othersActive = existing ? activeCount - 1 : activeCount;
-      if (othersActive >= MAX_VAULT_TRADERS) {
-        fail(`Vault ${id} already tracks ${MAX_VAULT_TRADERS} active traders (cap).`);
+      if (othersActive >= cap) {
+        fail(`Vault ${id} already tracks ${cap} active traders (cap).`);
       }
     }
     if (existing) {

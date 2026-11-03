@@ -403,6 +403,7 @@ export const ModelName = {
   CopyOrder: 'CopyOrder',
   CopyOrderLeg: 'CopyOrderLeg',
   Vault: 'Vault',
+  VaultMember: 'VaultMember',
   ChainOperation: 'ChainOperation',
   Deposit: 'Deposit',
   Withdrawal: 'Withdrawal',
@@ -434,7 +435,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "chainOperation" | "deposit" | "withdrawal" | "epochCheckpoint" | "chainEvent" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest" | "signedIntent"
+    modelProps: "trackedWallet" | "transaction" | "realtimeEvent" | "copyOrder" | "copyOrderLeg" | "vault" | "vaultMember" | "chainOperation" | "deposit" | "withdrawal" | "epochCheckpoint" | "chainEvent" | "user" | "payoutWalletChallenge" | "authNonce" | "session" | "auditLog" | "vaultTrader" | "bot" | "partnerPayout" | "partnerApplication" | "traderRequest" | "signedIntent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -879,6 +880,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.VaultCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.VaultCountAggregateOutputType> | number
+        }
+      }
+    }
+    VaultMember: {
+      payload: Prisma.$VaultMemberPayload<ExtArgs>
+      fields: Prisma.VaultMemberFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VaultMemberFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VaultMemberFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        findFirst: {
+          args: Prisma.VaultMemberFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VaultMemberFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        findMany: {
+          args: Prisma.VaultMemberFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>[]
+        }
+        create: {
+          args: Prisma.VaultMemberCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        createMany: {
+          args: Prisma.VaultMemberCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VaultMemberCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>[]
+        }
+        delete: {
+          args: Prisma.VaultMemberDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        update: {
+          args: Prisma.VaultMemberUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        deleteMany: {
+          args: Prisma.VaultMemberDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VaultMemberUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VaultMemberUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>[]
+        }
+        upsert: {
+          args: Prisma.VaultMemberUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VaultMemberPayload>
+        }
+        aggregate: {
+          args: Prisma.VaultMemberAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVaultMember>
+        }
+        groupBy: {
+          args: Prisma.VaultMemberGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VaultMemberGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VaultMemberCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VaultMemberCountAggregateOutputType> | number
         }
       }
     }
@@ -2249,6 +2324,17 @@ export const VaultScalarFieldEnum = {
 export type VaultScalarFieldEnum = (typeof VaultScalarFieldEnum)[keyof typeof VaultScalarFieldEnum]
 
 
+export const VaultMemberScalarFieldEnum = {
+  id: 'id',
+  vaultId: 'vaultId',
+  userId: 'userId',
+  addedByUserId: 'addedByUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type VaultMemberScalarFieldEnum = (typeof VaultMemberScalarFieldEnum)[keyof typeof VaultMemberScalarFieldEnum]
+
+
 export const ChainOperationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2795,6 +2881,7 @@ export type GlobalOmitConfig = {
   copyOrder?: Prisma.CopyOrderOmit
   copyOrderLeg?: Prisma.CopyOrderLegOmit
   vault?: Prisma.VaultOmit
+  vaultMember?: Prisma.VaultMemberOmit
   chainOperation?: Prisma.ChainOperationOmit
   deposit?: Prisma.DepositOmit
   withdrawal?: Prisma.WithdrawalOmit

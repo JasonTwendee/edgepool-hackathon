@@ -42,6 +42,7 @@ function makeFake() {
     apps: [] as Row[],
     requests: [] as Row[],
     deposits: [] as Row[],
+    members: [] as Row[],
   };
   const match = (r: Row, w: Row): boolean =>
     Object.entries(w).every(([k, v]) => {
@@ -71,6 +72,33 @@ function makeFake() {
     },
     vaultTrader: {
       findMany: async ({ where }: { where: Row }) => db.traders.filter((r) => match(r, where)),
+      count: async ({ where }: { where: Row }) => db.traders.filter((r) => match(r, where)).length,
+    },
+    vaultMember: {
+      findMany: async ({ where }: { where: Row }) =>
+        db.members
+          .filter((r) => r.vaultId === where.vaultId)
+          .map((r) => ({ ...r, user: db.user.find((u) => u.id === r.userId) })),
+      findUnique: async ({ where }: { where: Row }) => {
+        const key = where.vaultId_userId as Row;
+        return db.members.find((r) => r.vaultId === key.vaultId && r.userId === key.userId) ?? null;
+      },
+      upsert: async ({ where, create, update }: { where: Row; create: Row; update: Row }) => {
+        const key = where.vaultId_userId as Row;
+        const found = db.members.find((r) => r.vaultId === key.vaultId && r.userId === key.userId);
+        if (found) {
+          Object.assign(found, update);
+          return found;
+        }
+        const row = { id: db.members.length + 1, createdAt: new Date(), ...create };
+        db.members.push(row);
+        return row;
+      },
+      deleteMany: async ({ where }: { where: Row }) => {
+        const before = db.members.length;
+        db.members = db.members.filter((r) => !(r.vaultId === where.vaultId && r.userId === where.userId));
+        return { count: before - db.members.length };
+      },
     },
     copyOrder: {
       findMany: async ({ where }: { where: Row }) => db.orders.filter((r) => match(r, where)),
@@ -219,14 +247,18 @@ async function main(): Promise<void> {
   await assert.rejects(() => svc.pauseTrader(2, KOL, 'W9', false), /not assigned/);
   const ok = (await svc.updateSettings(1, KOL, { rulesJson: { traderCapPctNav: 2 }, maxTraders: 4 })) as Row;
   assert.equal(ok.maxTraders, 4);
+  await assert.rejects(() => svc.updateSettings(2, ADMIN, { maxTraders: 4 }), /fixed at 5/);
+  const fixed = (await svc.updateSettings(2, ADMIN, { maxTraders: 5 })) as Row;
+  assert.equal(fixed.maxTraders, 5);
   await assert.rejects(() => svc.updateSettings(1, KOL, { maxSlots: 0 }), /1\.\.1000/);
   const adm = (await svc.updateSettings(2, ADMIN, { name: 'Admin rename' })) as Row;
   assert.equal(adm.name, 'Admin rename');
 
   // 5. Traders table + request trader + signals + payouts.
-  const trs = (await svc.poolTraders(1, KOL)) as Row[];
-  assert.equal(trs.length, 1);
-  assert.equal((trs[0] as Row).feeSol, 0.15);
+  const trs = (await svc.poolTraders(1, KOL)) as { traders: Row[]; history: Row[] };
+  assert.equal(trs.traders.length, 1);
+  assert.equal(trs.history.length, 0);
+  assert.equal(trs.traders[0].feeSol, 0.15);
   const rq = (await svc.requestTrader(1, KOL, { fomoHandle: '@candidate' })) as Row;
   assert.equal(rq.status, 'pending');
   assert.equal(((await svc.signals(KOL)) as Row[]).length, 0);
@@ -238,6 +270,20 @@ async function main(): Promise<void> {
   await svc.reviewApplication(1, ADMIN, { decision: 'approved', vaultId: 2, userId: 7 });
   const me2 = (await svc.me(KOL)) as Row;
   assert.equal(((me2.pools as Row[]).length), 2);
+
+  // 7. KOL deposit allowlist: owner auto-added; only role KOL can be added;
+  // owner cannot be removed; add/remove is idempotent and owner/admin scoped.
+  await assert.rejects(() => svc.addPoolMember(1, KOL, { userId: 9 }), /Only KOL partner pools/);
+  const member = (await svc.addPoolMember(2, ADMIN, { userId: 9 })) as Row;
+  assert.equal(member.userId, 9);
+  await svc.addPoolMember(2, ADMIN, { userId: 9 }); // idempotent
+  await assert.rejects(() => svc.addPoolMember(2, ADMIN, { userId: 1 }), /role KOL/);
+  const members = (await svc.poolMembers(2, KOL)) as Row[];
+  assert.equal(members.length, 2); // owner KOL 7 + invited KOL 9
+  assert.equal(members.some((m) => m.userId === 7 && m.isOwner === true), true);
+  await svc.removePoolMember(2, KOL, 9);
+  assert.equal(((await svc.poolMembers(2, KOL)) as Row[]).length, 1);
+  await assert.rejects(() => svc.removePoolMember(2, KOL, 7), /owner cannot be removed/);
 
   console.log('partner asserts: ALL GREEN');
 }

@@ -213,8 +213,28 @@ model Vault {
   bots        Bot[]
   payouts     PartnerPayout[]
   requests    TraderRequest[]
+  members     VaultMember[]
 
   @@map("vaults")
+}
+
+// KOL-pool deposit allowlist (2026-11-03). Partner pools are invite-only:
+// only KOL accounts explicitly added here (plus the owner and ADMIN) may
+// deposit. Withdrawals stay open for existing holders. Basket pools ignore
+// this table entirely.
+model VaultMember {
+  id            Int      @id @default(autoincrement())
+  vaultId       Int      @map("vault_id")
+  vault         Vault    @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  userId        Int      @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Audit trail: which owner/KOL/admin added this member.
+  addedByUserId Int?     @map("added_by_user_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([vaultId, userId])
+  @@index([userId])
+  @@map("vault_members")
 }
 
 // Async deposit/withdraw operation + idempotency contract.
@@ -362,6 +382,7 @@ model User {
   deposits    Deposit[]
   withdrawals Withdrawal[]
   ownedVaults Vault[]    @relation("VaultOwner")
+  memberships VaultMember[]
   payoutChallenges PayoutWalletChallenge[]
   signedIntents SignedIntent[]
 

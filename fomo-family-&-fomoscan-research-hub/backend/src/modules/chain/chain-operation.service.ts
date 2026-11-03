@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
+import { depositPolicy, type PolicyPrisma } from '../../common/pools/deposit-policy.js';
 
 export type ChainOperationKind = 'DEPOSIT' | 'WITHDRAW';
 export type ChainOperationStatus = 'PENDING' | 'SUBMITTED' | 'INDEXED' | 'FAILED';
@@ -87,7 +88,7 @@ export class ChainOperationService {
   }
 
   async create(
-    user: { id: number; wallet: string },
+    user: { id: number; wallet: string; role?: string },
     vaultId: number,
     idempotencyKey: string,
     body: Record<string, unknown>,
@@ -101,7 +102,7 @@ export class ChainOperationService {
     }
     const vault = await this.prisma.vault.findUnique({
       where: { id: vaultId },
-      select: { chainVault: true },
+      select: { chainVault: true, kind: true, ownerUserId: true },
     });
     if (!vault?.chainVault) badRequest('Pool is not bound to the on-chain vault.');
     const amountSol = body.amountSol === undefined ? null : Number(body.amountSol);
@@ -127,6 +128,22 @@ export class ChainOperationService {
           : Number(existing.shares ?? 0) === shares);
       if (!same) conflict('Idempotency-Key was already used with a different payload.');
       return { operation: this.dto(existing), reused: true };
+    }
+
+    // KOL-pool allowlist: only invited KOLs (owner/ADMIN) may open a NEW
+    // on-chain deposit. Replays above stay idempotent for operations created
+    // while the user still had access.
+    if (kind === 'DEPOSIT') {
+      const access = await depositPolicy(
+        this.prisma as unknown as PolicyPrisma,
+        {
+          id: vaultId,
+          kind: vault.kind as string | null,
+          ownerUserId: vault.ownerUserId as number | null,
+        },
+        user,
+      );
+      if (!access.allowed) badRequest(access.reason ?? 'Deposits are restricted for this pool.');
     }
 
     for (let attempt = 0; attempt < 6; attempt++) {

@@ -99,6 +99,7 @@
     "SetRoleDto": "backend/src/modules/users/dto/users.dto.ts",
     "VaultPolicyDto": "backend/src/modules/vaults/dto/vault.dto.ts",
     "PartnerDto": "backend/src/modules/partner/dto/partner.dto.ts",
+    "PoolMemberDto": "backend/src/modules/partner/dto/partner.dto.ts (KOL deposit allowlist add)",
     "DemoDto": "backend/src/modules/demo/dto/demo.dto.ts",
     "CreateBotDto": "backend/src/modules/bots/dto/bots.dto.ts"
   },
@@ -113,6 +114,7 @@
     "Withdrawal": "prisma withdrawals (QUEUED→SETTLED, payoutSol, cancellable)",
     "EpochCheckpoint": "prisma epoch_checkpoints (navSol/sharePrice/feeSol)",
     "VaultTrader": "prisma vault_traders (weightBps, isActive)",
+    "VaultMember": "prisma vault_members (KOL deposit allowlist for partner pools; unique vaultId+userId)",
     "User": "prisma users (wallet/username, scrypt passwordHash, role USER|KOL|ADMIN, payoutWallet+verifiedAt)",
     "Session": "prisma sessions (sha256 tokenHash, httpOnly cookie)",
     "AuthNonce": "prisma auth_nonces (wallet login challenge)",

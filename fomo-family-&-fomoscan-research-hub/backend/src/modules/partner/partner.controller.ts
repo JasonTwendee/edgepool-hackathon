@@ -3,7 +3,7 @@ import { validateDto } from '../../common/validation/validate-dto.js';
 import { AuthGuard, AuthedUser, Roles, RolesGuard } from '../../common/auth/guards.js';
 import { Audit, AuditInterceptor } from '../audit/audit.interceptor.js';
 import { PartnerService } from './partner.service.js';
-import { ApplyDto, PayoutChallengeDto, PayoutWalletDto, PoolSettingsDto, RequestTraderDto, ReviewApplicationDto } from './dto/partner.dto.js';
+import { ApplyDto, PayoutChallengeDto, PayoutWalletDto, PoolMemberDto, PoolSettingsDto, RequestTraderDto, ReviewApplicationDto } from './dto/partner.dto.js';
 
 @Controller('api/partner')
 export class PartnerController {
@@ -87,10 +87,58 @@ export class PartnerController {
   async traders(
     @Param('id') id: string,
     @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; total: number; data: unknown; history: unknown[] }> {
+    const parsed = parseInt(id, 10);
+    const result = await this.partner.poolTraders(Number.isFinite(parsed) ? parsed : -1, req.user as AuthedUser);
+    return { success: true, total: result.traders.length, data: result.traders, history: result.history };
+  }
+
+  @Get('pools/:id/members')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('KOL', 'ADMIN')
+  async members(
+    @Param('id') id: string,
+    @Req() req: { user?: AuthedUser },
   ): Promise<{ success: boolean; total: number; data: unknown }> {
     const parsed = parseInt(id, 10);
-    const data = (await this.partner.poolTraders(Number.isFinite(parsed) ? parsed : -1, req.user as AuthedUser)) as unknown[];
+    const data = (await this.partner.poolMembers(Number.isFinite(parsed) ? parsed : -1, req.user as AuthedUser)) as unknown[];
     return { success: true, total: data.length, data };
+  }
+
+  @Post('pools/:id/members')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('KOL', 'ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('partner.add_member')
+  async addMember(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const dto = await validateDto(PoolMemberDto, body);
+    const parsed = parseInt(id, 10);
+    const data = await this.partner.addPoolMember(Number.isFinite(parsed) ? parsed : -1, req.user as AuthedUser, dto);
+    return { success: true, data };
+  }
+
+  @Delete('pools/:id/members/:userId')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('KOL', 'ADMIN')
+  @UseInterceptors(AuditInterceptor)
+  @Audit('partner.remove_member')
+  async removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Req() req: { user?: AuthedUser },
+  ): Promise<{ success: boolean; data: unknown }> {
+    const parsed = parseInt(id, 10);
+    const memberId = parseInt(userId, 10);
+    const data = await this.partner.removePoolMember(
+      Number.isFinite(parsed) ? parsed : -1,
+      req.user as AuthedUser,
+      Number.isFinite(memberId) ? memberId : -1,
+    );
+    return { success: true, data };
   }
 
   @Post('pools/:id/traders/:wallet/pause')

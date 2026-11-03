@@ -239,6 +239,10 @@ export function listPools(): Promise<{ success: boolean; total: number; data: Po
 }
 
 export interface PoolDetail extends PoolSummary {
+  /** Partner pools are invite-only; basket pools are open. */
+  depositPolicy?: 'open' | 'kol_allowlist';
+  canDeposit?: boolean;
+  depositBlockedReason?: string | null;
   navSeries: { t: number; v: number }[];
   /** On-chain vault info (P3) — present only when the pool is chain-bound. */
   chain?: import('../types/fund').ChainVaultInfo;
@@ -246,17 +250,32 @@ export interface PoolDetail extends PoolSummary {
   liveNavSol?: number;
   liveSharePrice?: number;
   live?: boolean;
-  openPositions: { token: string; trader: string; sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null; createdAt: string }[];
+  openPositions: {
+    id?: number; token: string; mint?: string | null; trader: string; traderHandle?: string | null; traderWallet?: string | null;
+    masterTxHash?: string | null; copyTxSignature?: string | null; status?: string;
+    sizeSol: number | null; unrealizedPct: number | null; stage: string; entryPriceUsd: number | null; livePriceUsd: number | null; createdAt: string;
+  }[];
   openCount: number;
-  signals: { token: string; trader: string; ageSec: number; note: string; detail: string; steps: { label: string; state: string }[] }[];
-  log: { at: string; token: string; trader: string; event: string; detail: string; kind: string }[];
+  signals: {
+    id?: number; token: string; mint?: string | null; trader: string; traderHandle?: string | null; traderWallet?: string | null;
+    masterTxHash?: string | null; copyTxSignature?: string | null; status?: string;
+    ageSec: number; note: string; detail: string; steps: { label: string; state: string }[];
+  }[];
+  log: {
+    at: string; id?: number; token: string; mint?: string | null; trader: string; traderHandle?: string | null; traderWallet?: string | null;
+    masterTxHash?: string | null; copyTxSignature?: string | null; status?: string; event: string; detail: string; kind: string;
+  }[];
   exposure: { trader: string; pctNav: number; pnlSol: number }[];
   myHolding: VaultMine | null;
   masked: boolean;
   advanced?: {
     kpis: { navSol: number; sharePrice: number; pnlSol: number | null; unrealizedSol: number; deployedPctNav: number; fromHwmPct: number };
     risk: { dayPct: number; dayLimitPct: number; dayUsedPct: number; weekPct: number; weekLimitPct: number; weekUsedPct: number; signals24h: number; emergencyExits7d: number };
-    ladder: { token: string; trader: string; entry: number | null; live: number | null; movePct: number | null; sizeSol: number | null; createdAt: string; tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; stage: string }[];
+    ladder: {
+      id?: number; token: string; mint?: string | null; trader: string; traderHandle?: string | null; traderWallet?: string | null;
+      masterTxHash?: string | null; copyTxSignature?: string | null;
+      entry: number | null; live: number | null; movePct: number | null; sizeSol: number | null; createdAt: string; tp1Pct: number; tp1Hit: boolean; tp2Pct: number; tp2Hit: boolean; stopPct: number; trailFloorPct: number | null; stage: string;
+    }[];
     exposure: { trader: string; pctNav: number; pnlSol: number; capPct: number }[];
   };
 }
@@ -343,8 +362,43 @@ export function partnerClaim(token: string): Promise<{ success: boolean; data: {
   return p;
 }
 
-export function partnerPoolTraders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: { wallet: string; handle: string; isActive: boolean; weightBps: number; signals7d: number; profitUsd: number; feeSol: number }[] }> {
+export interface PartnerPoolTrader {
+  wallet: string;
+  handle: string;
+  isActive: boolean;
+  weightBps: number;
+  enteredAt?: string | null;
+  exitedAt?: string | null;
+  exitReason?: string | null;
+  signals7d: number;
+  profitUsd: number;
+  feeSol: number;
+}
+
+export function partnerPoolTraders(token: string, poolId: number): Promise<{ success: boolean; total: number; data: PartnerPoolTrader[]; history: PartnerPoolTrader[] }> {
   return fetchJsonAuth(`/api/partner/pools/${poolId}/traders`, token);
+}
+
+export interface PartnerPoolMember {
+  userId: number;
+  username: string | null;
+  wallet: string;
+  role: string;
+  isOwner: boolean;
+  addedByUserId: number | null;
+  createdAt: string;
+}
+
+export function partnerPoolMembers(token: string, poolId: number): Promise<{ success: boolean; total: number; data: PartnerPoolMember[] }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/members`, token);
+}
+
+export function partnerAddPoolMember(token: string, poolId: number, input: { userId?: number; username?: string }): Promise<{ success: boolean; data: PartnerPoolMember }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/members`, token, { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function partnerRemovePoolMember(token: string, poolId: number, userId: number): Promise<{ success: boolean; data: unknown }> {
+  return fetchJsonAuth(`/api/partner/pools/${poolId}/members/${userId}`, token, { method: 'DELETE' });
 }
 
 export interface VaultOrderJourney {

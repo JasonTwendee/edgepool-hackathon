@@ -68,6 +68,18 @@ export class PoolSettingsDto {
   rulesJson?: Record<string, number>;
 }
 
+/** POST /api/partner/pools/:id/members body (add a KOL to the allowlist). */
+export class PoolMemberDto {
+  @IsOptional()
+  @IsInt()
+  userId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  username?: string;
+}
+
 /** POST /api/partner/pools/:id/request-trader body. */
 export class RequestTraderDto {
   @IsString()

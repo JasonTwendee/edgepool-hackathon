@@ -426,7 +426,93 @@ paths:
                 properties:
                   success: { type: boolean }
                   total: { type: integer }
+                  data: { type: array, items: { type: object }, description: Active 5-trader roster }
+                  history: { type: array, items: { type: object }, description: Rotated-out memberships (display only) }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/pools/{id}/members:
+    get:
+      summary: KOL deposit allowlist for an owned partner pool (owner/ADMIN)
+      operationId: getPoolMembers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Allowlist
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, total, data]
+                properties:
+                  success: { type: boolean }
+                  total: { type: integer }
                   data: { type: array, items: { type: object } }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+    post:
+      summary: Add a KOL account to the deposit allowlist (owner/ADMIN)
+      operationId: addPoolMember
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId: { type: integer }
+                username: { type: string }
+              description: Provide either userId or username. Target account must have role KOL.
+      responses:
+        '200':
+          description: Added
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
+        '401': { $ref: '#/components/responses/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/ErrorEnvelope' }
+  /api/partner/pools/{id}/members/{userId}:
+    delete:
+      summary: Remove a KOL from the deposit allowlist (owner/ADMIN; owner cannot be removed)
+      operationId: removePoolMember
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data]
+                properties:
+                  success: { type: boolean }
+                  data: { type: object }
+        '400': { $ref: '#/components/responses/ErrorEnvelope' }
         '401': { $ref: '#/components/responses/ErrorEnvelope' }
         '403': { $ref: '#/components/responses/ErrorEnvelope' }
   /api/partner/pools/{id}/request-trader:

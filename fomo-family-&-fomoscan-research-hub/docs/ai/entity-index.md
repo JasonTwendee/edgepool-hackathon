@@ -1,6 +1,6 @@
 # Entity Index
 
-## Prisma models (`backend/prisma/schema.prisma`, 19 models — NEVER edit applied migrations)
+## Prisma models (`backend/prisma/schema.prisma`, 20 models — NEVER edit applied migrations)
 
 | Model | Table | Key fields | Notes |
 |---|---|---|---|
@@ -15,6 +15,7 @@
 | `EpochCheckpoint` | `epoch_checkpoints` | `vaultId`, `navSol/sharePrice/sharesOutstanding/feeSol`, chain `chainSig` | NAV series source |
 | `ChainEvent` | `chain_events` | `vaultId` FK cascade, `signature/ixIndex/eventIndex` unique, `kind`, `slot`, `payload` | append-only on-chain event mirror; idempotent upsert |
 | `VaultTrader` | `vault_traders` | `vaultId`, `wallet`, `weightBps`, `isActive`, `enteredAt`, `exitedAt`, `entrySnapshot`, `exitReason` | basket assignment + forward-only term/why-top |
+| `VaultMember` | `vault_members` | `vaultId`, `userId`, `addedByUserId`, `createdAt` | KOL deposit allowlist for partner pools; unique(`vaultId,userId`); basket pools ignore it |
 | `Bot` | `bots` | `name` unique, `mode` AUTO\|PAUSED, `vaultId`, `status` | per-pool engine |
 | `User` | `users` | `wallet`/`username` unique, `passwordHash` scrypt, `role` USER\|KOL\|ADMIN, `payoutWallet` + `payoutWalletVerifiedAt` | seeded admin/user/kol |
 | `Session` | `sessions` | `tokenHash` sha256 unique, `userId`, `expiresAt` | httpOnly cookie |
