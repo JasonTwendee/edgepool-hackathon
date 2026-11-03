@@ -211,7 +211,7 @@ function masterTxExplorerUrl(signature?: string | null): string | null {
 function TokenLink({ token, mint }: { token: string; mint?: string | null }) {
   const url = rugcheckTokenUrl(mint);
   return url ? (
-    <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'inherit' }} title={`RugCheck · ${mint}`}>
+    <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'var(--ep-aqua, #49E6D7)' }} title={`RugCheck · ${mint}`}>
       {token}
     </a>
   ) : <>{token}</>;
@@ -222,7 +222,7 @@ function TraderLink({ handle, wallet }: { handle?: string | null; wallet?: strin
   const label = clean ? `@${clean}` : wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : 'Trader';
   const url = fomoProfileUrl(clean);
   return url ? (
-    <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'inherit' }} title="Open Fomo profile">
+    <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'var(--ep-aqua, #49E6D7)' }} title="Open Fomo profile">
       {label}
     </a>
   ) : <>{label}</>;
