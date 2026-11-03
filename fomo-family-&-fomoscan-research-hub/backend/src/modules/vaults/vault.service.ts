@@ -135,7 +135,14 @@ function friendlySignalError(raw: string): string {
     return 'Market data temporarily unavailable — signal skipped.';
   }
   if (/^Qualify error:/i.test(text)) {
-    return text.length > 220 ? `${text.slice(0, 217)}…` : text;
+    const reason = text
+      .replace(/^Qualify error:\s*/i, '')
+      .replace(/^Qualify blocked:\s*/i, '')
+      .replace(/^Quality blocked:\s*/i, '')
+      .replace(/^risks:\s*/i, '')
+      .trim();
+    const friendly = reason ? `Risk check blocked this signal: ${reason}` : text;
+    return friendly.length > 220 ? `${friendly.slice(0, 217)}…` : friendly;
   }
   if (/^Slippage /i.test(text)) return text;
   return text.length > 180 ? `${text.slice(0, 177)}…` : text;
