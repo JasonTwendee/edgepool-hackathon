@@ -118,8 +118,9 @@ function signalDetail(o: any, legs: { leg: string }[]): string {
 }
 
 /**
- * Paywall (pool-math.ts): holding < 0.5 SOL sees $•••• / Trader • / •••.
- * Percent PnL stays visible. Applied server-side so curl can't bypass the UI.
+ * Paywall (pool-math.ts): holding < 0.5 SOL sees sizes/entries/live PnL as
+ * null/•••. Traceability (token, mint, trader, order id, tx hashes) stays
+ * public; applied server-side so curl can't bypass the economics mask.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: any[], exposure: any[], advanced: any): any {
@@ -128,20 +129,13 @@ function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: 
   if (!masked) return { positions: clean, signals, log, exposure, advanced };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Traceability is public: token/mint, trader/handle/wallet, order id and
+    // both tx hashes stay visible. Only position economics are paywalled.
     positions: clean.map((p: any) => ({
-      ...p, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
-      masterTxHash: null, copyTxSignature: null, sizeSol: null, entryPriceUsd: null, livePriceUsd: null,
+      ...p, sizeSol: null, entryPriceUsd: null, livePriceUsd: null,
     })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    signals: (signals as any[]).map((s: any) => ({
-      ...s, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
-      masterTxHash: null, copyTxSignature: null,
-    })),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    log: (log as any[]).map((l: any) => ({
-      ...l, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
-      masterTxHash: null, copyTxSignature: null,
-    })),
+    signals,
+    log,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exposure: (exposure as any[]).map((e: any) => ({ ...e, trader: 'Trader •' })),
     advanced: advanced
@@ -149,8 +143,7 @@ function maskPoolDetail(masked: boolean, positions: any[], signals: any[], log: 
           ...advanced,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ladder: ((advanced as any).ladder as any[]).map((l: any) => ({
-            ...l, token: '$••••', mint: null, trader: 'Trader •', traderHandle: null, traderWallet: null,
-            masterTxHash: null, copyTxSignature: null, entry: null, live: null, sizeSol: null,
+            ...l, entry: null, live: null, sizeSol: null, movePct: null,
           })),
         }
       : advanced,
@@ -862,19 +855,23 @@ export class VaultService {
     }));
     const holding = user ? await this.mine(vaultId, user) : null;
     const marks = await this.liveMarks(vaultId);
+    const policyVault = await this.prisma.vault.findUnique({
+      where: { id: vaultId },
+      select: { kind: true, ownerUserId: true },
+    });
     // Unlock counts queued deposits too: a fresh 0.5+ deposit opens signals
     // before the next epoch settles (prototype behavior; shares mint at settle).
     const queuedIn = holding
       ? (holding.queuedDeposits as { amountSol: number }[]).reduce((s, q) => s + num(q.amountSol), 0)
       : 0;
-    const masked = !holding || holding.valueSol + queuedIn < 0.5;
+    // Operators need the full tape for their own pool: owner KOL + ADMIN are
+    // never paywalled. Public/customer masking is unchanged.
+    const operatorView = user?.role === 'ADMIN' ||
+      (user?.role === 'KOL' && (policyVault?.ownerUserId as number | null) === user.id);
+    const masked = !operatorView && (!holding || holding.valueSol + queuedIn < 0.5);
     const advanced = await this.advancedView(vaultId, orders, withLegs, epochs, nav, solPx, exposure);
     const unmasked = maskPoolDetail(masked, positions, signals, log, exposure, advanced);
     const chain = await this.chainBlock(vaultId);
-    const policyVault = await this.prisma.vault.findUnique({
-      where: { id: vaultId },
-      select: { kind: true, ownerUserId: true },
-    });
     const access = await depositPolicy(
       this.prisma as unknown as PolicyPrisma,
       {

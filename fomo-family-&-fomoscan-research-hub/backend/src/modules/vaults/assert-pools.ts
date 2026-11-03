@@ -241,18 +241,21 @@ async function main(): Promise<void> {
   assert.equal((det.openPositions as Row[]).length, 1);
   assert.equal((((det.openPositions as Row[])[0] as Row).unrealizedPct as number), 100); // 10→20 on $10
   assert.equal((det.signals as Row[]).length, 2);
-  assert.equal(det.masked, true); // no user → masked
-  // Paywall: tokens/traders/sizes masked server-side, % PnL stays visible.
-  assert.equal((((det.openPositions as Row[])[0] as Row).token as string), '$••••');
+  assert.equal(det.masked, true); // no user → economics masked
+  // Paywall: sizes/entries/live prices masked; trace + % PnL stay public.
+  assert.equal((((det.openPositions as Row[])[0] as Row).token as string), 'T1');
+  assert.equal((((det.openPositions as Row[])[0] as Row).mint as string), 'M1');
   assert.equal((((det.openPositions as Row[])[0] as Row).unrealizedPct as number), 100);
   assert.equal((((det.openPositions as Row[])[0] as Row).sizeSol as null), null);
-  assert.equal((((det.signals as Row[])[0] as Row).token as string), '$••••');
+  assert.equal((((det.signals as Row[])[0] as Row).token as string), 'T1');
+  assert.equal((((det.signals as Row[])[0] as Row).mint as string), 'M1');
   assert.ok(Array.isArray(det.navSeries) && (det.navSeries as Row[]).length === 1);
   const adv = det.advanced as Row;
   assert.ok(adv && typeof (adv.kpis as Row).deployedPctNav === 'number');
   assert.ok(Array.isArray(adv.ladder) && (adv.ladder as Row[]).length === 1);
   assert.equal((((adv.ladder as Row[])[0] as Row).tp1Hit as boolean), true);
-  assert.equal((((adv.ladder as Row[])[0] as Row).token as string), '$••••');
+  assert.equal((((adv.ladder as Row[])[0] as Row).token as string), 'T1');
+  assert.equal((((adv.ladder as Row[])[0] as Row).mint as string), 'M1');
   // 5b. Queued deposit ≥ 0.5 unlocks signals before settle (prototype behavior).
   const dFake3 = {
     ...(dFake2 as unknown as Record<string, unknown>),

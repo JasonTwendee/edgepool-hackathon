@@ -208,8 +208,7 @@ function masterTxExplorerUrl(signature?: string | null): string | null {
   return signature ? `https://solscan.io/tx/${encodeURIComponent(signature)}` : null;
 }
 
-function TokenLink({ token, mint, locked }: { token: string; mint?: string | null; locked: boolean }) {
-  if (locked) return <>$••••</>;
+function TokenLink({ token, mint }: { token: string; mint?: string | null }) {
   const url = rugcheckTokenUrl(mint);
   return url ? (
     <a href={url} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: 'inherit' }} title={`RugCheck · ${mint}`}>
@@ -218,8 +217,7 @@ function TokenLink({ token, mint, locked }: { token: string; mint?: string | nul
   ) : <>{token}</>;
 }
 
-function TraderLink({ handle, wallet, locked }: { handle?: string | null; wallet?: string | null; locked: boolean }) {
-  if (locked) return <>Trader •</>;
+function TraderLink({ handle, wallet }: { handle?: string | null; wallet?: string | null }) {
   const clean = (handle ?? '').trim().replace(/^@/, '');
   const label = clean ? `@${clean}` : wallet ? `${wallet.slice(0, 6)}…${wallet.slice(-4)}` : 'Trader';
   const url = fomoProfileUrl(clean);
@@ -231,10 +229,9 @@ function TraderLink({ handle, wallet, locked }: { handle?: string | null; wallet
 }
 
 /** Compact audit trail: mint report + Fomo master tx + our copy tx. */
-function TraceLinks({ orderId, mint, masterTxHash, copyTxSignature, locked }: {
-  orderId?: number; mint?: string | null; masterTxHash?: string | null; copyTxSignature?: string | null; locked: boolean;
+function TraceLinks({ orderId, mint, masterTxHash, copyTxSignature }: {
+  orderId?: number; mint?: string | null; masterTxHash?: string | null; copyTxSignature?: string | null;
 }) {
-  if (locked) return null;
   const rug = rugcheckTokenUrl(mint);
   const master = masterTxExplorerUrl(masterTxHash);
   const copy = copyTxSignature ? txUrl(copyTxSignature) : null;
@@ -907,12 +904,12 @@ export default function PoolDetailPage() {
                   <div key={i} className="grid" style={{ gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center', padding: '11px 0', borderTop: '1px solid var(--ep-border, #2E313F)' }}>
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <span className="text-sm font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>
-                        <TokenLink token={p.token} mint={p.mint} locked={locked} />
+                        <TokenLink token={p.token} mint={p.mint} />
                       </span>
                       <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                        <TraderLink handle={p.traderHandle} wallet={p.traderWallet} locked={locked} /> · {stage}
+                        <TraderLink handle={p.traderHandle} wallet={p.traderWallet} /> · {stage}
                       </span>
-                      <TraceLinks orderId={p.id} mint={p.mint} masterTxHash={p.masterTxHash} copyTxSignature={p.copyTxSignature} locked={locked} />
+                      <TraceLinks orderId={p.id} mint={p.mint} masterTxHash={p.masterTxHash} copyTxSignature={p.copyTxSignature} />
                     </div>
                     <div className="flex flex-col items-end gap-0.5">
                       <span className="font-mono text-sm" style={{ color: up ? 'var(--ep-profit, #73DEA4)' : 'var(--ep-neg, #F28881)' }}>
@@ -939,7 +936,7 @@ export default function PoolDetailPage() {
             {locked && (
               <div className="flex items-center gap-2.5 text-xs" style={{ padding: '12px 14px', borderRadius: 10, background: '#2B2741', color: '#D2CEFD', lineHeight: 1.45 }}>
                 <LockSimple size={16} weight="regular" style={{ flexShrink: 0 }} />
-                <span className="flex-1">Tokens, contract addresses and entries unlock with a 0.5 SOL deposit.</span>
+                <span className="flex-1">Position sizes, entry prices and live PnL unlock with a 0.5 SOL deposit. Tokens, traders and transactions stay public.</span>
                 <button
                   onClick={() => document.getElementById('deposit-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                   className="font-medium shrink-0"
@@ -967,10 +964,10 @@ export default function PoolDetailPage() {
                           <div className="flex justify-between items-center gap-2">
                             <span>
                               <b className="font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>
-                                <TokenLink token={s.token} mint={s.mint} locked={locked} />
+                                <TokenLink token={s.token} mint={s.mint} />
                               </b>
                               {' '}<span style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                                via <TraderLink handle={s.traderHandle} wallet={s.traderWallet} locked={locked} />
+                                via <TraderLink handle={s.traderHandle} wallet={s.traderWallet} />
                               </span>
                             </span>
                             <span className="font-mono shrink-0" style={{ fontSize: 11, color: 'var(--ep-faint, #75798C)' }}>{age}</span>
@@ -986,9 +983,10 @@ export default function PoolDetailPage() {
                             })}
                           </div>
                           <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                            {locked ? 'Size, price and contract address hidden' : s.detail || s.note}
+                            {s.detail || s.note}
+                            {locked ? ' · size & entry locked' : ''}
                           </span>
-                          <TraceLinks orderId={s.id} mint={s.mint} masterTxHash={s.masterTxHash} copyTxSignature={s.copyTxSignature} locked={locked} />
+                          <TraceLinks orderId={s.id} mint={s.mint} masterTxHash={s.masterTxHash} copyTxSignature={s.copyTxSignature} />
                         </div>
                       );
                     })}
@@ -1029,7 +1027,7 @@ export default function PoolDetailPage() {
                   </span>
                   <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
                     <span className="flex items-center gap-1.5 text-sm font-medium">
-                      <TraderLink handle={t.handle} wallet={t.wallet} locked={locked} />
+                      <TraderLink handle={t.handle} wallet={t.wallet} />
                       {!locked && fomoProfileUrl(t.handle) ? (
                         <a href={fomoProfileUrl(t.handle) as string} target="_blank" rel="noreferrer" aria-label={`Open ${t.handle} on Fomo`} style={{ color: 'var(--ep-faint, #75798C)' }}>
                           <ArrowSquareOut size={12} weight="regular" />
@@ -1473,7 +1471,7 @@ function AdvancedView({
             <LockSimple size={24} weight="regular" style={{ color: '#B5ABFC', flexShrink: 0 }} />
             <div className="flex flex-col gap-[3px]">
               <span className="text-[15px] font-medium">Deposit 0.5 SOL or more</span>
-              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Unlocks tokens, traders, sizes and the full execution log.</span>
+              <span className="text-[13px]" style={{ color: 'var(--ep-muted, #9397AB)' }}>Unlocks position sizes, entry prices and live PnL. Token/trader/transaction trace stays public.</span>
             </div>
           </div>
         )}
@@ -1622,10 +1620,10 @@ function AdvancedView({
                   return (
                     <div key={i} className="grid items-center text-[13px]" style={{ gridTemplateColumns: '96px 100px 84px 110px minmax(240px,1fr) 104px 130px 86px', gap: 14, padding: '11px 20px', borderBottom: '1px solid #26283A' }}>
                       <span className="font-medium" style={{ letterSpacing: locked ? '0.12em' : 0 }}>
-                        <TokenLink token={l.token} mint={l.mint} locked={locked} />
+                        <TokenLink token={l.token} mint={l.mint} />
                       </span>
                       <span className="text-xs" style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                        <TraderLink handle={l.traderHandle} wallet={l.traderWallet} locked={locked} />
+                        <TraderLink handle={l.traderHandle} wallet={l.traderWallet} />
                       </span>
                       <span className="font-mono text-xs">{locked || sizeSol === null ? '•••' : `${sizeSol.toFixed(2)} SOL`}</span>
                       <span className="flex flex-col gap-[1px]">
@@ -1690,12 +1688,12 @@ function AdvancedView({
             <div className="flex flex-col gap-0.5 min-w-0">
               <span>
                 <span className="font-medium" style={{ color: l.kind === 'skip' ? 'var(--ep-amber, #F0BE67)' : 'var(--ep-violet, #9184D9)' }}>{l.event}</span>
-                {' · '}<span style={{ letterSpacing: locked ? '0.12em' : 0 }}><TokenLink token={l.token} mint={l.mint} locked={locked} /></span>
+                {' · '}<span style={{ letterSpacing: locked ? '0.12em' : 0 }}><TokenLink token={l.token} mint={l.mint} /></span>
               </span>
               <span style={{ color: 'var(--ep-muted, #9397AB)' }}>
-                <TraderLink handle={l.traderHandle} wallet={l.traderWallet} locked={locked} /> · {l.detail}
+                <TraderLink handle={l.traderHandle} wallet={l.traderWallet} /> · {l.detail}
               </span>
-              <TraceLinks orderId={l.id} mint={l.mint} masterTxHash={l.masterTxHash} copyTxSignature={l.copyTxSignature} locked={locked} />
+              <TraceLinks orderId={l.id} mint={l.mint} masterTxHash={l.masterTxHash} copyTxSignature={l.copyTxSignature} />
             </div>
           </div>
         ))}
