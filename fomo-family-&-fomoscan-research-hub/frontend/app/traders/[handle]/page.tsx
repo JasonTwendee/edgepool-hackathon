@@ -81,9 +81,6 @@ export default function TraderProfilePage() {
                   <span className="font-mono text-sm" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>@{data.handle}</span>
                   {data.bio && <p className="text-sm mt-1" style={{ color: 'var(--ep-text-3, #B2B6CA)', maxWidth: 640 }}>{data.bio}</p>}
                   <div className="flex gap-2 flex-wrap mt-3">
-                    <a href={data.fomoUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg" style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-text, #E9E9ED)' }}>
-                      Open on Fomo <ArrowSquareOut size={13} />
-                    </a>
                     <a href={data.fomoScanLeaderboardUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg" style={{ border: '1px solid var(--ep-aqua, #49E6D7)', color: 'var(--ep-aqua, #49E6D7)' }}>
                       FomoScan leaderboard <ArrowSquareOut size={13} />
                     </a>
@@ -92,9 +89,18 @@ export default function TraderProfilePage() {
                         <XLogo size={13} /> X profile
                       </a>
                     )}
+                    <button
+                      onClick={() => {
+                        const url = data.fomoUrl;
+                        void navigator.clipboard.writeText(url).catch(() => undefined);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg"
+                      style={{ border: '1px solid var(--ep-border-strong, #3F424D)', color: 'var(--ep-muted, #9397AB)' }}>
+                      Copy Fomo link
+                    </button>
                   </div>
                   <span className="text-[11px] mt-2" style={{ color: 'var(--ep-faint, #75798C)' }}>
-                    Fomo profile links require a Fomo login. FomoScan leaderboard is public.
+                    Fomo profile pages require a Fomo login; this Edgepool profile is public. FomoScan leaderboard is public.
                   </span>
                 </div>
               </div>
