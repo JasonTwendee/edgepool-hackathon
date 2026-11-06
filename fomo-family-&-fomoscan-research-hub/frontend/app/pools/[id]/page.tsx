@@ -35,6 +35,9 @@ import { connectBrowserWallet, getInjectedProvider, signWithBrowserWallet } from
 import { SiteFooter, SiteHeader } from '../../../components/SiteHeader';
 import { Toaster, toast } from '../../../components/Toaster';
 
+/** Shared height for the Open positions / Live signals split panel. */
+const SIDE_PANEL_HEIGHT = 'clamp(420px, 72vh, 640px)';
+
 function newOperationKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -869,8 +872,8 @@ export default function PoolDetailPage() {
             </div>
           </section>
 
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 20, alignItems: 'start' }}>
-          <section style={{ padding: '18px 20px', borderRadius: 14, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column' }}>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,320px),1fr))', gap: 20, alignItems: 'stretch' }}>
+          <section style={{ padding: '18px 20px', borderRadius: 14, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', height: SIDE_PANEL_HEIGHT, minHeight: 0 }}>
             <div className="flex items-baseline justify-between gap-2" style={{ paddingBottom: 8 }}>
               <h2 className="font-mono text-[11px] tracking-widest uppercase" style={{ color: 'var(--ep-faint, #75798C)' }}>Open positions · {pool.openCount}</h2>
               {(() => {
@@ -884,6 +887,7 @@ export default function PoolDetailPage() {
                 );
               })()}
             </div>
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2, scrollbarWidth: 'thin' }}>
             {pool.openPositions.length === 0 ? (
               <span style={{ padding: '14px 0', borderTop: '1px solid var(--ep-border, #2E313F)', fontSize: 13, color: 'var(--ep-muted, #9397AB)' }}>
                 No open positions. This pool is flat, so withdrawals are instant.
@@ -916,9 +920,10 @@ export default function PoolDetailPage() {
                 );
               })
             )}
+            </div>
           </section>
 
-          <section style={{ padding: '18px 20px', borderRadius: 14, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <section style={{ padding: '18px 20px', borderRadius: 14, background: 'var(--ep-surface, #1D1F2C)', boxShadow: '0 0 0 1px var(--ep-border, #2E313F)', display: 'flex', flexDirection: 'column', gap: 10, height: SIDE_PANEL_HEIGHT, minHeight: 0 }}>
             <div className="flex justify-between items-center gap-2">
               <span className="flex items-center gap-2 font-mono" style={{ fontSize: 11, letterSpacing: '0.12em', color: 'var(--ep-aqua, #49E6D7)' }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ep-aqua, #49E6D7)', boxShadow: '0 0 8px var(--ep-aqua, #49E6D7)' }} />
@@ -949,7 +954,7 @@ export default function PoolDetailPage() {
               const items = pool.signals.slice(start, start + SIG_PAGE_SIZE);
               return (
                 <>
-                  <div className="flex flex-col" style={{ gap: 10, maxHeight: 560, overflowY: 'auto', paddingRight: 2, scrollbarWidth: 'thin' }}>
+                  <div className="flex flex-col" style={{ gap: 10, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 2, scrollbarWidth: 'thin' }}>
                     {items.map((s, i) => {
                       const age = s.ageSec < 60 ? `${Math.floor(s.ageSec)}s` : s.ageSec < 3600 ? `${Math.floor(s.ageSec / 60)}m` : `${Math.floor(s.ageSec / 3600)}h`;
                       return (
