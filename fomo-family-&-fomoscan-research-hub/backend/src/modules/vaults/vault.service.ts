@@ -912,12 +912,19 @@ export class VaultService {
       },
       user,
     );
+    const navSeries = epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) }));
+    const lastEpochAt = epochs.length > 0
+      ? new Date(epochs[epochs.length - 1].createdAt as unknown as string).getTime()
+      : 0;
+    if (marks.live && (!lastEpochAt || Date.now() - lastEpochAt > 60_000)) {
+      navSeries.push({ t: Date.now(), v: marks.liveSharePrice });
+    }
     return {
       ...base,
       depositPolicy: access.policy,
       canDeposit: access.allowed,
       depositBlockedReason: access.reason,
-      navSeries: epochs.map((e) => ({ t: new Date(e.createdAt as unknown as string).getTime(), v: num(e.sharePrice) })),
+      navSeries,
       liveNavSol: marks.liveNavSol,
       liveSharePrice: marks.liveSharePrice,
       live: marks.live,
@@ -1593,6 +1600,15 @@ export class VaultService {
     for (const v of vaults) {
       const eps = epochs.filter((e) => e.vaultId === v.id);
       const last = eps[eps.length - 1];
+      // Epochs only advance on deposits/withdrawals/settles. When the last
+      // checkpoint is stale, price the PnL from current MTM marks instead of
+      // comparing an old epoch to itself (which shows a misleading +0.00%).
+      let priceNow = last ? num(last.sharePrice) : 0;
+      const lastAt = last ? new Date(last.createdAt as unknown as string).getTime() : 0;
+      if (!lastAt || Date.now() - lastAt > 60 * 60 * 1000) {
+        const live = await this.liveMarks(v.id);
+        if (live.live) priceNow = live.liveSharePrice;
+      }
       const pnl: Record<string, { sol: number; pct: number }> = {};
       for (const [key, days] of [['day', 1], ['week', 7], ['month', 30], ['all', 36500]] as const) {
         const cut = Date.now() - days * 86400000;
@@ -1602,7 +1618,6 @@ export class VaultService {
         // prints a contradictory "+X SOL at +0.0%".
         const funded = eps.filter((e) => num(e.navSol) > 0 && num(e.sharePrice) > 0);
         const base = [...funded].reverse().find((e) => new Date(e.createdAt as unknown as string).getTime() < cut) ?? funded[0];
-        const priceNow = last ? num(last.sharePrice) : 0;
         const priceBase = base ? num(base.sharePrice) : priceNow;
         const sharesNow = last && num(last.sharesOutstanding) > 0 ? num(last.sharesOutstanding) : num(v.totalShares);
         // Performance must be measured on share price; deposits/withdrawals
