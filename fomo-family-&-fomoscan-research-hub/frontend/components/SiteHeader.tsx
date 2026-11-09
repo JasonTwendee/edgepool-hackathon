@@ -116,6 +116,7 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
           <div className="relative">
             <button
               onClick={() => (session ? setMenuOpen((o) => !o) : setLoginOpen(true))}
+              suppressHydrationWarning
               className="flex items-center gap-2 text-sm font-medium px-3 rounded-lg"
               style={{
                 height: 38,
@@ -124,7 +125,7 @@ export function SiteHeader({ active, viewToggle }: { active: SiteNav; viewToggle
               }}
             >
               <Wallet size={17} weight="regular" />
-              <span className="hidden sm:inline font-mono text-xs">{session ? label : 'Connect wallet'}</span>
+              <span suppressHydrationWarning className="hidden sm:inline font-mono text-xs">{session ? label : 'Connect wallet'}</span>
             </button>
             {menuOpen && session && (
               <>

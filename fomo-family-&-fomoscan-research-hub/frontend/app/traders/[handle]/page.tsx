@@ -271,7 +271,14 @@ export default function TraderProfilePage() {
                     );
                   })}
                   {data.pools.length === 0 && (
-                    <span className="text-sm py-2" style={{ color: 'var(--ep-muted, #9397AB)' }}>Not in an active pool roster.</span>
+                    <div className="flex flex-col gap-3 py-2">
+                      <span className="text-sm" style={{ color: 'var(--ep-muted, #9397AB)' }}>
+                        Not in an active pool roster right now.
+                      </span>
+                      <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-bold" style={{ color: 'var(--ep-aqua, #49E6D7)' }}>
+                        Explore Edgepool pools <ArrowUpRight size={13} />
+                      </Link>
+                    </div>
                   )}
                 </div>
               </section>
